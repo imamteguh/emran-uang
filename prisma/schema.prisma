@@ -1,0 +1,301 @@
+// ─────────────────────────────────────────────────────────────────────────────
+// Emran Uang — Personal & Shared Expense Tracker
+// Prisma Schema  ·  PostgreSQL on Neon (Serverless)
+// ─────────────────────────────────────────────────────────────────────────────
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL") // Neon requires a direct (non-pooled) URL for migrations
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// 1. ENUMS
+// ═══════════════════════════════════════════════════════════════════════════════
+
+enum AuthProvider {
+  EMAIL
+  GOOGLE
+}
+
+enum SharedGroupRole {
+  OWNER   // the user who created the group
+  MEMBER  // a user who joined via invite
+}
+
+enum SharedGroupStatus {
+  PENDING   // group created, waiting for members to join
+  ACTIVE    // at least one member has joined — shared wallet is live
+  ARCHIVED  // group archived (soft-delete, history preserved)
+}
+
+enum WalletType {
+  PERSONAL
+  SHARED
+}
+
+enum ExpenseType {
+  ROUTINE     // fixed / recurring (rent, subscriptions, insurance)
+  NON_ROUTINE // variable / one-off  (dining out, impulse buys)
+}
+
+enum Periodicity {
+  DAILY
+  WEEKLY
+  MONTHLY
+  YEARLY
+}
+
+enum ReminderStatus {
+  ACTIVE
+  SNOOZED
+  COMPLETED
+  CANCELLED
+}
+
+enum InviteStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  EXPIRED
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// 2. USER
+// ═══════════════════════════════════════════════════════════════════════════════
+
+model User {
+  id            String       @id @default(cuid())
+  email         String       @unique
+  passwordHash  String?      // null when using Google Auth
+  displayName   String
+  avatarUrl     String?
+  authProvider  AuthProvider @default(EMAIL)
+  googleId      String?      @unique // Google OAuth subject ID
+
+  // ── Timestamps ───────────────────────────────────────────────────────────
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // ── Relations ────────────────────────────────────────────────────────────
+  sharedGroupMembers SharedGroupMember[]
+  wallets            Wallet[]
+  expenses           Expense[]        // expenses *created by* this user
+  billReminders      BillReminder[]
+  categories         Category[]       // user-defined custom categories
+  sentInvites        SharedGroupInvite[]   @relation("InviteSender")
+  receivedInvites    SharedGroupInvite[]   @relation("InviteReceiver")
+
+  @@map("users")
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// 3. SHARED GROUPS  (Group + Membership + Invite)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/// A shared group is a container for data sharing between multiple users.
+/// It owns the shared wallet and acts as the tenant boundary for
+/// shared expenses and analytics.
+model SharedGroup {
+  id        String            @id @default(cuid())
+  name      String?           // optional group name: "Keluarga Emran"
+  status    SharedGroupStatus @default(PENDING)
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  archivedAt  DateTime?
+
+  // ── Relations ────────────────────────────────────────────────────────────
+  members       SharedGroupMember[]
+  sharedWallets Wallet[]             // wallets with type = SHARED
+  invites       SharedGroupInvite[]
+
+  @@map("shared_groups")
+}
+
+/// Junction table — members of a shared group (no limit on count).
+model SharedGroupMember {
+  id       String          @id @default(cuid())
+  role     SharedGroupRole
+
+  userId   String
+  user     User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  groupId  String
+  group    SharedGroup     @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  joinedAt DateTime        @default(now())
+
+  @@unique([groupId, userId]) // a user can only be in a group once
+  @@map("shared_group_members")
+}
+
+/// Invitation flow — one user invites another by email.
+model SharedGroupInvite {
+  id        String       @id @default(cuid())
+  status    InviteStatus @default(PENDING)
+
+  senderId   String
+  sender     User   @relation("InviteSender", fields: [senderId], references: [id], onDelete: Cascade)
+
+  receiverId String?
+  receiver   User?  @relation("InviteReceiver", fields: [receiverId], references: [id], onDelete: SetNull)
+
+  // If the receiver doesn't have an account yet, store their email so we
+  // can match them when they sign up.
+  receiverEmail String
+
+  groupId  String
+  group    SharedGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("shared_group_invites")
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// 4. WALLETS
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/// Every user gets a PERSONAL wallet on sign-up.
+/// When a shared group is formed, a SHARED wallet is created and linked to the group.
+model Wallet {
+  id           String     @id @default(cuid())
+  name         String     @default("My Wallet")
+  type         WalletType @default(PERSONAL)
+  currency     String     @default("IDR") // ISO 4217
+  dailyBudget  Decimal?   @db.Decimal(15, 2) // daily budget limit
+
+  // ── Ownership ────────────────────────────────────────────────────────────
+  // PERSONAL wallets → userId is set, groupId is null
+  // SHARED   wallets → groupId is set, userId is null
+  userId   String?
+  user     User?        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  groupId  String?
+  group    SharedGroup? @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // ── Relations ────────────────────────────────────────────────────────────
+  expenses      Expense[]
+  billReminders BillReminder[]
+
+  @@index([userId])
+  @@index([groupId])
+  @@map("wallets")
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// 5. CATEGORIES
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/// Categories can be system-wide defaults (userId = null) or user-created.
+/// For shared groups, each member keeps their own custom categories; they also
+/// share the system defaults.
+model Category {
+  id        String  @id @default(cuid())
+  name      String  // e.g. "Groceries", "Netflix", "Date Night"
+  icon      String  // icon identifier (e.g. "mdi:food" or emoji)
+  color     String  // hex color code "#FF6B6B"
+
+  // null → system default category (seeded on deploy)
+  userId    String?
+  user      User?   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  isDefault Boolean @default(false) // true for seeded system categories
+  isActive  Boolean @default(true)  // soft-delete / hide
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // ── Relations ────────────────────────────────────────────────────────────
+  expenses      Expense[]
+  billReminders BillReminder[]
+
+  @@unique([userId, name]) // no duplicate names per user (or per system set)
+  @@map("categories")
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// 6. EXPENSES
+// ═══════════════════════════════════════════════════════════════════════════════
+
+model Expense {
+  id          String      @id @default(cuid())
+  amount      Decimal     @db.Decimal(15, 2) // supports up to trillions of IDR
+  description String?
+  date        DateTime                       // the date and time of the expense
+  type        ExpenseType @default(NON_ROUTINE)
+
+  // ── Foreign keys ─────────────────────────────────────────────────────────
+  // "createdBy" — the user who logged this expense
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  walletId   String
+  wallet     Wallet   @relation(fields: [walletId], references: [id], onDelete: Cascade)
+
+  categoryId String
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+
+  // Optional link back to a bill reminder (auto-logged expenses)
+  billReminderId String?
+  billReminder   BillReminder? @relation(fields: [billReminderId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // ── Indexes for analytics queries ────────────────────────────────────────
+  @@index([walletId, date])
+  @@index([userId, date])
+  @@index([categoryId])
+  @@index([type])
+  @@map("expenses")
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// 7. BILL REMINDERS
+// ═══════════════════════════════════════════════════════════════════════════════
+
+model BillReminder {
+  id          String         @id @default(cuid())
+  title       String         // "Netflix", "Electricity Bill"
+  amount      Decimal        @db.Decimal(15, 2)
+  dueDate     DateTime       @db.Date          // next due date
+  periodicity Periodicity    @default(MONTHLY)
+  status      ReminderStatus @default(ACTIVE)
+
+  // ── Foreign keys ─────────────────────────────────────────────────────────
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  walletId   String
+  wallet     Wallet   @relation(fields: [walletId], references: [id], onDelete: Cascade)
+
+  categoryId String?
+  category   Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+
+  // ── Reminder behaviour ───────────────────────────────────────────────────
+  notifyDaysBefore Int      @default(3) // push notification X days before due
+  autoLogExpense   Boolean  @default(false) // automatically create an Expense on due date
+  lastNotifiedAt   DateTime?
+  lastTriggeredAt  DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // ── Relations ────────────────────────────────────────────────────────────
+  expenses Expense[] // expenses auto-generated from this reminder
+
+  @@index([userId, status])
+  @@index([dueDate])
+  @@map("bill_reminders")
+}

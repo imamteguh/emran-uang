@@ -1,0 +1,37 @@
+{
+  "name": "emran-uang-api",
+  "version": "1.0.0",
+  "description": "Emran Uang — Personal & Couples Expense Tracker API",
+  "main": "api/index.js",
+  "scripts": {
+    "dev": "node --watch api/index.js",
+    "start": "node api/index.js",
+    "db:generate": "npx prisma generate",
+    "db:push": "npx prisma db push",
+    "db:migrate": "npx prisma migrate dev",
+    "db:seed": "node prisma/seed.js",
+    "db:studio": "npx prisma studio",
+    "vercel:dev": "vercel dev",
+    "lint": "echo \"No linter configured yet\""
+  },
+  "prisma": {
+    "seed": "node prisma/seed.js"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.9.0",
+    "express": "^4.21.2",
+    "cors": "^2.8.5",
+    "helmet": "^8.1.0",
+    "express-rate-limit": "^7.5.0",
+    "bcryptjs": "^2.4.3",
+    "jsonwebtoken": "^9.0.2",
+    "google-auth-library": "^9.15.1"
+  },
+  "devDependencies": {
+    "prisma": "^6.9.0",
+    "dotenv": "^16.4.7"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
