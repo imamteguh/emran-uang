@@ -9,6 +9,7 @@ import '../../../auth/presentation/screens/change_password_screen.dart';
 import '../../../auth/presentation/screens/update_profile_screen.dart';
 import '../providers/dashboard_provider.dart';
 import '../widgets/user_avatar.dart';
+import 'categories_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -134,6 +135,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               context,
                               MaterialPageRoute(
                                 builder: (_) => const ChangePasswordScreen(),
+                              ),
+                            );
+                          },
+                        ),
+                        const Divider(height: 1, color: Color(0xFFF1F5F9)),
+                        _buildSettingsItem(
+                          icon: Icons.category_outlined,
+                          title: 'Manage Categories',
+                          subtitle: 'Create and edit custom categories',
+                          iconColor: AppTheme.tertiary,
+                          bgIconColor: AppTheme.tertiary.withAlpha(25),
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const CategoriesScreen(),
                               ),
                             );
                           },

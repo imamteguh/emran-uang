@@ -75,7 +75,7 @@ class AppTheme {
 
   // Aliases for backward compatibility
   static final BorderRadius roundedBorder = radiusLg; // Cards: rounded-xl (32px)
-  static final BorderRadius inputBorderRadius = radiusDefault; // Inputs: rounded-lg (16px)
+  static final BorderRadius inputBorderRadius = radiusMd; // Inputs: rounded-md (24px)
 
   // ── Spacing (Stitch Guidelines) ──────────────────────────────────────────
   static const double spaceBase = 4.0;

@@ -56,7 +56,7 @@ class _MainShellScreenState extends State<MainShellScreen> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                _buildNavItem(0, Icons.dashboard, 'Dashboard'),
+                _buildNavItem(0, Icons.account_balance_wallet, 'Wallet'),
                 _buildNavItem(1, Icons.analytics, 'Analysis'),
                 _buildNavItem(2, Icons.receipt_long, 'Bills'),
                 _buildNavItem(3, Icons.person, 'Profile'),

@@ -6,6 +6,7 @@ class WalletEntity {
   final WalletType type;
   final String currency;
   final double? dailyBudget;
+  final List<dynamic>? groupMembers;
 
   WalletEntity({
     required this.id,
@@ -13,6 +14,7 @@ class WalletEntity {
     required this.type,
     required this.currency,
     this.dailyBudget,
+    this.groupMembers,
   });
 
   factory WalletEntity.fromJson(Map<dynamic, dynamic> json) {
@@ -24,12 +26,19 @@ class WalletEntity {
       parsedBudget = double.tryParse(rawBudget);
     }
 
+    List<dynamic>? members;
+    final groupData = json['group'];
+    if (groupData is Map && groupData['members'] is List) {
+      members = groupData['members'];
+    }
+
     return WalletEntity(
       id: json['id'] as String,
       name: json['name'] as String,
       type: json['type'] == 'SHARED' ? WalletType.shared : WalletType.personal,
       currency: json['currency'] as String? ?? 'IDR',
       dailyBudget: parsedBudget,
+      groupMembers: members,
     );
   }
 }

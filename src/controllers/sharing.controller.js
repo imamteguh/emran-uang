@@ -121,7 +121,7 @@ async function acceptInvite(req, res) {
   if (invite.receiverId && invite.receiverId !== userId) {
     return error(res, 'Undangan ini bukan untuk Anda', 403);
   }
-  if (!invite.receiverId && invite.receiverEmail !== req.user.email) {
+  if (!invite.receiverId && invite.receiverEmail.toLowerCase().trim() !== req.user.email.toLowerCase().trim()) {
     return error(res, 'Undangan ini bukan untuk Anda', 403);
   }
 
@@ -214,7 +214,7 @@ async function rejectInvite(req, res) {
   if (invite.receiverId && invite.receiverId !== userId) {
     return error(res, 'Undangan ini bukan untuk Anda', 403);
   }
-  if (!invite.receiverId && invite.receiverEmail !== req.user.email) {
+  if (!invite.receiverId && invite.receiverEmail.toLowerCase().trim() !== req.user.email.toLowerCase().trim()) {
     return error(res, 'Undangan ini bukan untuk Anda', 403);
   }
 

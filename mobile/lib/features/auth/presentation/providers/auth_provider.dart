@@ -268,7 +268,7 @@ class AuthProvider extends ChangeNotifier {
       // 1. Trigger Google Sign-In flow
       final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
       if (googleUser == null) {
-        _errorMessage = 'Google sign-in canceled by user';
+        _errorMessage = null; // Canceled by user
         _isLoading = false;
         notifyListeners();
         return false;
@@ -285,7 +285,12 @@ class AuthProvider extends ChangeNotifier {
       );
     } catch (e) {
       debugPrint('Google sign-in error: $e');
-      _errorMessage = e.toString();
+      final errStr = e.toString();
+      if (errStr.contains('popup_closed') || errStr.contains('canceled')) {
+        _errorMessage = null; // Canceled or popup closed by user
+      } else {
+        _errorMessage = errStr;
+      }
     }
 
     _isLoading = false;

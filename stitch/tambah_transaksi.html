@@ -1,0 +1,320 @@
+<!DOCTYPE html><html class="light" lang="en"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>Add Transaction - WalletShare</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=Be+Vietnam+Pro:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .active-category {
+            box-shadow: 0 0 0 2px var(--tw-primary);
+        }
+        .squishy-active:active {
+            transform: scale(0.95);
+        }
+        .custom-shadow {
+            box-shadow: 0 15px 30px -10px rgba(0, 75, 198, 0.08);
+        }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-background": "#191c1e",
+                        "surface-container-highest": "#e0e3e5",
+                        "on-error": "#ffffff",
+                        "on-primary-fixed-variant": "#003ea7",
+                        "tertiary": "#7e4726",
+                        "primary": "#004bc6",
+                        "on-error-container": "#93000a",
+                        "on-primary-container": "#eeefff",
+                        "outline": "#737686",
+                        "on-secondary-fixed-variant": "#00513b",
+                        "on-surface-variant": "#434655",
+                        "surface-bright": "#f7f9fb",
+                        "outline-variant": "#c3c6d7",
+                        "error": "#ba1a1a",
+                        "primary-fixed-dim": "#b4c5ff",
+                        "surface-container-high": "#e6e8ea",
+                        "tertiary-container": "#9b5e3b",
+                        "on-secondary-fixed": "#002116",
+                        "error-container": "#ffdad6",
+                        "surface-container": "#eceef0",
+                        "surface-variant": "#e0e3e5",
+                        "on-secondary": "#ffffff",
+                        "on-tertiary-fixed-variant": "#6d3919",
+                        "tertiary-fixed": "#ffdbca",
+                        "primary-container": "#2463eb",
+                        "surface-dim": "#d8dadc",
+                        "on-tertiary-fixed": "#331200",
+                        "on-primary": "#ffffff",
+                        "on-primary-fixed": "#00174b",
+                        "secondary-fixed-dim": "#90d5b7",
+                        "secondary-container": "#a8eecf",
+                        "surface-tint": "#0053da",
+                        "inverse-surface": "#2d3133",
+                        "primary-fixed": "#dbe1ff",
+                        "inverse-primary": "#b4c5ff",
+                        "inverse-on-surface": "#eff1f3",
+                        "surface": "#f7f9fb",
+                        "surface-container-low": "#f2f4f6",
+                        "secondary": "#246a52",
+                        "on-tertiary": "#ffffff",
+                        "secondary-fixed": "#abf1d2",
+                        "on-surface": "#191c1e",
+                        "on-tertiary-container": "#ffede5",
+                        "on-secondary-container": "#296e56",
+                        "background": "#f7f9fb",
+                        "tertiary-fixed-dim": "#ffb68f",
+                        "surface-container-lowest": "#ffffff"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "1rem",
+                        "lg": "2rem",
+                        "xl": "3rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "lg": "24px",
+                        "xl": "32px",
+                        "md": "16px",
+                        "xs": "4px",
+                        "base": "4px",
+                        "gutter": "16px",
+                        "margin-mobile": "20px",
+                        "sm": "8px"
+                    },
+                    "fontFamily": {
+                        "headline-md": ["Plus Jakarta Sans"],
+                        "body-md": ["Be Vietnam Pro"],
+                        "headline-sm": ["Plus Jakarta Sans"],
+                        "price-display": ["Plus Jakarta Sans"],
+                        "headline-lg": ["Plus Jakarta Sans"],
+                        "body-lg": ["Be Vietnam Pro"],
+                        "label-sm": ["Be Vietnam Pro"],
+                        "label-md": ["Be Vietnam Pro"],
+                        "headline-lg-mobile": ["Plus Jakarta Sans"]
+                    },
+                    "fontSize": {
+                        "headline-md": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                        "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                        "headline-sm": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                        "price-display": ["40px", {"lineHeight": "48px", "letterSpacing": "-0.03em", "fontWeight": "800"}],
+                        "headline-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                        "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}],
+                        "label-sm": ["12px", {"lineHeight": "16px", "fontWeight": "500"}],
+                        "label-md": ["14px", {"lineHeight": "20px", "letterSpacing": "0.05em", "fontWeight": "600"}],
+                        "headline-lg-mobile": ["28px", {"lineHeight": "36px", "letterSpacing": "-0.02em", "fontWeight": "700"}]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background font-body-md text-on-surface min-h-screen pb-32">
+<!-- TopAppBar -->
+<header class="bg-background dark:bg-on-background flex justify-between items-center px-margin-mobile py-md w-full sticky top-0 z-40 docked full-width"><button class="flex items-center gap-sm px-md py-sm bg-surface-container-low rounded-full hover:bg-surface-container-high transition-colors active:scale-95">
+<span class="material-symbols-outlined text-primary" data-icon="account_balance_wallet">account_balance_wallet</span>
+<span class="text-label-md font-label-md text-on-surface">Main Wallet</span>
+<span class="material-symbols-outlined text-on-surface-variant text-[20px]">keyboard_arrow_down</span>
+</button>
+<button class="w-12 h-12 flex items-center justify-center rounded-full hover:bg-surface-container-high transition-colors active:scale-95">
+<span class="material-symbols-outlined text-primary text-[28px]" data-icon="notifications">notifications</span>
+</button></header>
+<main class="px-margin-mobile pt-md max-w-lg mx-auto">
+<!-- Close/Back Action -->
+<div class="flex items-center mb-xl">
+<button class="p-base squishy-active" onclick="window.history.back()">
+<span class="material-symbols-outlined text-on-surface-variant">arrow_back</span>
+</button>
+<h1 class="ml-md text-headline-sm font-headline-sm text-on-surface">Add Transaction</h1>
+</div>
+<!-- Amount Input Section -->
+<section class="mb-xl text-center">
+<div class="flex flex-col items-center">
+<span class="text-label-md font-label-md text-on-surface-variant mb-xs">Enter Amount</span>
+<div class="flex items-baseline justify-center text-primary">
+<span class="text-headline-lg font-headline-lg mr-xs">$</span>
+<input autofocus="" class="bg-transparent border-none focus:ring-0 text-price-display font-price-display text-center w-full max-w-[240px] placeholder-primary-fixed-dim outline-none" placeholder="0.00" step="0.01" type="number">
+</div>
+</div>
+</section>
+<!-- Category Grid Section -->
+<section class="mb-xl">
+<div class="flex justify-between items-center mb-md">
+<h2 class="text-label-md font-label-md text-on-surface-variant">Select Category</h2>
+<button class="text-primary text-label-sm font-label-sm font-bold">See All</button>
+</div>
+<div class="grid grid-cols-4 gap-md">
+<!-- Category Items -->
+<button class="flex flex-col items-center gap-xs group p-sm bg-surface-container-lowest rounded-lg custom-shadow hover:bg-primary-container transition-all group active-category" onclick="selectCategory(this)">
+<div class="w-12 h-12 rounded-full bg-secondary-container flex items-center justify-center text-on-secondary-container">
+<span class="material-symbols-outlined">restaurant</span>
+</div>
+<span class="text-label-sm font-label-sm text-on-surface-variant">Food</span>
+</button>
+<button class="flex flex-col items-center gap-xs group p-sm bg-surface-container-lowest rounded-lg custom-shadow hover:bg-primary-container transition-all" onclick="selectCategory(this)">
+<div class="w-12 h-12 rounded-full bg-primary-fixed flex items-center justify-center text-on-primary-fixed">
+<span class="material-symbols-outlined">directions_car</span>
+</div>
+<span class="text-label-sm font-label-sm text-on-surface-variant">Travel</span>
+</button>
+<button class="flex flex-col items-center gap-xs group p-sm bg-surface-container-lowest rounded-lg custom-shadow hover:bg-primary-container transition-all" onclick="selectCategory(this)">
+<div class="w-12 h-12 rounded-full bg-tertiary-fixed flex items-center justify-center text-on-tertiary-fixed">
+<span class="material-symbols-outlined">shopping_bag</span>
+</div>
+<span class="text-label-sm font-label-sm text-on-surface-variant">Shopping</span>
+</button>
+<button class="flex flex-col items-center gap-xs group p-sm bg-surface-container-lowest rounded-lg custom-shadow hover:bg-primary-container transition-all" onclick="selectCategory(this)">
+<div class="w-12 h-12 rounded-full bg-error-container flex items-center justify-center text-on-error-container">
+<span class="material-symbols-outlined">medication</span>
+</div>
+<span class="text-label-sm font-label-sm text-on-surface-variant">Health</span>
+</button>
+<button class="flex flex-col items-center gap-xs group p-sm bg-surface-container-lowest rounded-lg custom-shadow hover:bg-primary-container transition-all" onclick="selectCategory(this)">
+<div class="w-12 h-12 rounded-full bg-secondary-fixed flex items-center justify-center text-on-secondary-fixed">
+<span class="material-symbols-outlined">home</span>
+</div>
+<span class="text-label-sm font-label-sm text-on-surface-variant">Home</span>
+</button>
+<button class="flex flex-col items-center gap-xs group p-sm bg-surface-container-lowest rounded-lg custom-shadow hover:bg-primary-container transition-all" onclick="selectCategory(this)">
+<div class="w-12 h-12 rounded-full bg-surface-container flex items-center justify-center text-on-surface-variant">
+<span class="material-symbols-outlined">receipt_long</span>
+</div>
+<span class="text-label-sm font-label-sm text-on-surface-variant">Bills</span>
+</button>
+<button class="flex flex-col items-center gap-xs group p-sm bg-surface-container-lowest rounded-lg custom-shadow hover:bg-primary-container transition-all" onclick="selectCategory(this)">
+<div class="w-12 h-12 rounded-full bg-primary-fixed-dim flex items-center justify-center text-on-primary-fixed-variant">
+<span class="material-symbols-outlined">movie</span>
+</div>
+<span class="text-label-sm font-label-sm text-on-surface-variant">Fun</span>
+</button>
+<button class="flex flex-col items-center gap-xs group p-sm bg-surface-container-lowest rounded-lg custom-shadow hover:bg-primary-container transition-all" onclick="selectCategory(this)">
+<div class="w-12 h-12 rounded-full bg-outline-variant flex items-center justify-center text-on-surface-variant">
+<span class="material-symbols-outlined">more_horiz</span>
+</div>
+<span class="text-label-sm font-label-sm text-on-surface-variant">Other</span>
+</button>
+</div>
+</section>
+<!-- Form Details Section -->
+<section class="space-y-lg mb-xl">
+<!-- Note Input -->
+<div class="relative group">
+<input class="w-full h-14 px-md bg-surface-container-low border-2 border-transparent rounded-lg focus:border-primary focus:bg-white transition-all outline-none text-body-md" placeholder="What was this for?" type="text">
+<span class="material-symbols-outlined absolute right-4 top-4 text-outline-variant">edit</span>
+</div>
+<!-- Routine Expense Toggle -->
+<div class="flex items-center justify-between p-md bg-surface-container-lowest rounded-lg custom-shadow">
+<div class="flex items-center gap-md">
+<div class="w-10 h-10 rounded-full bg-secondary-container flex items-center justify-center text-on-secondary-container">
+<span class="material-symbols-outlined">sync</span>
+</div>
+<div>
+<p class="text-body-md font-semibold text-on-surface leading-tight">Routine Expense</p>
+<p class="text-label-sm font-label-sm text-on-surface-variant">Set as recurring monthly</p>
+</div>
+</div>
+<!-- Toggle Switch -->
+<label class="relative inline-flex items-center cursor-pointer">
+<input class="sr-only peer" type="checkbox" value="">
+<div class="w-11 h-6 bg-surface-container-highest peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+</label>
+</div>
+<!-- Shared With indicator -->
+<div class="flex items-center justify-between p-md bg-surface-container-lowest rounded-lg custom-shadow">
+<div class="flex items-center gap-md">
+<div class="flex -space-x-3">
+<div class="w-8 h-8 rounded-full border-2 border-white bg-primary-fixed flex items-center justify-center overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="A high-quality studio headshot of a friendly young woman with a pleasant smile, styled in a minimalist, bright aesthetic with clean white backgrounds and soft blue accent lighting, matching the cheerful minimalism design system." src="https://lh3.googleusercontent.com/aida-public/AB6AXuC__jMS8OtsHpCVIuqQ0jhiVKiKO6TDpLnhoGz3LsGxKkoQn1msokrD0oKy5QgrTrBXhhypLDAQgQi1m_MY4GTuuryX6Nqm_HwHD5Vne6-7Vu8DxNaUhmavGjIhTMK8Q2EUg3mgSUixzK86fhOoocvgllE2HmY3hVHIJWx4qyuoj3gVT97apwdzFVDhc8OP87spUyMTQ9uwxjb2SQK_y5KajNGhkNIEYg_cu1u22WwCrc42xe4NQy_c">
+</div>
+<div class="w-8 h-8 rounded-full border-2 border-white bg-secondary-fixed flex items-center justify-center overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="A high-quality studio headshot of a smiling young man with an approachable expression, styled in a light-mode friendly environment with soft shadows and vibrant, clean lighting that complements the premium royal blue color palette." src="https://lh3.googleusercontent.com/aida-public/AB6AXuA2wwjYHh46pAiNFEodeU_GLnXaLlaxFNqRqWdQ9JKR1B1yU76LSUC_Ay3B0cvZzHUhuHw8YOZLEQVeUm7u5sS0j9AxG4Nptxu_Ud1qtRkMXlKBuhXv3M10BpMBKO9VYR5GkQYIrIUjqZyIhegyQhG-f_u2omf5b91uKJAzOn_n9RJ0Xwqwttmg1ZPe8uqA5j4KXvsAWrd-zCBKBuvf1M9X8FaBMSe8kuPR3QQgk2p5H13W7_vbhlCc">
+</div>
+</div>
+<span class="text-body-md font-semibold text-on-surface">Shared with Group</span>
+</div>
+<span class="material-symbols-outlined text-outline-variant">chevron_right</span>
+</div>
+</section>
+<!-- Primary Action Button -->
+<div class="mt-xl">
+<button class="w-full h-[56px] bg-primary text-on-primary rounded-lg font-headline-sm text-headline-sm flex items-center justify-center gap-sm shadow-[0_10px_20px_rgba(0,75,198,0.3)] squishy-active hover:opacity-90 transition-all">
+<span class="material-symbols-outlined">save</span>
+                Save Transaction
+            </button>
+</div>
+</main>
+<!-- BottomNavBar (Hidden on desktop via style_shell_layout logic) -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-gutter py-sm pb-safe bg-surface-container-lowest dark:bg-surface-container-low shadow-[0_-4px_15px_rgba(0,0,0,0.05)] dark:shadow-none rounded-t-lg md:hidden">
+<a class="flex flex-col items-center justify-center text-on-surface-variant px-4 py-2 hover:bg-surface-container-high transition-colors" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="text-label-sm font-label-sm">Dashboard</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant px-4 py-2 hover:bg-surface-container-high transition-colors" href="#">
+<span class="material-symbols-outlined">analytics</span>
+<span class="text-label-sm font-label-sm">Analysis</span>
+</a>
+<!-- FAB placeholder or active center item -->
+<a class="flex flex-col items-center justify-center bg-primary-container text-on-primary-container rounded-xl px-4 py-2 scale-90 transition-all duration-200" href="#">
+<span class="material-symbols-outlined">receipt_long</span>
+<span class="text-label-sm font-label-sm">Bills</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant px-4 py-2 hover:bg-surface-container-high transition-colors" href="#">
+<span class="material-symbols-outlined">person</span>
+<span class="text-label-sm font-label-sm">Profile</span>
+</a>
+</nav>
+<script>
+        function selectCategory(element) {
+            // Remove active state from all
+            document.querySelectorAll('.active-category').forEach(el => {
+                el.classList.remove('active-category', 'bg-primary-container', 'text-on-primary-container');
+                el.querySelector('span:last-child').classList.remove('text-on-primary-container');
+                el.querySelector('span:last-child').classList.add('text-on-surface-variant');
+            });
+            
+            // Add active state to clicked
+            element.classList.add('active-category', 'bg-primary-container');
+            element.querySelector('span:last-child').classList.add('text-on-primary-container');
+            element.querySelector('span:last-child').classList.remove('text-on-surface-variant');
+        }
+
+        // Form submission micro-interaction
+        document.querySelector('button.bg-primary').addEventListener('click', function() {
+            const btn = this;
+            const originalContent = btn.innerHTML;
+            btn.innerHTML = '<span class="material-symbols-outlined animate-spin">refresh</span> Saving...';
+            btn.disabled = true;
+            
+            setTimeout(() => {
+                btn.innerHTML = '<span class="material-symbols-outlined">check_circle</span> Success!';
+                btn.classList.replace('bg-primary', 'bg-secondary');
+                
+                setTimeout(() => {
+                   // In a real app, route back
+                   btn.innerHTML = originalContent;
+                   btn.disabled = false;
+                   btn.classList.replace('bg-secondary', 'bg-primary');
+                }, 1500);
+            }, 800);
+        });
+    </script>
+
+
+
+
+
+
+</body></html>

@@ -8,7 +8,9 @@ import '../../../../core/utils/currency_helper.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../providers/dashboard_provider.dart';
 import '../widgets/category_icon.dart';
+import '../../domain/entities/wallet.dart';
 import 'expense_entry_screen.dart';
+import 'shared_groups_screen.dart';
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
@@ -46,24 +48,187 @@ class DashboardScreen extends StatelessWidget {
                 ],
               ),
               alignment: Alignment.center,
-              child: const Icon(Icons.wallet, color: Colors.white, size: 22),
-            ),
-            const SizedBox(width: 12),
-            Text(
-              'WalletShare',
-              style: GoogleFonts.plusJakartaSans(
-                color: AppTheme.primary,
-                fontWeight: FontWeight.bold,
-                fontSize: responsive.scaleFont(20),
+              child: Icon(
+                provider.activeWallet == null
+                    ? Icons.account_balance_wallet
+                    : (provider.isSharedMode ? Icons.groups_rounded : Icons.person_rounded),
+                color: Colors.white,
+                size: 22,
               ),
             ),
+            const SizedBox(width: 12),
+            if (provider.allWallets.isEmpty)
+              Text(
+                'WalletShare',
+                style: GoogleFonts.plusJakartaSans(
+                  color: AppTheme.primary,
+                  fontWeight: FontWeight.bold,
+                  fontSize: responsive.scaleFont(18),
+                ),
+              )
+            else
+              PopupMenuButton<WalletEntity>(
+                onSelected: (WalletEntity wallet) {
+                  provider.selectWallet(wallet);
+                },
+                offset: const Offset(0, 50),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                color: Colors.white,
+                elevation: 4,
+                shadowColor: Colors.black.withValues(alpha: 0.1),
+                itemBuilder: (context) {
+                  return [
+                    if (provider.personalWallets.isNotEmpty) ...[
+                      const PopupMenuItem<WalletEntity>(
+                        enabled: false,
+                        height: 24,
+                        child: Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 8.0),
+                          child: Text(
+                            'PERSONAL WALLETS',
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.grey,
+                            ),
+                          ),
+                        ),
+                      ),
+                      ...provider.personalWallets.map(
+                        (wallet) => PopupMenuItem<WalletEntity>(
+                          value: wallet,
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.person_outline_rounded,
+                                color: provider.activeWallet?.id == wallet.id
+                                    ? AppTheme.primary
+                                    : AppTheme.darkSlateVariant,
+                                size: 20,
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Text(
+                                  wallet.name,
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontWeight: provider.activeWallet?.id == wallet.id
+                                        ? FontWeight.bold
+                                        : FontWeight.normal,
+                                    color: AppTheme.darkSlate,
+                                  ),
+                                ),
+                              ),
+                              if (provider.activeWallet?.id == wallet.id)
+                                const Icon(Icons.check_rounded, color: AppTheme.primary, size: 18),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                    if (provider.sharedWallets.isNotEmpty) ...[
+                      const PopupMenuDivider(),
+                      const PopupMenuItem<WalletEntity>(
+                        enabled: false,
+                        height: 24,
+                        child: Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 8.0),
+                          child: Text(
+                            'GROUP WALLETS',
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.grey,
+                            ),
+                          ),
+                        ),
+                      ),
+                      ...provider.sharedWallets.map(
+                        (wallet) => PopupMenuItem<WalletEntity>(
+                          value: wallet,
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.groups_outlined,
+                                color: provider.activeWallet?.id == wallet.id
+                                    ? AppTheme.primary
+                                    : AppTheme.darkSlateVariant,
+                                size: 20,
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Text(
+                                  wallet.name,
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontWeight: provider.activeWallet?.id == wallet.id
+                                        ? FontWeight.bold
+                                        : FontWeight.normal,
+                                    color: AppTheme.darkSlate,
+                                  ),
+                                ),
+                              ),
+                              if (provider.activeWallet?.id == wallet.id)
+                                const Icon(Icons.check_rounded, color: AppTheme.primary, size: 18),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ];
+                },
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    ConstrainedBox(
+                      constraints: BoxConstraints(maxWidth: responsive.scale(150)),
+                      child: Text(
+                        provider.activeWallet?.name ?? 'Select Wallet',
+                        style: GoogleFonts.plusJakartaSans(
+                          color: AppTheme.primary,
+                          fontWeight: FontWeight.bold,
+                          fontSize: responsive.scaleFont(18),
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    const Icon(
+                      Icons.keyboard_arrow_down_rounded,
+                      color: AppTheme.primary,
+                      size: 20,
+                    ),
+                  ],
+                ),
+              ),
           ],
         ),
+        actions: [
+          IconButton(
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const SharedGroupsScreen()),
+              );
+            },
+            icon: const Icon(Icons.group_outlined, size: 28, color: AppTheme.primary),
+            splashRadius: 24,
+          ),
+          IconButton(
+            onPressed: () {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('No new notifications')),
+              );
+            },
+            icon: const Icon(Icons.notifications_none_outlined, size: 28, color: AppTheme.primary),
+            splashRadius: 24,
+          ),
+          const SizedBox(width: 8),
+        ],
       ),
       body: SafeArea(
         child: RefreshIndicator(
           onRefresh: () async {
-            provider.toggleSharedMode(provider.isSharedMode);
+            await provider.refreshData();
           },
           child: LayoutBuilder(
             builder: (context, constraints) {
@@ -78,9 +243,6 @@ class DashboardScreen extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Mode Toggle Pager (Personal vs Bersama/Shared mode)
-                    _buildModeToggle(context, provider),
-                    const SizedBox(height: 20),
 
                     // Daily Spending Hero Card
                     _buildDailySummaryCard(
@@ -106,9 +268,8 @@ class DashboardScreen extends StatelessWidget {
                       children: [
                         Text(
                           'Recent Activity',
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: responsive.scaleFont(18),
-                            fontWeight: FontWeight.bold,
+                          style: AppTheme.headlineSm.copyWith(
+                            fontSize: responsive.scaleFont(20),
                             color: AppTheme.darkSlate,
                           ),
                         ),
@@ -119,11 +280,10 @@ class DashboardScreen extends StatelessWidget {
                             currencyFormatter,
                             user?.id,
                           ),
-                          child: const Text(
+                          child: Text(
                             'See all',
-                            style: TextStyle(
+                            style: AppTheme.labelMd.copyWith(
                               color: AppTheme.primary,
-                              fontWeight: FontWeight.bold,
                             ),
                           ),
                         ),
@@ -176,116 +336,7 @@ class DashboardScreen extends StatelessWidget {
     );
   }
 
-  // ─── Mode Toggle Pill ──────────────────────────────────────────────────────
 
-  Widget _buildModeToggle(BuildContext context, DashboardProvider provider) {
-    return Center(
-      child: Container(
-        width: 280,
-        padding: const EdgeInsets.all(6),
-        decoration: BoxDecoration(
-          color: const Color(0xFFF1F5F9),
-          borderRadius: BorderRadius.circular(30),
-        ),
-        child: Row(
-          children: [
-            Expanded(
-              child: GestureDetector(
-                onTap: () => provider.toggleSharedMode(false),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(vertical: 8),
-                  decoration: BoxDecoration(
-                    color: !provider.isSharedMode
-                        ? AppTheme.primary
-                        : Colors.transparent,
-                    borderRadius: BorderRadius.circular(20),
-                    boxShadow: !provider.isSharedMode
-                        ? [
-                            BoxShadow(
-                              color: AppTheme.primary.withAlpha(40),
-                              blurRadius: 8,
-                              offset: const Offset(0, 4),
-                            ),
-                          ]
-                        : null,
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.person,
-                        size: 18,
-                        color: !provider.isSharedMode
-                            ? Colors.white
-                            : AppTheme.darkSlateVariant,
-                      ),
-                      const SizedBox(width: 6),
-                      Text(
-                        'Personal',
-                        style: GoogleFonts.plusJakartaSans(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 13,
-                          color: !provider.isSharedMode
-                              ? Colors.white
-                              : AppTheme.darkSlateVariant,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-            Expanded(
-              child: GestureDetector(
-                onTap: () => provider.toggleSharedMode(true),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(vertical: 8),
-                  decoration: BoxDecoration(
-                    color: provider.isSharedMode
-                        ? AppTheme.primary
-                        : Colors.transparent,
-                    borderRadius: BorderRadius.circular(20),
-                    boxShadow: provider.isSharedMode
-                        ? [
-                            BoxShadow(
-                              color: AppTheme.primary.withAlpha(40),
-                              blurRadius: 8,
-                              offset: const Offset(0, 4),
-                            ),
-                          ]
-                        : null,
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.group,
-                        size: 18,
-                        color: provider.isSharedMode
-                            ? Colors.white
-                            : AppTheme.darkSlateVariant,
-                      ),
-                      const SizedBox(width: 6),
-                      Text(
-                        'Bersama',
-                        style: GoogleFonts.plusJakartaSans(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 13,
-                          color: provider.isSharedMode
-                              ? Colors.white
-                              : AppTheme.darkSlateVariant,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 
   // ─── Daily Summary Card ───────────────────────────────────────────────────
 
@@ -481,90 +532,115 @@ class DashboardScreen extends StatelessWidget {
         : (spendToday > budgetLimit ? 1.0 : (spendToday / budgetLimit));
 
     return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: AppTheme.roundedBorder,
         boxShadow: AppTheme.softShadow,
-        border: const Border(
-          top: BorderSide(color: AppTheme.primary, width: 4.0),
-        ),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'TODAY\'S SPENDING',
-            style: GoogleFonts.plusJakartaSans(
-              fontSize: responsive.scaleFont(12),
-              fontWeight: FontWeight.bold,
-              color: AppTheme.darkSlateVariant,
-              letterSpacing: 1.2,
+      child: ClipRRect(
+        borderRadius: AppTheme.roundedBorder,
+        child: Container(
+          width: double.infinity,
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            border: Border(
+              top: BorderSide(color: AppTheme.primary, width: 4.0),
             ),
           ),
-          const SizedBox(height: 4),
-          Text(
-            formatter.format(spendToday),
-            style: GoogleFonts.plusJakartaSans(
-              fontSize: responsive.scaleFont(32),
-              fontWeight: FontWeight.w800,
-              color: AppTheme.darkSlate,
-            ),
-          ),
-          const SizedBox(height: 16),
-          GestureDetector(
-            onTap: () => _showSetBudgetDialog(context, provider),
-            behavior: HitTestBehavior.opaque,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Row(
-                  children: [
-                    Text(
-                      'Daily Budget',
-                      style: GoogleFonts.beVietnamPro(
-                        fontSize: 12,
-                        color: AppTheme.darkSlateVariant,
-                      ),
-                    ),
-                    const SizedBox(width: 6),
-                    const Icon(Icons.edit, size: 14, color: AppTheme.primary),
-                  ],
-                ),
-                Text(
-                  budgetLimit > 0
-                      ? formatter.format(budgetLimit)
-                      : 'Tap to set',
-                  style: GoogleFonts.beVietnamPro(
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                    color: AppTheme.primary,
+          child: Stack(
+            children: [
+              // Subtle Background Graphic
+              Positioned(
+                top: -48,
+                right: -48,
+                width: 192,
+                height: 192,
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: AppTheme.primary.withAlpha(8), // ~3% opacity
+                    shape: BoxShape.circle,
                   ),
                 ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 8),
-          Container(
-            height: 10,
-            width: double.infinity,
-            decoration: BoxDecoration(
-              color: const Color(0xFFF1F5F9),
-              borderRadius: BorderRadius.circular(5),
-            ),
-            child: FractionallySizedBox(
-              alignment: Alignment.centerLeft,
-              widthFactor: budgetPercent,
-              child: Container(
-                decoration: BoxDecoration(
-                  color: AppTheme.primary,
-                  borderRadius: BorderRadius.circular(5),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'TODAY\'S SPENDING',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: responsive.scaleFont(12),
+                        fontWeight: FontWeight.bold,
+                        color: AppTheme.darkSlateVariant,
+                        letterSpacing: 1.2,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      formatter.format(spendToday),
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: responsive.scaleFont(32),
+                        fontWeight: FontWeight.w800,
+                        color: AppTheme.darkSlate,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    GestureDetector(
+                      onTap: () => _showSetBudgetDialog(context, provider),
+                      behavior: HitTestBehavior.opaque,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Row(
+                            children: [
+                              Text(
+                                'Daily Budget',
+                                style: GoogleFonts.beVietnamPro(
+                                  fontSize: 12,
+                                  color: AppTheme.darkSlateVariant,
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                              const Icon(Icons.edit, size: 14, color: AppTheme.primary),
+                            ],
+                          ),
+                          Text(
+                            budgetLimit > 0
+                                ? formatter.format(budgetLimit)
+                                : 'Tap to set',
+                            style: GoogleFonts.beVietnamPro(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: AppTheme.primary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Container(
+                      height: 12,
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF1F5F9),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: FractionallySizedBox(
+                        alignment: Alignment.centerLeft,
+                        widthFactor: budgetPercent,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: AppTheme.primary,
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-            ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }

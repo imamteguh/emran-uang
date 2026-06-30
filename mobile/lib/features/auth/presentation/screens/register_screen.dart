@@ -166,7 +166,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               ),
                               alignment: Alignment.center,
                               child: const Icon(
-                                Icons.wallet,
+                                Icons.account_balance_wallet,
                                 color: Colors.white,
                                 size: 22,
                               ),
@@ -214,17 +214,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           padding: const EdgeInsets.all(24),
                           decoration: BoxDecoration(
                             color: Colors.white,
-                            borderRadius: BorderRadius.circular(20),
-                            boxShadow: [
-                              BoxShadow(
-                                color: AppTheme.primary.withAlpha(13),
-                                blurRadius: 25,
-                                offset: const Offset(0, 10),
-                              ),
-                            ],
+                            borderRadius: AppTheme.roundedBorder,
+                            boxShadow: AppTheme.cardShadow,
                             border: Border.all(
-                              color: const Color(0xFFF1F5F9),
-                              width: 1.5,
+                              color: AppTheme.outlineVariant,
+                              width: 1.0,
                             ),
                           ),
                           child: Column(
@@ -234,42 +228,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               TextFormField(
                                 controller: _nameController,
                                 keyboardType: TextInputType.name,
-                                decoration: InputDecoration(
+                                decoration: const InputDecoration(
                                   labelText: 'Display Name',
-                                  labelStyle: GoogleFonts.beVietnamPro(
-                                    color: AppTheme.primary,
-                                    fontSize: 12,
-                                  ),
                                   hintText: 'Sarah Connor',
-                                  floatingLabelBehavior:
-                                      FloatingLabelBehavior.always,
-                                  filled: true,
-                                  fillColor: const Color(0xFFF8FAFC),
-                                  contentPadding: const EdgeInsets.symmetric(
-                                    horizontal: 20,
-                                    vertical: 16,
-                                  ),
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                    borderSide: const BorderSide(
-                                      color: Color(0xFFE2E8F0),
-                                      width: 2,
-                                    ),
-                                  ),
-                                  enabledBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                    borderSide: const BorderSide(
-                                      color: Color(0xFFE2E8F0),
-                                      width: 2,
-                                    ),
-                                  ),
-                                  focusedBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                    borderSide: const BorderSide(
-                                      color: AppTheme.primary,
-                                      width: 2,
-                                    ),
-                                  ),
                                 ),
                                 validator: (value) {
                                   if (value == null || value.trim().isEmpty) {
@@ -284,42 +245,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               TextFormField(
                                 controller: _emailController,
                                 keyboardType: TextInputType.emailAddress,
-                                decoration: InputDecoration(
+                                decoration: const InputDecoration(
                                   labelText: 'Email Address',
-                                  labelStyle: GoogleFonts.beVietnamPro(
-                                    color: AppTheme.primary,
-                                    fontSize: 12,
-                                  ),
                                   hintText: 'sarah@walletshare.com',
-                                  floatingLabelBehavior:
-                                      FloatingLabelBehavior.always,
-                                  filled: true,
-                                  fillColor: const Color(0xFFF8FAFC),
-                                  contentPadding: const EdgeInsets.symmetric(
-                                    horizontal: 20,
-                                    vertical: 16,
-                                  ),
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                    borderSide: const BorderSide(
-                                      color: Color(0xFFE2E8F0),
-                                      width: 2,
-                                    ),
-                                  ),
-                                  enabledBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                    borderSide: const BorderSide(
-                                      color: Color(0xFFE2E8F0),
-                                      width: 2,
-                                    ),
-                                  ),
-                                  focusedBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                    borderSide: const BorderSide(
-                                      color: AppTheme.primary,
-                                      width: 2,
-                                    ),
-                                  ),
                                 ),
                                 validator: (value) {
                                   if (value == null ||
@@ -338,40 +266,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                 obscureText: _obscurePassword,
                                 decoration: InputDecoration(
                                   labelText: 'Password',
-                                  labelStyle: GoogleFonts.beVietnamPro(
-                                    color: AppTheme.primary,
-                                    fontSize: 12,
-                                  ),
                                   hintText: '••••••••',
-                                  floatingLabelBehavior:
-                                      FloatingLabelBehavior.always,
-                                  filled: true,
-                                  fillColor: const Color(0xFFF8FAFC),
-                                  contentPadding: const EdgeInsets.symmetric(
-                                    horizontal: 20,
-                                    vertical: 16,
-                                  ),
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                    borderSide: const BorderSide(
-                                      color: Color(0xFFE2E8F0),
-                                      width: 2,
-                                    ),
-                                  ),
-                                  enabledBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                    borderSide: const BorderSide(
-                                      color: Color(0xFFE2E8F0),
-                                      width: 2,
-                                    ),
-                                  ),
-                                  focusedBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                    borderSide: const BorderSide(
-                                      color: AppTheme.primary,
-                                      width: 2,
-                                    ),
-                                  ),
                                   suffixIcon: IconButton(
                                     icon: Icon(
                                       _obscurePassword
@@ -401,40 +296,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                 obscureText: _obscureConfirmPassword,
                                 decoration: InputDecoration(
                                   labelText: 'Confirm Password',
-                                  labelStyle: GoogleFonts.beVietnamPro(
-                                    color: AppTheme.primary,
-                                    fontSize: 12,
-                                  ),
                                   hintText: '••••••••',
-                                  floatingLabelBehavior:
-                                      FloatingLabelBehavior.always,
-                                  filled: true,
-                                  fillColor: const Color(0xFFF8FAFC),
-                                  contentPadding: const EdgeInsets.symmetric(
-                                    horizontal: 20,
-                                    vertical: 16,
-                                  ),
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                    borderSide: const BorderSide(
-                                      color: Color(0xFFE2E8F0),
-                                      width: 2,
-                                    ),
-                                  ),
-                                  enabledBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                    borderSide: const BorderSide(
-                                      color: Color(0xFFE2E8F0),
-                                      width: 2,
-                                    ),
-                                  ),
-                                  focusedBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                    borderSide: const BorderSide(
-                                      color: AppTheme.primary,
-                                      width: 2,
-                                    ),
-                                  ),
                                   suffixIcon: IconButton(
                                     icon: Icon(
                                       _obscureConfirmPassword
@@ -460,37 +322,43 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               const SizedBox(height: 28),
 
                               // Register Button
-                              ElevatedButton(
-                                onPressed: authProvider.isLoading
-                                    ? null
-                                    : _handleRegister,
-                                child: authProvider.isLoading
-                                    ? const SizedBox(
-                                        height: 20,
-                                        width: 20,
-                                        child: CircularProgressIndicator(
-                                          color: Colors.white,
-                                          strokeWidth: 2,
-                                        ),
-                                      )
-                                    : Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.center,
-                                        children: [
-                                          Text(
-                                            'Sign Up',
-                                            style: GoogleFonts.plusJakartaSans(
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 16,
+                              Container(
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(9999),
+                                  boxShadow: AppTheme.interactiveShadow,
+                                ),
+                                child: ElevatedButton(
+                                  onPressed: authProvider.isLoading
+                                      ? null
+                                      : _handleRegister,
+                                  child: authProvider.isLoading
+                                      ? const SizedBox(
+                                          height: 20,
+                                          width: 20,
+                                          child: CircularProgressIndicator(
+                                            color: Colors.white,
+                                            strokeWidth: 2,
+                                          ),
+                                        )
+                                      : Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.center,
+                                          children: [
+                                            Text(
+                                              'Sign Up',
+                                              style: GoogleFonts.plusJakartaSans(
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 16,
+                                              ),
                                             ),
-                                          ),
-                                          const SizedBox(width: 8),
-                                          const Icon(
-                                            Icons.arrow_forward,
-                                            size: 18,
-                                          ),
-                                        ],
-                                      ),
+                                            const SizedBox(width: 8),
+                                            const Icon(
+                                              Icons.arrow_forward,
+                                              size: 18,
+                                            ),
+                                          ],
+                                        ),
+                                ),
                               ),
                             ],
                           ),

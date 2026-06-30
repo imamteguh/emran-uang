@@ -1,6 +1,5 @@
 import 'dart:ui';
 import 'dart:async';
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -18,7 +17,8 @@ class LoginScreen extends StatefulWidget {
   State<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class _LoginScreenState extends State<LoginScreen>
+    with SingleTickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
@@ -27,32 +27,25 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _rememberMe = false;
   StreamSubscription<GoogleSignInAccount?>? _googleSignInSubscription;
 
+  late final AnimationController _floatController;
+  late final Animation<double> _floatAnimation;
+
   @override
   void initState() {
     super.initState();
-    if (kIsWeb) {
-      final authProvider = Provider.of<AuthProvider>(context, listen: false);
-      _googleSignInSubscription = authProvider.onGoogleUserChanged.listen((
-        account,
-      ) async {
-        if (account != null) {
-          final auth = await account.authentication;
-          final success = await authProvider.authenticateGoogleBackend(
-            idToken: auth.idToken,
-            accessToken: auth.accessToken,
-          );
-          if (success && mounted) {
-            Navigator.of(context).pushReplacement(
-              MaterialPageRoute(builder: (_) => const MainShellScreen()),
-            );
-          }
-        }
-      });
-    }
+    _floatController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 4),
+    )..repeat(reverse: true);
+
+    _floatAnimation = Tween<double>(begin: 0, end: -12).animate(
+      CurvedAnimation(parent: _floatController, curve: Curves.easeInOut),
+    );
   }
 
   @override
   void dispose() {
+    _floatController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
     _googleSignInSubscription?.cancel();
@@ -91,14 +84,10 @@ class _LoginScreenState extends State<LoginScreen> {
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(builder: (_) => const MainShellScreen()),
       );
-    } else if (mounted) {
-      final errorMessage = authProvider.errorMessage;
-      if (errorMessage != null && errorMessage.contains('popup_closed')) {
-        return;
-      }
+    } else if (mounted && authProvider.errorMessage != null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(errorMessage ?? 'Google login failed'),
+          content: Text(authProvider.errorMessage!),
           backgroundColor: AppTheme.error,
         ),
       );
@@ -193,18 +182,22 @@ class _LoginScreenState extends State<LoginScreen> {
                               ),
                               alignment: Alignment.center,
                               child: const Icon(
-                                Icons.wallet,
+                                Icons.account_balance_wallet,
                                 color: Colors.white,
                                 size: 22,
                               ),
                             ),
                             const SizedBox(width: 8),
-                            Text(
-                              'WalletShare',
-                              style: GoogleFonts.plusJakartaSans(
-                                fontSize: responsive.scaleFont(24),
-                                fontWeight: FontWeight.bold,
-                                color: AppTheme.primary,
+                            Flexible(
+                              child: Text(
+                                'WalletShare',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: responsive.scaleFont(24),
+                                  fontWeight: FontWeight.bold,
+                                  color: AppTheme.primary,
+                                ),
                               ),
                             ),
                           ],
@@ -213,27 +206,36 @@ class _LoginScreenState extends State<LoginScreen> {
 
                         // Cheerful Illustration Section
                         Center(
-                          child: Stack(
-                            alignment: Alignment.center,
-                            children: [
-                              Container(
-                                width: 270,
-                                height: 270,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color: Colors.white.withAlpha(102),
-                                  border: Border.all(
-                                    color: Colors.white.withAlpha(128),
+                          child: AnimatedBuilder(
+                            animation: _floatAnimation,
+                            builder: (context, child) {
+                              return Transform.translate(
+                                offset: Offset(0, _floatAnimation.value),
+                                child: child,
+                              );
+                            },
+                            child: Stack(
+                              alignment: Alignment.center,
+                              children: [
+                                Container(
+                                  width: 270,
+                                  height: 270,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: Colors.white.withAlpha(102),
+                                    border: Border.all(
+                                      color: Colors.white.withAlpha(128),
+                                    ),
                                   ),
                                 ),
-                              ),
-                              Image.network(
-                                'https://lh3.googleusercontent.com/aida-public/AB6AXuCFTSkfFhxyAXWuNdD4PZZQoO7ILUroSDw61QwZENBI7N9pYvgADQceUiQlTv6WEgtDR1hJYoKdwMlTz5d8SUPlqK9L_wOGnvGUavsv9-bjIPVQqDSK-FqtX1ThCO5VT108ST4hWlAUofntWhxnNBGkl2_8aw4sf9K1IHxtxv8R83s054K-vr2NuFwspckYHd8mwMohac-aQiOoajXnBVBNzwgtKz8lipLItreVbZ2gZCW86D-0TTYS',
-                                height: 250,
-                                width: 250,
-                                fit: BoxFit.contain,
-                              ),
-                            ],
+                                Image.network(
+                                  'https://lh3.googleusercontent.com/aida-public/AB6AXuCFTSkfFhxyAXWuNdD4PZZQoO7ILUroSDw61QwZENBI7N9pYvgADQceUiQlTv6WEgtDR1hJYoKdwMlTz5d8SUPlqK9L_wOGnvGUavsv9-bjIPVQqDSK-FqtX1ThCO5VT108ST4hWlAUofntWhxnNBGkl2_8aw4sf9K1IHxtxv8R83s054K-vr2NuFwspckYHd8mwMohac-aQiOoajXnBVBNzwgtKz8lipLItreVbZ2gZCW86D-0TTYS',
+                                  height: 250,
+                                  width: 250,
+                                  fit: BoxFit.contain,
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                         const SizedBox(height: 24),
@@ -268,17 +270,11 @@ class _LoginScreenState extends State<LoginScreen> {
                           padding: const EdgeInsets.all(24),
                           decoration: BoxDecoration(
                             color: Colors.white,
-                            borderRadius: BorderRadius.circular(20),
-                            boxShadow: [
-                              BoxShadow(
-                                color: AppTheme.primary.withAlpha(13),
-                                blurRadius: 25,
-                                offset: const Offset(0, 10),
-                              ),
-                            ],
+                            borderRadius: AppTheme.roundedBorder,
+                            boxShadow: AppTheme.cardShadow,
                             border: Border.all(
-                              color: const Color(0xFFF1F5F9),
-                              width: 1.5,
+                              color: AppTheme.outlineVariant,
+                              width: 1.0,
                             ),
                           ),
                           child: Column(
@@ -293,16 +289,20 @@ class _LoginScreenState extends State<LoginScreen> {
                                   children: [
                                     Image.asset(
                                       'assets/icons/google.png',
-                                      height: 20,
-                                      width: 20,
+                                      height: 24,
+                                      width: 24,
                                     ),
                                     const SizedBox(width: 12),
-                                    Text(
-                                      'Continue with Google',
-                                      style: GoogleFonts.beVietnamPro(
-                                        fontSize: 14,
-                                        color: AppTheme.darkSlate,
-                                        fontWeight: FontWeight.w600,
+                                    Flexible(
+                                      child: Text(
+                                        'Continue with Google',
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: GoogleFonts.beVietnamPro(
+                                          fontSize: 14,
+                                          color: AppTheme.darkSlate,
+                                          fontWeight: FontWeight.w600,
+                                        ),
                                       ),
                                     ),
                                   ],
@@ -316,17 +316,21 @@ class _LoginScreenState extends State<LoginScreen> {
                                   const Expanded(
                                     child: Divider(color: Color(0xFFE2E8F0)),
                                   ),
-                                  Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 12.0,
-                                    ),
-                                    child: Text(
-                                      'OR LOGIN WITH EMAIL',
-                                      style: GoogleFonts.beVietnamPro(
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.w600,
-                                        color: AppTheme.darkSlateVariant,
-                                        letterSpacing: 1.5,
+                                  Flexible(
+                                    child: Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 12.0,
+                                      ),
+                                      child: Text(
+                                        'OR LOGIN WITH EMAIL',
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: GoogleFonts.beVietnamPro(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w600,
+                                          color: AppTheme.darkSlateVariant,
+                                          letterSpacing: 1.5,
+                                        ),
                                       ),
                                     ),
                                   ),
@@ -341,42 +345,9 @@ class _LoginScreenState extends State<LoginScreen> {
                               TextFormField(
                                 controller: _emailController,
                                 keyboardType: TextInputType.emailAddress,
-                                decoration: InputDecoration(
+                                decoration: const InputDecoration(
                                   labelText: 'Email Address',
-                                  labelStyle: GoogleFonts.beVietnamPro(
-                                    color: AppTheme.primary,
-                                    fontSize: 12,
-                                  ),
                                   hintText: 'hello@walletshare.com',
-                                  floatingLabelBehavior:
-                                      FloatingLabelBehavior.always,
-                                  filled: true,
-                                  fillColor: const Color(0xFFF8FAFC),
-                                  contentPadding: const EdgeInsets.symmetric(
-                                    horizontal: 20,
-                                    vertical: 16,
-                                  ),
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                    borderSide: const BorderSide(
-                                      color: Color(0xFFE2E8F0),
-                                      width: 2,
-                                    ),
-                                  ),
-                                  enabledBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                    borderSide: const BorderSide(
-                                      color: Color(0xFFE2E8F0),
-                                      width: 2,
-                                    ),
-                                  ),
-                                  focusedBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                    borderSide: const BorderSide(
-                                      color: AppTheme.primary,
-                                      width: 2,
-                                    ),
-                                  ),
                                 ),
                                 validator: (value) {
                                   if (value == null ||
@@ -394,40 +365,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                 obscureText: _obscurePassword,
                                 decoration: InputDecoration(
                                   labelText: 'Password',
-                                  labelStyle: GoogleFonts.beVietnamPro(
-                                    color: AppTheme.primary,
-                                    fontSize: 12,
-                                  ),
                                   hintText: '••••••••',
-                                  floatingLabelBehavior:
-                                      FloatingLabelBehavior.always,
-                                  filled: true,
-                                  fillColor: const Color(0xFFF8FAFC),
-                                  contentPadding: const EdgeInsets.symmetric(
-                                    horizontal: 20,
-                                    vertical: 16,
-                                  ),
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                    borderSide: const BorderSide(
-                                      color: Color(0xFFE2E8F0),
-                                      width: 2,
-                                    ),
-                                  ),
-                                  enabledBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                    borderSide: const BorderSide(
-                                      color: Color(0xFFE2E8F0),
-                                      width: 2,
-                                    ),
-                                  ),
-                                  focusedBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                    borderSide: const BorderSide(
-                                      color: AppTheme.primary,
-                                      width: 2,
-                                    ),
-                                  ),
                                   suffixIcon: IconButton(
                                     icon: Icon(
                                       _obscurePassword
@@ -456,36 +394,42 @@ class _LoginScreenState extends State<LoginScreen> {
                                 mainAxisAlignment:
                                     MainAxisAlignment.spaceBetween,
                                 children: [
-                                  Row(
-                                    children: [
-                                      SizedBox(
-                                        width: 24,
-                                        height: 24,
-                                        child: Checkbox(
-                                          value: _rememberMe,
-                                          onChanged: (val) {
-                                            setState(() {
-                                              _rememberMe = val ?? false;
-                                            });
-                                          },
-                                          activeColor: AppTheme.primary,
-                                          shape: RoundedRectangleBorder(
-                                            borderRadius: BorderRadius.circular(
-                                              4,
+                                  Expanded(
+                                    child: Row(
+                                      children: [
+                                        SizedBox(
+                                          width: 24,
+                                          height: 24,
+                                          child: Checkbox(
+                                            value: _rememberMe,
+                                            onChanged: (val) {
+                                              setState(() {
+                                                _rememberMe = val ?? false;
+                                              });
+                                            },
+                                            activeColor: AppTheme.primary,
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius: BorderRadius.circular(
+                                                4,
+                                              ),
                                             ),
                                           ),
                                         ),
-                                      ),
-                                      const SizedBox(width: 8),
-                                      Text(
-                                        'Remember me',
-                                        style: GoogleFonts.beVietnamPro(
-                                          fontSize: 13,
-                                          fontWeight: FontWeight.w500,
-                                          color: AppTheme.darkSlateVariant,
+                                        const SizedBox(width: 8),
+                                        Flexible(
+                                          child: Text(
+                                            'Remember me',
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: GoogleFonts.beVietnamPro(
+                                              fontSize: 13,
+                                              fontWeight: FontWeight.w500,
+                                              color: AppTheme.darkSlateVariant,
+                                            ),
+                                          ),
                                         ),
-                                      ),
-                                    ],
+                                      ],
+                                    ),
                                   ),
                                   TextButton(
                                     onPressed: () {},
@@ -502,37 +446,44 @@ class _LoginScreenState extends State<LoginScreen> {
                               ),
                               const SizedBox(height: 20),
 
-                              ElevatedButton(
-                                onPressed: authProvider.isLoading
-                                    ? null
-                                    : _handleLogin,
-                                child: authProvider.isLoading
-                                    ? const SizedBox(
-                                        height: 20,
-                                        width: 20,
-                                        child: CircularProgressIndicator(
-                                          color: Colors.white,
-                                          strokeWidth: 2,
-                                        ),
-                                      )
-                                    : Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.center,
-                                        children: [
-                                          Text(
-                                            'Let\'s Go!',
-                                            style: GoogleFonts.plusJakartaSans(
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 16,
+                              Container(
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(9999),
+                                  boxShadow: AppTheme.interactiveShadow,
+                                ),
+                                child: ElevatedButton(
+                                  onPressed: authProvider.isLoading
+                                      ? null
+                                      : _handleLogin,
+                                  child: authProvider.isLoading
+                                      ? const SizedBox(
+                                          height: 20,
+                                          width: 20,
+                                          child: CircularProgressIndicator(
+                                            color: Colors.white,
+                                            strokeWidth: 2,
+                                          ),
+                                        )
+                                      : Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.center,
+                                          children: [
+                                            Text(
+                                              'Let\'s Go!',
+                                              style:
+                                                  GoogleFonts.plusJakartaSans(
+                                                    fontWeight: FontWeight.bold,
+                                                    fontSize: 16,
+                                                  ),
                                             ),
-                                          ),
-                                          const SizedBox(width: 8),
-                                          const Icon(
-                                            Icons.arrow_forward,
-                                            size: 18,
-                                          ),
-                                        ],
-                                      ),
+                                            const SizedBox(width: 8),
+                                            const Icon(
+                                              Icons.arrow_forward,
+                                              size: 18,
+                                            ),
+                                          ],
+                                        ),
+                                ),
                               ),
                             ],
                           ),
@@ -578,12 +529,12 @@ class _LoginScreenState extends State<LoginScreen> {
                           runSpacing: 16,
                           children: [
                             _buildBadge(
-                              Icons.shield_outlined,
+                              Icons.shield,
                               'Secure & Private',
                               responsive,
                             ),
                             _buildBadge(
-                              Icons.groups_outlined,
+                              Icons.groups,
                               'Built for Two',
                               responsive,
                             ),

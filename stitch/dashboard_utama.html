@@ -1,0 +1,327 @@
+<!DOCTYPE html><html class="light" lang="en" style=""><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0, viewport-fit=cover" name="viewport">
+<title>WalletShare - Dashboard</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=Be+Vietnam+Pro:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<!-- Tailwind Configuration -->
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "on-background": "#191c1e",
+                    "surface-container-highest": "#e0e3e5",
+                    "on-error": "#ffffff",
+                    "on-primary-fixed-variant": "#003ea7",
+                    "tertiary": "#7e4726",
+                    "primary": "#004bc6",
+                    "on-error-container": "#93000a",
+                    "on-primary-container": "#eeefff",
+                    "outline": "#737686",
+                    "on-secondary-fixed-variant": "#00513b",
+                    "on-surface-variant": "#434655",
+                    "surface-bright": "#f7f9fb",
+                    "outline-variant": "#c3c6d7",
+                    "error": "#ba1a1a",
+                    "primary-fixed-dim": "#b4c5ff",
+                    "surface-container-high": "#e6e8ea",
+                    "tertiary-container": "#9b5e3b",
+                    "on-secondary-fixed": "#002116",
+                    "error-container": "#ffdad6",
+                    "surface-container": "#eceef0",
+                    "surface-variant": "#e0e3e5",
+                    "on-secondary": "#ffffff",
+                    "on-tertiary-fixed-variant": "#6d3919",
+                    "tertiary-fixed": "#ffdbca",
+                    "primary-container": "#2463eb",
+                    "surface-dim": "#d8dadc",
+                    "on-tertiary-fixed": "#331200",
+                    "on-primary": "#ffffff",
+                    "on-primary-fixed": "#00174b",
+                    "secondary-fixed-dim": "#90d5b7",
+                    "secondary-container": "#a8eecf",
+                    "surface-tint": "#0053da",
+                    "inverse-surface": "#2d3133",
+                    "primary-fixed": "#dbe1ff",
+                    "inverse-primary": "#b4c5ff",
+                    "inverse-on-surface": "#eff1f3",
+                    "surface": "#f7f9fb",
+                    "surface-container-low": "#f2f4f6",
+                    "secondary": "#246a52",
+                    "on-tertiary": "#ffffff",
+                    "secondary-fixed": "#abf1d2",
+                    "on-surface": "#191c1e",
+                    "on-tertiary-container": "#ffede5",
+                    "on-secondary-container": "#296e56",
+                    "background": "#f7f9fb",
+                    "tertiary-fixed-dim": "#ffb68f",
+                    "surface-container-lowest": "#ffffff"
+            },
+            "borderRadius": {
+                    "DEFAULT": "1rem",
+                    "lg": "2rem",
+                    "xl": "3rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "lg": "24px",
+                    "xl": "32px",
+                    "md": "16px",
+                    "xs": "4px",
+                    "base": "4px",
+                    "gutter": "16px",
+                    "margin-mobile": "20px",
+                    "sm": "8px"
+            },
+            "fontFamily": {
+                    "headline-md": ["Plus Jakarta Sans"],
+                    "body-md": ["Be Vietnam Pro"],
+                    "headline-sm": ["Plus Jakarta Sans"],
+                    "price-display": ["Plus Jakarta Sans"],
+                    "headline-lg": ["Plus Jakarta Sans"],
+                    "body-lg": ["Be Vietnam Pro"],
+                    "label-sm": ["Be Vietnam Pro"],
+                    "label-md": ["Be Vietnam Pro"],
+                    "headline-lg-mobile": ["Plus Jakarta Sans"]
+            },
+            "fontSize": {
+                    "headline-md": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                    "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                    "headline-sm": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                    "price-display": ["40px", {"lineHeight": "48px", "letterSpacing": "-0.03em", "fontWeight": "800"}],
+                    "headline-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                    "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}],
+                    "label-sm": ["12px", {"lineHeight": "16px", "fontWeight": "500"}],
+                    "label-md": ["14px", {"lineHeight": "20px", "letterSpacing": "0.05em", "fontWeight": "600"}],
+                    "headline-lg-mobile": ["28px", {"lineHeight": "36px", "letterSpacing": "-0.02em", "fontWeight": "700"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        body {
+            background-color: #F8FAFC;
+        }
+        .bento-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+        }
+        .mode-toggle-pill {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .active-pill {
+            box-shadow: 0 4px 12px rgba(0, 75, 198, 0.15);
+        }
+        .custom-shadow {
+            box-shadow: 0 15px 35px -5px rgba(0, 0, 0, 0.05), 0 5px 15px -7px rgba(0, 0, 0, 0.03);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-surface font-body-md antialiased pb-32">
+<!-- Top App Bar -->
+<header class="docked full-width top-0 flex justify-between items-center px-margin-mobile py-md w-full bg-background dark:bg-on-background z-50">
+  <div class="flex items-center gap-2 bg-surface-container-low px-4 py-2 rounded-full cursor-pointer hover:bg-surface-container-high transition-colors">
+    <span class="material-symbols-outlined text-primary">account_balance_wallet</span>
+    <span class="text-label-md font-bold text-on-surface">Main Wallet</span>
+    <span class="material-symbols-outlined text-on-surface-variant">expand_more</span>
+  </div>
+  <button class="p-2 rounded-full hover:bg-surface-container-low transition-colors">
+    <span class="material-symbols-outlined text-primary">notifications</span>
+  </button>
+</header>
+<main class="px-margin-mobile py-md max-w-2xl mx-auto">
+<!-- Mode Toggle -->
+
+<!-- Daily Summary Hero Card -->
+<section class="mb-xl">
+<div class="bg-white rounded-lg p-lg custom-shadow border-t-4 border-primary relative overflow-hidden">
+<!-- Subtle Background Graphic -->
+<div class="absolute -top-12 -right-12 w-48 h-48 bg-primary opacity-[0.03] rounded-full"></div>
+<div class="flex flex-col gap-xs mb-md">
+<span class="text-label-md font-label-md text-on-surface-variant tracking-wider">TODAY'S SPENDING</span>
+<h2 class="text-price-display font-price-display text-on-background">$142.50</h2>
+</div>
+<div class="flex items-center gap-md">
+<div class="flex-1">
+<div class="flex justify-between items-center mb-xs">
+<span class="text-label-sm font-label-sm text-on-surface-variant">Daily Budget</span>
+<span class="text-label-sm font-label-sm font-bold text-primary">$200.00</span>
+</div>
+<div class="h-3 w-full bg-surface-container-high rounded-full overflow-hidden">
+<div class="h-full bg-primary rounded-full transition-all duration-1000" style="width: 71%"></div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Bento Stats Grid -->
+<section class="bento-grid mb-xl">
+<div class="bg-secondary-container rounded-lg p-md flex flex-col justify-between h-32 hover:scale-[1.02] transition-transform duration-200">
+<span class="material-symbols-outlined text-on-secondary-container" data-icon="savings">savings</span>
+<div>
+<span class="block text-label-sm font-label-sm text-on-secondary-container/80">Monthly Savings</span>
+<span class="block text-headline-sm font-headline-sm text-on-secondary-container">$1,240</span>
+</div>
+</div>
+<div class="bg-tertiary-fixed rounded-lg p-md flex flex-col justify-between h-32 hover:scale-[1.02] transition-transform duration-200">
+<span class="material-symbols-outlined text-tertiary" data-icon="warning">warning</span>
+<div>
+<span class="block text-label-sm font-label-sm text-tertiary/80">Top Category</span>
+<span class="block text-headline-sm font-headline-sm text-tertiary">Dining Out</span>
+</div>
+</div>
+</section>
+<!-- Recent Transactions -->
+<section>
+<div class="flex justify-between items-center mb-md">
+<h3 class="text-headline-sm font-headline-sm text-on-surface">Recent Activity</h3>
+<button class="text-label-md font-label-md text-primary hover:underline">See all</button>
+</div>
+<div class="space-y-sm">
+<!-- Transaction Item 1 -->
+<div class="bg-white p-md rounded-lg flex items-center justify-between custom-shadow hover:bg-surface-bright transition-colors cursor-pointer group">
+<div class="flex items-center gap-md">
+<div class="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
+<span class="material-symbols-outlined text-[24px]" data-icon="restaurant">restaurant</span>
+</div>
+<div>
+<p class="font-headline-sm text-[16px] text-on-surface leading-tight">Gourmet Burger Kitchen</p>
+<p class="text-label-sm font-label-sm text-on-surface-variant flex items-center gap-xs">
+<span class="">12:45 PM</span>
+<span class="text-xs">•</span>
+<span class="bg-surface-container px-2 rounded-full text-[10px]">Dining</span>
+</p>
+</div>
+</div>
+<div class="text-right">
+<p class="font-bold text-on-surface">-$34.20</p>
+<div class="flex -space-x-2 mt-xs justify-end">
+<div class="w-5 h-5 rounded-full border-2 border-white bg-blue-100 flex items-center justify-center text-[8px] font-bold">ME</div>
+</div>
+</div>
+</div>
+<!-- Transaction Item 2 (Shared) -->
+<div class="bg-white p-md rounded-lg flex items-center justify-between custom-shadow hover:bg-surface-bright transition-colors cursor-pointer group" id="coupleTx">
+<div class="flex items-center gap-md">
+<div class="w-12 h-12 rounded-full bg-secondary-container flex items-center justify-center text-secondary group-hover:scale-110 transition-transform">
+<span class="material-symbols-outlined text-[24px]" data-icon="shopping_cart">shopping_cart</span>
+</div>
+<div>
+<p class="font-headline-sm text-[16px] text-on-surface leading-tight">Whole Foods Market</p>
+<p class="text-label-sm font-label-sm text-on-surface-variant flex items-center gap-xs">
+<span class="">10:20 AM</span>
+<span class="text-xs">•</span>
+<span class="bg-surface-container px-2 rounded-full text-[10px]">Grocery</span>
+</p>
+</div>
+</div>
+<div class="text-right">
+<p class="font-bold text-on-surface">-$82.15</p>
+<div class="flex -space-x-2 mt-xs justify-end">
+<div class="w-5 h-5 rounded-full border-2 border-white bg-blue-200 flex items-center justify-center text-[8px] font-bold">ME</div>
+<div class="w-5 h-5 rounded-full border-2 border-white bg-pink-200 flex items-center justify-center text-[8px] font-bold">SO</div>
+</div>
+</div>
+</div>
+<!-- Transaction Item 3 -->
+<div class="bg-white p-md rounded-lg flex items-center justify-between custom-shadow hover:bg-surface-bright transition-colors cursor-pointer group">
+<div class="flex items-center gap-md">
+<div class="w-12 h-12 rounded-full bg-tertiary-fixed flex items-center justify-center text-tertiary group-hover:scale-110 transition-transform">
+<span class="material-symbols-outlined text-[24px]" data-icon="directions_car">directions_car</span>
+</div>
+<div>
+<p class="font-headline-sm text-[16px] text-on-surface leading-tight">Uber Trip</p>
+<p class="text-label-sm font-label-sm text-on-surface-variant flex items-center gap-xs">
+<span class="">Yesterday</span>
+<span class="text-xs">•</span>
+<span class="bg-surface-container px-2 rounded-full text-[10px]">Transport</span>
+</p>
+</div>
+</div>
+<div class="text-right">
+<p class="font-bold text-on-surface">-$26.15</p>
+<div class="flex -space-x-2 mt-xs justify-end">
+<div class="w-5 h-5 rounded-full border-2 border-white bg-blue-100 flex items-center justify-center text-[8px] font-bold">ME</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+</main>
+<!-- Floating Action Button -->
+<button class="fixed right-6 bottom-28 w-16 h-16 bg-primary text-on-primary rounded-2xl flex items-center justify-center shadow-lg hover:shadow-primary/40 active:scale-95 transition-all z-[60] group">
+<span class="material-symbols-outlined text-[32px] group-hover:rotate-90 transition-transform duration-300" data-icon="add">add</span>
+</button>
+<!-- Bottom Navigation Bar -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-gutter py-sm pb-safe bg-surface-container-lowest dark:bg-surface-container-low shadow-[0_-4px_15px_rgba(0,0,0,0.05)] dark:shadow-none rounded-t-lg">
+<a class="flex flex-col items-center justify-center bg-primary-container text-on-primary-container rounded-xl px-4 py-2 scale-90 transition-all duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+<span class="text-label-sm font-label-sm">Dashboard</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant px-4 py-2 hover:bg-surface-container-high transition-colors" href="#">
+<span class="material-symbols-outlined" data-icon="analytics">analytics</span>
+<span class="text-label-sm font-label-sm">Analysis</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant px-4 py-2 hover:bg-surface-container-high transition-colors" href="#">
+<span class="material-symbols-outlined" data-icon="receipt_long">receipt_long</span>
+<span class="text-label-sm font-label-sm">Bills</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant px-4 py-2 hover:bg-surface-container-high transition-colors" href="#">
+<span class="material-symbols-outlined" data-icon="person">person</span>
+<span class="text-label-sm font-label-sm">Profile</span>
+</a>
+</nav>
+<script>
+        function toggleMode(mode) {
+            const personalBtn = document.getElementById('personalBtn');
+            const coupleBtn = document.getElementById('coupleBtn');
+            const coupleTx = document.getElementById('coupleTx');
+
+            if (mode === 'personal') {
+                personalBtn.className = "mode-toggle-pill flex-1 py-2 rounded-full text-label-md font-label-md flex items-center justify-center gap-xs bg-primary text-on-primary active-pill transition-all duration-200";
+                coupleBtn.className = "mode-toggle-pill flex-1 py-2 rounded-full text-label-md font-label-md flex items-center justify-center gap-xs text-on-surface-variant hover:text-on-surface transition-all duration-200";
+                // Simulate focus filtering
+                coupleTx.style.opacity = "0.5";
+            } else {
+                coupleBtn.className = "mode-toggle-pill flex-1 py-2 rounded-full text-label-md font-label-md flex items-center justify-center gap-xs bg-primary text-on-primary active-pill transition-all duration-200";
+                personalBtn.className = "mode-toggle-pill flex-1 py-2 rounded-full text-label-md font-label-md flex items-center justify-center gap-xs text-on-surface-variant hover:text-on-surface transition-all duration-200";
+                coupleTx.style.opacity = "1";
+            }
+        }
+
+        // Simple haptic-like interaction on scroll
+        let lastScroll = 0;
+        window.addEventListener('scroll', () => {
+            const currentScroll = window.pageYOffset;
+            const fab = document.querySelector('.fixed.right-6.bottom-28');
+            if (currentScroll > lastScroll && currentScroll > 100) {
+                fab.style.transform = 'translateY(10px) scale(0.9)';
+                fab.style.opacity = '0.7';
+            } else {
+                fab.style.transform = 'translateY(0) scale(1)';
+                fab.style.opacity = '1';
+            }
+            lastScroll = currentScroll;
+        });
+    </script>
+
+
+
+
+
+
+</body></html>

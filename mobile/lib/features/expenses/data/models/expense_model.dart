@@ -19,7 +19,7 @@ class ExpenseModel extends ExpenseEntity {
     final category = ExpenseCategory(
       id: categoryJson['id'] as String? ?? '',
       name: categoryJson['name'] as String? ?? 'Other',
-      icon: categoryJson['icon'] as String? ?? '❓',
+      icon: categoryJson['icon'] as String? ?? 'category',
       color: categoryJson['color'] as String? ?? '#BDC3C7',
     );
 

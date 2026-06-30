@@ -6,44 +6,103 @@ import '../../domain/entities/wallet.dart';
 class DashboardProvider extends ChangeNotifier {
   final DioClient _client = DioClient();
 
-  bool _isSharedMode = false;
   String _activeTimeframe = 'monthly'; // 'daily' | 'monthly' | 'yearly'
   bool _isLoading = false;
 
   // Wallets
-  WalletEntity? _personalWallet;
-  WalletEntity? _sharedWallet;
+  List<WalletEntity> _personalWallets = [];
+  List<WalletEntity> _sharedWallets = [];
+  WalletEntity? _selectedWallet;
 
   // Data lists
   List<ExpenseEntity> _expenses = [];
   List<ExpenseCategory> _categories = [];
+  List<dynamic> _sharedGroups = [];
+  List<dynamic> _pendingInvites = [];
 
   // Getters
-  bool get isSharedMode => _isSharedMode;
+  bool get isSharedMode => _selectedWallet?.type == WalletType.shared;
   String get activeTimeframe => _activeTimeframe;
   bool get isLoading => _isLoading;
   List<ExpenseEntity> get expenses => _expenses;
   List<ExpenseCategory> get categories => _categories;
+  List<dynamic> get sharedGroups => _sharedGroups;
+  List<dynamic> get pendingInvites => _pendingInvites;
 
-  WalletEntity? get activeWallet =>
-      _isSharedMode ? _sharedWallet : _personalWallet;
+  List<WalletEntity> get personalWallets => _personalWallets;
+  List<WalletEntity> get sharedWallets => _sharedWallets;
+  List<WalletEntity> get allWallets => [..._personalWallets, ..._sharedWallets];
+
+  WalletEntity? get activeWallet => _selectedWallet;
 
   DashboardProvider() {
     _fetchData();
+    fetchSharedGroups();
   }
 
-  /// Toggle between Personal Wallet and Shared (Data Bersama) Wallet
+  /// Toggle between Personal Wallet and Shared (Data Bersama) Wallet (compatibility wrapper)
   void toggleSharedMode(bool value) {
-    _isSharedMode = value;
+    if (value) {
+      if (_sharedWallets.isNotEmpty) {
+        selectWallet(_sharedWallets[0]);
+      }
+    } else {
+      if (_personalWallets.isNotEmpty) {
+        selectWallet(_personalWallets[0]);
+      }
+    }
+  }
+
+  /// Select active wallet and fetch its expenses
+  void selectWallet(WalletEntity wallet) {
+    _selectedWallet = wallet;
     notifyListeners();
-    _fetchData();
+    _fetchExpensesOnly();
   }
 
   /// Change active timeframe ('daily' | 'monthly' | 'yearly')
   void setTimeframe(String timeframe) {
     _activeTimeframe = timeframe;
     notifyListeners();
-    _fetchData();
+    _fetchExpensesOnly();
+  }
+
+  /// Fetch expenses only for current selected wallet
+  Future<void> _fetchExpensesOnly() async {
+    _isLoading = true;
+    notifyListeners();
+    try {
+      final wallet = _selectedWallet;
+      if (wallet != null) {
+        final response = await _client.dio.get(
+          '/expenses',
+          queryParameters: {'walletId': wallet.id},
+        );
+
+        if (response.data != null && response.data['success'] == true) {
+          final list = response.data['data'] as List;
+          _expenses = list
+              .map((item) => ExpenseEntity.fromJson(item as Map))
+              .toList();
+        } else {
+          _expenses = [];
+        }
+      } else {
+        _expenses = [];
+      }
+    } catch (e) {
+      debugPrint('DashboardProvider: Fetch expenses failed ($e)');
+      _expenses = [];
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  /// Public refresh method for UI pull-to-refresh
+  Future<void> refreshData() async {
+    await _fetchData();
+    await fetchSharedGroups();
   }
 
   /// Fetch wallets and expenses dynamically from the backend.
@@ -57,21 +116,45 @@ class DashboardProvider extends ChangeNotifier {
       if (walletsRes.data != null && walletsRes.data['success'] == true) {
         final data = walletsRes.data['data'];
         final personalList = data['personal'] as List;
-        if (personalList.isNotEmpty) {
-          _personalWallet = WalletEntity.fromJson(personalList[0] as Map);
-        } else {
-          _personalWallet = null;
-        }
+        _personalWallets = personalList
+            .map((item) => WalletEntity.fromJson(item as Map))
+            .toList();
+
         final sharedList = data['shared'] as List;
-        if (sharedList.isNotEmpty) {
-          _sharedWallet = WalletEntity.fromJson(sharedList[0] as Map);
+        _sharedWallets = sharedList
+            .map((item) => WalletEntity.fromJson(item as Map))
+            .toList();
+
+        // Initialize or update selected wallet
+        if (_selectedWallet == null) {
+          if (_personalWallets.isNotEmpty) {
+            _selectedWallet = _personalWallets[0];
+          } else if (_sharedWallets.isNotEmpty) {
+            _selectedWallet = _sharedWallets[0];
+          }
         } else {
-          _sharedWallet = null; // No active shared group wallet
+          final idxP = _personalWallets.indexWhere((w) => w.id == _selectedWallet!.id);
+          if (idxP != -1) {
+            _selectedWallet = _personalWallets[idxP];
+          } else {
+            final idxS = _sharedWallets.indexWhere((w) => w.id == _selectedWallet!.id);
+            if (idxS != -1) {
+              _selectedWallet = _sharedWallets[idxS];
+            } else {
+              if (_personalWallets.isNotEmpty) {
+                _selectedWallet = _personalWallets[0];
+              } else if (_sharedWallets.isNotEmpty) {
+                _selectedWallet = _sharedWallets[0];
+              } else {
+                _selectedWallet = null;
+              }
+            }
+          }
         }
       }
 
       // 2. Fetch Expenses for the active wallet
-      final wallet = activeWallet;
+      final wallet = _selectedWallet;
       if (wallet != null) {
         final response = await _client.dio.get(
           '/expenses',
@@ -113,6 +196,65 @@ class DashboardProvider extends ChangeNotifier {
       debugPrint('DashboardProvider: Failed to fetch categories ($e)');
       _categories = [];
       notifyListeners();
+    }
+  }
+
+  /// Add a new custom category.
+  Future<bool> addCategory(String name, String icon, String color) async {
+    try {
+      final response = await _client.dio.post(
+        '/categories',
+        data: {
+          'name': name,
+          'icon': icon,
+          'color': color,
+        },
+      );
+      if (response.data != null && response.data['success'] == true) {
+        await fetchCategories();
+        return true;
+      }
+      return false;
+    } catch (e) {
+      debugPrint('DashboardProvider: Failed to add category ($e)');
+      return false;
+    }
+  }
+
+  /// Update an existing custom category.
+  Future<bool> updateCategory(String id, String name, String icon, String color) async {
+    try {
+      final response = await _client.dio.put(
+        '/categories/$id',
+        data: {
+          'name': name,
+          'icon': icon,
+          'color': color,
+        },
+      );
+      if (response.data != null && response.data['success'] == true) {
+        await fetchCategories();
+        return true;
+      }
+      return false;
+    } catch (e) {
+      debugPrint('DashboardProvider: Failed to update category ($e)');
+      return false;
+    }
+  }
+
+  /// Delete a custom category.
+  Future<bool> deleteCategory(String id) async {
+    try {
+      final response = await _client.dio.delete('/categories/$id');
+      if (response.data != null && response.data['success'] == true) {
+        await fetchCategories();
+        return true;
+      }
+      return false;
+    } catch (e) {
+      debugPrint('DashboardProvider: Failed to delete category ($e)');
+      return false;
     }
   }
 
@@ -206,19 +348,98 @@ class DashboardProvider extends ChangeNotifier {
     return false;
   }
 
+  /// Fetch active shared groups and pending invitations
+  Future<void> fetchSharedGroups() async {
+    try {
+      final response = await _client.dio.get('/sharing/groups');
+      if (response.data != null && response.data['success'] == true) {
+        final data = response.data['data'];
+        _sharedGroups = data['groups'] as List? ?? [];
+        _pendingInvites = data['pendingInvites'] as List? ?? [];
+        notifyListeners();
+      }
+    } catch (e) {
+      debugPrint('DashboardProvider: Failed to fetch shared groups ($e)');
+      _sharedGroups = [];
+      _pendingInvites = [];
+      notifyListeners();
+    }
+  }
+
   /// Send sharing invite to target email
   Future<bool> sendInvite(String email, {String? groupName}) async {
     try {
       final response = await _client.dio.post(
         '/sharing/invite',
-        data: {'email': email, 'groupName': ?groupName},
+        data: {'email': email, 'groupName': groupName},
       );
       if (response.data != null && response.data['success'] == true) {
+        await fetchSharedGroups();
         await _fetchData(); // Refresh wallets/shared state
         return true;
       }
     } catch (e) {
       debugPrint('DashboardProvider: Failed to send invite ($e)');
+    }
+    return false;
+  }
+
+  /// Accept an invitation
+  Future<bool> acceptGroupInvite(String inviteId) async {
+    try {
+      final response = await _client.dio.post('/sharing/invite/$inviteId/accept');
+      if (response.data != null && response.data['success'] == true) {
+        await fetchSharedGroups();
+        await _fetchData(); // Refresh wallets/shared state
+        return true;
+      }
+    } catch (e) {
+      debugPrint('DashboardProvider: Failed to accept invite ($e)');
+    }
+    return false;
+  }
+
+  /// Reject an invitation
+  Future<bool> rejectGroupInvite(String inviteId) async {
+    try {
+      final response = await _client.dio.post('/sharing/invite/$inviteId/reject');
+      if (response.data != null && response.data['success'] == true) {
+        await fetchSharedGroups();
+        await _fetchData();
+        return true;
+      }
+    } catch (e) {
+      debugPrint('DashboardProvider: Failed to reject invite ($e)');
+    }
+    return false;
+  }
+
+  /// Leave a group
+  Future<bool> leaveGroup(String groupId) async {
+    try {
+      final response = await _client.dio.post('/sharing/groups/$groupId/leave');
+      if (response.data != null && response.data['success'] == true) {
+        await fetchSharedGroups();
+        await _fetchData();
+        return true;
+      }
+    } catch (e) {
+      debugPrint('DashboardProvider: Failed to leave group ($e)');
+    }
+    return false;
+  }
+
+  /// Archive a group
+  Future<bool> archiveGroup(String groupId) async {
+    try {
+      final response = await _client.dio.post('/sharing/groups/$groupId/archive');
+      if (response.data != null && response.data['success'] == true) {
+        await fetchSharedGroups();
+        await _fetchData();
+        return true;
+      }
+    } catch (e) {
+      debugPrint('DashboardProvider: Failed to archive group ($e)');
     }
     return false;
   }
@@ -288,13 +509,13 @@ class DashboardProvider extends ChangeNotifier {
   }
 
   String get topCategoryIcon {
-    if (_expenses.isEmpty) return '❓';
+    if (_expenses.isEmpty) return 'category';
     try {
       final topCat = topCategory;
       final match = _expenses.firstWhere((e) => e.category.name == topCat);
       return match.category.icon;
     } catch (_) {
-      return '❓';
+      return 'category';
     }
   }
 }

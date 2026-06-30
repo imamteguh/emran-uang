@@ -5,12 +5,16 @@ class ExpenseCategory {
   final String name;
   final String icon;
   final String color;
+  final bool isDefault;
+  final String? userId;
 
   ExpenseCategory({
     required this.id,
     required this.name,
     required this.icon,
     required this.color,
+    this.isDefault = true,
+    this.userId,
   });
 
   factory ExpenseCategory.fromJson(Map<dynamic, dynamic> json) {
@@ -19,6 +23,8 @@ class ExpenseCategory {
       name: json['name'] as String,
       icon: json['icon'] as String? ?? '💰',
       color: json['color'] as String? ?? '#4F46E5',
+      isDefault: json['isDefault'] as bool? ?? (json['userId'] == null),
+      userId: json['userId'] as String?,
     );
   }
 }

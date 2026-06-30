@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>WalletShare - Shared Groups</title>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Google Fonts -->
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=Be+Vietnam+Pro:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-surface-variant": "#434655",
+                        "surface-variant": "#e0e3e5",
+                        "inverse-surface": "#2d3133",
+                        "tertiary-container": "#9b5e3b",
+                        "surface-container-highest": "#e0e3e5",
+                        "surface-bright": "#f7f9fb",
+                        "on-tertiary": "#ffffff",
+                        "on-primary-fixed": "#00174b",
+                        "primary": "#004bc6",
+                        "primary-fixed-dim": "#b4c5ff",
+                        "background": "#f7f9fb",
+                        "surface-container-high": "#e6e8ea",
+                        "surface": "#f7f9fb",
+                        "on-secondary": "#ffffff",
+                        "outline": "#737686",
+                        "on-background": "#191c1e",
+                        "tertiary-fixed-dim": "#ffb68f",
+                        "tertiary-fixed": "#ffdbca",
+                        "on-error": "#ffffff",
+                        "primary-fixed": "#dbe1ff",
+                        "surface-tint": "#0053da",
+                        "inverse-primary": "#b4c5ff",
+                        "on-primary-container": "#eeefff",
+                        "secondary": "#246a52",
+                        "on-surface": "#191c1e",
+                        "on-primary": "#ffffff",
+                        "surface-dim": "#d8dadc",
+                        "surface-container-lowest": "#ffffff",
+                        "on-primary-fixed-variant": "#003ea7",
+                        "on-secondary-fixed-variant": "#00513b",
+                        "secondary-fixed": "#abf1d2",
+                        "surface-container": "#eceef0",
+                        "secondary-fixed-dim": "#90d5b7",
+                        "on-tertiary-container": "#ffede5",
+                        "surface-container-low": "#f2f4f6",
+                        "outline-variant": "#c3c6d7",
+                        "tertiary": "#7e4726",
+                        "inverse-on-surface": "#eff1f3",
+                        "error": "#ba1a1a",
+                        "on-tertiary-fixed-variant": "#6d3919",
+                        "on-tertiary-fixed": "#331200",
+                        "on-secondary-fixed": "#002116",
+                        "error-container": "#ffdad6",
+                        "secondary-container": "#a8eecf",
+                        "on-secondary-container": "#296e56",
+                        "on-error-container": "#93000a",
+                        "primary-container": "#2463eb"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "1rem",
+                        "lg": "2rem",
+                        "xl": "3rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "md": "16px",
+                        "lg": "24px",
+                        "xl": "32px",
+                        "sm": "8px",
+                        "margin-mobile": "20px",
+                        "gutter": "16px",
+                        "xs": "4px",
+                        "base": "4px"
+                    },
+                    "fontFamily": {
+                        "label-sm": ["Be Vietnam Pro"],
+                        "label-md": ["Be Vietnam Pro"],
+                        "body-md": ["Be Vietnam Pro"],
+                        "headline-md": ["Plus Jakarta Sans"],
+                        "headline-lg": ["Plus Jakarta Sans"],
+                        "headline-lg-mobile": ["Plus Jakarta Sans"],
+                        "price-display": ["Plus Jakarta Sans"],
+                        "headline-sm": ["Plus Jakarta Sans"],
+                        "body-lg": ["Be Vietnam Pro"]
+                    },
+                    "fontSize": {
+                        "label-sm": ["12px", {"lineHeight": "16px", "fontWeight": "500"}],
+                        "label-md": ["14px", {"lineHeight": "20px", "letterSpacing": "0.05em", "fontWeight": "600"}],
+                        "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                        "headline-md": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                        "headline-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                        "headline-lg-mobile": ["28px", {"lineHeight": "36px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                        "price-display": ["40px", {"lineHeight": "48px", "letterSpacing": "-0.03em", "fontWeight": "800"}],
+                        "headline-sm": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                        "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .scrolling-touch {
+            -webkit-overflow-scrolling: touch;
+        }
+        /* Soft tactile shadow from design system */
+        .tactile-card {
+            box-shadow: 0 15px 30px -5px rgba(0, 0, 0, 0.05);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-background font-body-md scrolling-touch overflow-x-hidden pb-32">
+<!-- TopAppBar -->
+<header class="fixed top-0 left-0 w-full z-50 bg-background dark:bg-on-background flex justify-between items-center px-margin-mobile py-md w-full">
+<div class="flex items-center gap-md">
+<div class="w-10 h-10 rounded-full bg-primary-container flex items-center justify-center overflow-hidden border-2 border-white">
+<img class="w-full h-full object-cover" data-alt="A professional studio headshot of a friendly woman with a warm smile, wearing a casual business outfit. The background is a soft, blurred office environment with light teal and white tones, matching a cheerful minimalist UI aesthetic with high-key lighting." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCMqZZro_uD-dy6y5toGmMnfd9Z5BN0UHcfTc3lg8by0sRQCpEU3Dl30Z2okPanBFkRaC2LR-mcKOOFIN9H98i-Jrbpp1811u1PhE7_bBK1ed4RfKamNnrks6ncGzUXivV2eCVsKZNXFvvpVy0kr1kQC1Wh7bNOo_s78r8u71g5ulamFRuMjyvJsOrY0C8oaqcFA1ulECUts4asq4FqrTod0U1YBBBGRXBAMAsgshCXTE6GLsP67lbH"/>
+</div>
+<h1 class="text-headline-md font-headline-md font-bold text-primary dark:text-primary-fixed-dim">WalletShare</h1>
+</div>
+<button class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-surface-container transition-colors active:scale-95 duration-200">
+<span class="material-symbols-outlined text-on-surface-variant">group</span>
+</button>
+</header>
+<main class="mt-24 px-margin-mobile">
+<!-- Create New Group Prominent Card -->
+<section class="mb-xl">
+<button class="w-full p-lg bg-primary-container text-on-primary-container rounded-lg tactile-card flex items-center gap-md active:scale-[0.98] transition-transform">
+<div class="w-14 h-14 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm">
+<span class="material-symbols-outlined text-[32px] font-bold">add</span>
+</div>
+<div class="text-left">
+<h2 class="text-headline-sm font-headline-sm">Create New Group</h2>
+<p class="text-label-md font-label-md opacity-80">Share expenses with friends</p>
+</div>
+</button>
+</section>
+<!-- Pending Invitations Section -->
+<section class="mb-xl">
+<div class="flex items-center justify-between mb-md">
+<h3 class="text-headline-sm font-headline-sm text-on-surface">Pending Invitations</h3>
+<span class="bg-tertiary-container text-on-tertiary text-label-sm px-sm py-xs rounded-full">1 New</span>
+</div>
+<div class="bg-white rounded-lg tactile-card p-md border-l-4 border-tertiary-container flex items-center justify-between">
+<div class="flex items-center gap-md">
+<div class="w-12 h-12 rounded-full bg-secondary-container flex items-center justify-center text-secondary">
+<span class="material-symbols-outlined">celebration</span>
+</div>
+<div>
+<p class="text-body-md font-bold">Ski Weekend 2024</p>
+<p class="text-label-sm text-on-surface-variant">Invited by Sarah Chen</p>
+</div>
+</div>
+<div class="flex gap-sm">
+<button class="p-sm rounded-full bg-surface-container-high text-on-surface-variant hover:bg-error-container hover:text-on-error-container transition-colors">
+<span class="material-symbols-outlined">close</span>
+</button>
+<button class="p-sm rounded-full bg-primary-container text-on-primary-container hover:shadow-lg transition-all">
+<span class="material-symbols-outlined">check</span>
+</button>
+</div>
+</div>
+</section>
+<!-- Active Shared Groups Section -->
+<section>
+<div class="flex items-center justify-between mb-md">
+<h3 class="text-headline-sm font-headline-sm text-on-surface">Active Shared Groups</h3>
+<button class="text-primary font-label-md">View All</button>
+</div>
+<div class="grid grid-cols-1 gap-md">
+<!-- Group Card 1: Housemates (Blue Palette) -->
+<div class="bg-white rounded-lg tactile-card overflow-hidden transition-transform hover:-translate-y-1">
+<div class="h-2 w-full bg-primary-fixed-dim"></div>
+<div class="p-lg">
+<div class="flex justify-between items-start mb-lg">
+<div>
+<h4 class="text-headline-sm font-headline-sm text-on-surface">Housemates</h4>
+<p class="text-label-sm text-on-surface-variant">3 members • 12 active bills</p>
+</div>
+<div class="flex -space-x-3">
+<div class="w-8 h-8 rounded-full border-2 border-white bg-primary-container overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="Close-up portrait of a young man with glasses, smiling friendly. High-key natural lighting, soft blue background tones. Cheerful minimalist photography style." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAswwVSbf3yjxb8jee-fghxZJbINJ4GiScyCHUQ7SSOPae9sYCJv2ZOMbKzcu28p76gatvEPlpdhthiPGc5QwEPcFWHciaAVaq8atuIF4glZGtNCqy-ndEQcubo17WSQ-Rh8BFTjkjM24bgH2uq9fEVw9OGhh0bWjT_0T5KgnOeF63JeD0aDLRL4o9Xmd1IlIsOGhbGQsExHKiLUVmizJXtq83Z-Kbe_9PhYQfdL7HhU4ajOA24SR6J"/>
+</div>
+<div class="w-8 h-8 rounded-full border-2 border-white bg-secondary-container overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="Close-up portrait of a young woman with curly hair laughing. Warm natural sunlight, soft green plants in the background. Optimistic and supportive lifestyle brand aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuC1VP5WU5VXEDVVuZDY2pS-4VpRyYNGDpP7ZAGGzuBpMq5yX9Q8gB1A6d69588eXJxJ_OL1dgha997pWs6pI_xmIV2YtZKpq0kuFgi95Xt6qBVeKFWXf2ofmMwbAa1VVb7krK1SUbLHerX3y-Ia6dpUU-rabpn-WF0qbHVe3qS0ZwTwz5ZIRZUmmMBlsaoyURq29RF2DU1Dc0Cw7QGpFY8npgPUJSma43YfkJOKXSxuef-H7Be0fCpt"/>
+</div>
+<div class="w-8 h-8 rounded-full border-2 border-white bg-surface-container-highest flex items-center justify-center text-on-surface-variant text-[10px] font-bold">
+                                    ME
+                                </div>
+</div>
+</div>
+<div class="bg-surface-container-low rounded-md p-md flex items-center justify-between">
+<div>
+<p class="text-label-sm text-on-surface-variant uppercase tracking-wider">Total Shared</p>
+<p class="text-headline-sm font-headline-sm text-on-surface">$1,240.50</p>
+</div>
+<div class="text-right">
+<p class="text-label-sm text-on-surface-variant uppercase tracking-wider">Your Balance</p>
+<p class="text-headline-sm font-headline-sm text-secondary">-$45.00</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Group Card 2: Family Trip (Orange Palette) -->
+<div class="bg-white rounded-lg tactile-card overflow-hidden transition-transform hover:-translate-y-1">
+<div class="h-2 w-full bg-tertiary-fixed-dim"></div>
+<div class="p-lg">
+<div class="flex justify-between items-start mb-lg">
+<div>
+<h4 class="text-headline-sm font-headline-sm text-on-surface">Family Trip</h4>
+<p class="text-label-sm text-on-surface-variant">6 members • Just finished</p>
+</div>
+<div class="flex -space-x-3">
+<div class="w-8 h-8 rounded-full border-2 border-white bg-primary-container overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="Portrait of an elderly man smiling gently. Soft bright lighting, cheerful minimalist style with a clean pastel background." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDMqDgwV2O8XB5O4RAo_80xykG1xBMhULt4GsgICRQcO9HFMREZMpHoo8khAd3YRlK-OTViEBAM9Pxy5UJrMLuHZVX21EZMBbHIwGjGBixgg419O0CGmpdXc6Dgmalq3tAAZ4WAaddvNSlZB9KkpNUcTDp2y7ErcVFb-jhudGOIqrzcsrKo6lsFtTLu620-q_ke7P4Vug1BmLSJ5kKcqv3QprkPt8GIxkDTR56bgVxU3nhUpnPJJPCM"/>
+</div>
+<div class="w-8 h-8 rounded-full border-2 border-white bg-secondary-container overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="Portrait of a teenage boy with a baseball cap, looking at the camera. Bright outdoor lighting, vibrant colors." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCIbkK2d-ko5SkLHxiHrTUF-IVi5TxFlcdSqSd9wRlHulK9ypv37OjI_NYqFsaTPVotxQ9FNInp95O5QHvPt-7TPszMD7PENdo__G-_loYh76Cz_t0Vv8k31e2HEPMYVLz7DVDnZ8CnUCRXLz249DI9XaN1pXT6qloIww8a7P2S617o1CtUXd5Vs17wksMgx1-7Jnk4K5JXLLDiRBt4azHzpD5R-jFqdT1O3cGiXCuyLQ_KTBJiny-H"/>
+</div>
+<div class="w-8 h-8 rounded-full border-2 border-white bg-tertiary-fixed flex items-center justify-center text-on-tertiary-fixed text-[10px] font-bold">
+                                    +3
+                                </div>
+</div>
+</div>
+<div class="bg-surface-container-low rounded-md p-md flex items-center justify-between border-b-2 border-tertiary-fixed">
+<div>
+<p class="text-label-sm text-on-surface-variant uppercase tracking-wider">Total Spent</p>
+<p class="text-headline-sm font-headline-sm text-on-surface">$3,890.00</p>
+</div>
+<div class="text-right">
+<p class="text-label-sm text-on-surface-variant uppercase tracking-wider">Settled</p>
+<span class="material-symbols-outlined text-secondary" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Group Card 3: Monthly Bills (Mint Palette) -->
+<div class="bg-white rounded-lg tactile-card overflow-hidden transition-transform hover:-translate-y-1">
+<div class="h-2 w-full bg-secondary-fixed-dim"></div>
+<div class="p-lg">
+<div class="flex justify-between items-start mb-lg">
+<div>
+<h4 class="text-headline-sm font-headline-sm text-on-surface">Monthly Bills</h4>
+<p class="text-label-sm text-on-surface-variant">2 members • Recurring</p>
+</div>
+<div class="flex items-center gap-xs">
+<span class="material-symbols-outlined text-secondary text-sm">repeat</span>
+<p class="text-label-sm text-secondary">Auto-sync active</p>
+</div>
+</div>
+<div class="bg-surface-container-low rounded-md p-md flex items-center justify-between">
+<div>
+<p class="text-label-sm text-on-surface-variant uppercase tracking-wider">This Month</p>
+<p class="text-headline-sm font-headline-sm text-on-surface">$642.00</p>
+</div>
+<div class="text-right">
+<p class="text-label-sm text-on-surface-variant uppercase tracking-wider">Split</p>
+<p class="text-headline-sm font-headline-sm text-primary">50/50</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+</main>
+<!-- Bottom Navigation Bar -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-gutter py-sm pb-safe bg-surface-container-lowest dark:bg-surface-container-low rounded-t-lg shadow-[0_-4px_15px_rgba(0,0,0,0.05)] dark:shadow-none">
+<!-- Dashboard -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant px-4 py-2 hover:bg-surface-container-high transition-colors" href="#">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+<span class="text-label-sm font-label-sm">Dashboard</span>
+</a>
+<!-- Analysis -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant px-4 py-2 hover:bg-surface-container-high transition-colors" href="#">
+<span class="material-symbols-outlined" data-icon="analytics">analytics</span>
+<span class="text-label-sm font-label-sm">Analysis</span>
+</a>
+<!-- Bills -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant px-4 py-2 hover:bg-surface-container-high transition-colors" href="#">
+<span class="material-symbols-outlined" data-icon="receipt_long">receipt_long</span>
+<span class="text-label-sm font-label-sm">Bills</span>
+</a>
+<!-- Profile - ACTIVE -->
+<a class="flex flex-col items-center justify-center bg-primary-container text-on-primary-container rounded-xl px-4 py-2 scale-90 transition-all duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="person">person</span>
+<span class="text-label-sm font-label-sm">Profile</span>
+</a>
+</nav>
+<!-- Floating Action Button for Group Screen Context -->
+<button class="fixed bottom-24 right-6 w-14 h-14 bg-primary text-on-primary rounded-full shadow-lg flex items-center justify-center active:scale-90 transition-all duration-200 hover:rotate-90">
+<span class="material-symbols-outlined text-[32px]">add</span>
+</button>
+<script>
+        // Micro-interaction for cards
+        document.querySelectorAll('.tactile-card').forEach(card => {
+            card.addEventListener('touchstart', () => {
+                card.style.transform = 'scale(0.98)';
+            });
+            card.addEventListener('touchend', () => {
+                card.style.transform = 'scale(1)';
+            });
+        });
+
+        // Simple scroll logic for TopAppBar shadow
+        window.addEventListener('scroll', () => {
+            const header = document.querySelector('header');
+            if (window.scrollY > 20) {
+                header.classList.add('shadow-md');
+                header.classList.remove('bg-background');
+                header.classList.add('bg-white/90', 'backdrop-blur-md');
+            } else {
+                header.classList.remove('shadow-md', 'bg-white/90', 'backdrop-blur-md');
+                header.classList.add('bg-background');
+            }
+        });
+    </script>
+</body></html>

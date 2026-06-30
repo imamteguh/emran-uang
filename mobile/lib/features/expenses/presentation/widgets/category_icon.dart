@@ -47,6 +47,9 @@ class CategoryIcon extends StatelessWidget {
       case 'health':
         iconData = Icons.local_hospital;
         break;
+      case 'medication':
+        iconData = Icons.medication;
+        break;
       case 'shopping_bag':
       case 'shopping':
         iconData = Icons.shopping_bag;
@@ -73,6 +76,12 @@ class CategoryIcon extends StatelessWidget {
       case 'card_giftcard':
       case 'gifts':
         iconData = Icons.card_giftcard;
+        break;
+      case 'receipt_long':
+        iconData = Icons.receipt_long;
+        break;
+      case 'more_horiz':
+        iconData = Icons.more_horiz;
         break;
       case 'help_outline':
       case 'other':
