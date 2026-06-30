@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/network/dio_client.dart';
 import '../../domain/entities/expense.dart';
 import '../../domain/entities/wallet.dart';
+import '../../domain/entities/bill_reminder.dart';
 
 class DashboardProvider extends ChangeNotifier {
   final DioClient _client = DioClient();
@@ -19,6 +20,7 @@ class DashboardProvider extends ChangeNotifier {
   List<ExpenseCategory> _categories = [];
   List<dynamic> _sharedGroups = [];
   List<dynamic> _pendingInvites = [];
+  List<BillReminderEntity> _reminders = [];
 
   // Analytics
   Map<String, dynamic>? _compareData;
@@ -32,6 +34,7 @@ class DashboardProvider extends ChangeNotifier {
   List<ExpenseCategory> get categories => _categories;
   List<dynamic> get sharedGroups => _sharedGroups;
   List<dynamic> get pendingInvites => _pendingInvites;
+  List<BillReminderEntity> get reminders => _reminders;
   Map<String, dynamic>? get compareData => _compareData;
   Map<String, dynamic>? get breakdownData => _breakdownData;
 
@@ -44,6 +47,7 @@ class DashboardProvider extends ChangeNotifier {
   DashboardProvider() {
     _fetchData();
     fetchSharedGroups();
+    fetchCategories();
   }
 
   /// Toggle between Personal Wallet and Shared (Data Bersama) Wallet (compatibility wrapper)
@@ -96,16 +100,20 @@ class DashboardProvider extends ChangeNotifier {
 
         // Also fetch analytics
         await _fetchAnalyticsOnly();
+        // Also fetch reminders
+        await fetchReminders();
       } else {
         _expenses = [];
         _compareData = null;
         _breakdownData = null;
+        _reminders = [];
       }
     } catch (e) {
       debugPrint('DashboardProvider: Fetch expenses failed ($e)');
       _expenses = [];
       _compareData = null;
       _breakdownData = null;
+      _reminders = [];
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -185,16 +193,20 @@ class DashboardProvider extends ChangeNotifier {
 
         // Also fetch analytics
         await _fetchAnalyticsOnly();
+        // Also fetch reminders
+        await fetchReminders();
       } else {
         _expenses = [];
         _compareData = null;
         _breakdownData = null;
+        _reminders = [];
       }
     } catch (e) {
       debugPrint('DashboardProvider: Live fetch failed ($e)');
       _expenses = [];
       _compareData = null;
       _breakdownData = null;
+      _reminders = [];
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -586,5 +598,146 @@ class DashboardProvider extends ChangeNotifier {
     } catch (_) {
       return 'category';
     }
+  }
+
+  // ─── Bill Reminders (Tagihan) ──────────────────────────────────────────────
+
+  /// Fetch reminders for the active wallet
+  Future<void> fetchReminders() async {
+    final wallet = _selectedWallet;
+    if (wallet == null) return;
+    try {
+      final response = await _client.dio.get(
+        '/reminders',
+        queryParameters: {'walletId': wallet.id},
+      );
+      if (response.data != null && response.data['success'] == true) {
+        final list = response.data['data'] as List;
+        _reminders = list
+            .map((item) => BillReminderEntity.fromJson(item as Map))
+            .toList();
+        notifyListeners();
+      }
+    } catch (e) {
+      debugPrint('DashboardProvider: Failed to fetch reminders ($e)');
+      _reminders = [];
+      notifyListeners();
+    }
+  }
+
+  /// Add a new bill reminder
+  Future<bool> addReminder({
+    required String title,
+    required double amount,
+    required DateTime dueDate,
+    required String periodicity,
+    String? categoryId,
+    required int notifyDaysBefore,
+    required bool autoLogExpense,
+  }) async {
+    try {
+      final wallet = activeWallet;
+      if (wallet == null) return false;
+      final response = await _client.dio.post(
+        '/reminders',
+        data: {
+          'title': title,
+          'amount': amount,
+          'dueDate': dueDate.toUtc().toIso8601String(),
+          'periodicity': periodicity.toUpperCase(),
+          'categoryId': categoryId,
+          'walletId': wallet.id,
+          'notifyDaysBefore': notifyDaysBefore,
+          'autoLogExpense': autoLogExpense,
+        },
+      );
+      if (response.data != null && response.data['success'] == true) {
+        await fetchReminders();
+        return true;
+      }
+    } catch (e) {
+      debugPrint('DashboardProvider: Failed to add reminder ($e)');
+    }
+    return false;
+  }
+
+  /// Update an existing bill reminder
+  Future<bool> updateReminder({
+    required String id,
+    String? title,
+    double? amount,
+    DateTime? dueDate,
+    String? periodicity,
+    String? status,
+    String? categoryId,
+    int? notifyDaysBefore,
+    bool? autoLogExpense,
+  }) async {
+    try {
+      final wallet = activeWallet;
+      if (wallet == null) return false;
+      final response = await _client.dio.put(
+        '/reminders/$id',
+        data: {
+          'walletId': wallet.id,
+          'title': ?title,
+          'amount': ?amount,
+          'dueDate': ?dueDate?.toUtc().toIso8601String(),
+          'periodicity': ?periodicity?.toUpperCase(),
+          'status': ?status?.toUpperCase(),
+          'categoryId': categoryId,
+          'notifyDaysBefore': ?notifyDaysBefore,
+          'autoLogExpense': ?autoLogExpense,
+        },
+      );
+      if (response.data != null && response.data['success'] == true) {
+        await fetchReminders();
+        return true;
+      }
+    } catch (e) {
+      debugPrint('DashboardProvider: Failed to update reminder ($e)');
+    }
+    return false;
+  }
+
+  /// Delete (cancel) a bill reminder
+  Future<bool> deleteReminder(String id) async {
+    try {
+      final response = await _client.dio.delete('/reminders/$id');
+      if (response.data != null && response.data['success'] == true) {
+        await fetchReminders();
+        return true;
+      }
+    } catch (e) {
+      debugPrint('DashboardProvider: Failed to delete reminder ($e)');
+    }
+    return false;
+  }
+
+  /// Pay a bill (logs an Expense under this bill reminder and refreshes data)
+  Future<bool> payBill(BillReminderEntity reminder) async {
+    try {
+      final wallet = activeWallet;
+      if (wallet == null) return false;
+
+      final body = {
+        'amount': reminder.amount,
+        'description': 'Pembayaran: ${reminder.title}',
+        'type': 'ROUTINE',
+        'categoryId': reminder.categoryId ?? (categories.isNotEmpty ? categories[0].id : null),
+        'walletId': wallet.id,
+        'date': DateTime.now().toUtc().toIso8601String(),
+        'billReminderId': reminder.id,
+      };
+
+      final response = await _client.dio.post('/expenses', data: body);
+      if (response.data != null && response.data['success'] == true) {
+        await _fetchData();
+        return true;
+      }
+    } catch (e) {
+      debugPrint('DashboardProvider: Failed to pay bill ($e)');
+    }
+    return false;
   }
 }

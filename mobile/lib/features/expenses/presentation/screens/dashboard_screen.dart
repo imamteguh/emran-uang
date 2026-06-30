@@ -1231,8 +1231,8 @@ class DashboardScreen extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             provider.isSharedMode
-                ? 'Data bersama belum memiliki catatan pengeluaran.'
-                : 'Klik tombol "+" di bawah untuk mencatat pengeluaran.',
+                ? 'No expenses recorded in the shared wallet yet.'
+                : 'Tap the "+" button below to record an expense.',
             textAlign: TextAlign.center,
             style: const TextStyle(color: Colors.grey, fontSize: 13),
           ),

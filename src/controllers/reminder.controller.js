@@ -65,6 +65,7 @@ async function createReminder(req, res) {
     include: {
       category: { select: { id: true, name: true, icon: true, color: true } },
       wallet: { select: { id: true, name: true, type: true } },
+      expenses: { select: { id: true, amount: true, date: true } },
     },
   });
 
@@ -107,6 +108,7 @@ async function getReminders(req, res) {
       include: {
         category: { select: { id: true, name: true, icon: true, color: true } },
         wallet: { select: { id: true, name: true, type: true } },
+        expenses: { select: { id: true, amount: true, date: true } },
       },
       orderBy: { dueDate: 'asc' },
       skip,
@@ -168,6 +170,7 @@ async function updateReminder(req, res) {
     include: {
       category: { select: { id: true, name: true, icon: true, color: true } },
       wallet: { select: { id: true, name: true, type: true } },
+      expenses: { select: { id: true, amount: true, date: true } },
     },
   });
 

@@ -92,9 +92,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   _buildHeroProfileCard(responsive, user),
                   const SizedBox(height: 24),
 
-                  // Data Bersama Section
-                  _buildPartnerProfileCard(responsive),
-                  const SizedBox(height: 28),
 
                   // Account Settings Group
                   _buildGroupTitle('Account Settings'),
@@ -111,7 +108,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         _buildSettingsItem(
                           icon: Icons.person_outline,
                           title: 'Update Profile',
-                          subtitle: 'Ubah nama lengkap dan email Anda',
+                          subtitle: 'Update your full name and email address',
                           iconColor: AppTheme.primary,
                           bgIconColor: AppTheme.primary.withAlpha(25),
                           onTap: () {
@@ -127,7 +124,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         _buildSettingsItem(
                           icon: Icons.lock_outline,
                           title: 'Change Password',
-                          subtitle: 'Ubah kata sandi keamanan akun Anda',
+                          subtitle: 'Change your account security password',
                           iconColor: AppTheme.secondary,
                           bgIconColor: AppTheme.secondary.withAlpha(25),
                           onTap: () {
@@ -485,87 +482,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  // ─── Data Bersama (Shared Group) View ───────────────────────────────────────
-
-  Widget _buildPartnerProfileCard(ResponsiveHelper responsive) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _buildGroupTitle('Data Bersama'),
-        const SizedBox(height: 8),
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(20),
-            boxShadow: AppTheme.softShadow,
-          ),
-          child: Row(
-            children: [
-              // Group icon
-              Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: AppTheme.primary.withAlpha(25),
-                  border: Border.all(
-                    color: AppTheme.primary.withAlpha(50),
-                    width: 2,
-                  ),
-                ),
-                alignment: Alignment.center,
-                child: const Icon(
-                  Icons.group,
-                  color: AppTheme.primary,
-                  size: 24,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Undang anggota baru',
-                      style: GoogleFonts.beVietnamPro(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
-                        color: AppTheme.darkSlate,
-                      ),
-                    ),
-                    Text(
-                      'Bagikan data pengeluaran & tagihan',
-                      style: GoogleFonts.beVietnamPro(
-                        fontSize: 12,
-                        color: AppTheme.darkSlateVariant,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              ElevatedButton(
-                onPressed: () => _showInviteDialog(context),
-                style: ElevatedButton.styleFrom(
-                  minimumSize: const Size(80, 36),
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  backgroundColor: AppTheme.primary,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(18),
-                  ),
-                ),
-                child: const Text(
-                  'Undang',
-                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
 
   // ─── Settings Item Builder Helper ──────────────────────────────────────────
 
@@ -657,150 +573,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  void _showInviteDialog(BuildContext context) {
-    final emailController = TextEditingController();
-    final groupNameController = TextEditingController(text: 'Keluarga');
-
-    showDialog(
-      context: context,
-      builder: (context) {
-        final dashboardProvider = Provider.of<DashboardProvider>(
-          context,
-          listen: false,
-        );
-        return Dialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(28),
-          ),
-          child: Container(
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(28),
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Top Icon
-                Center(
-                  child: Container(
-                    width: 56,
-                    height: 56,
-                    decoration: BoxDecoration(
-                      color: AppTheme.primary.withAlpha(25),
-                      shape: BoxShape.circle,
-                    ),
-                    alignment: Alignment.center,
-                    child: const Icon(
-                      Icons.group_add_outlined,
-                      color: AppTheme.primary,
-                      size: 28,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Center(
-                  child: Text(
-                    'Undang Anggota Baru',
-                    style: GoogleFonts.plusJakartaSans(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 18,
-                      color: AppTheme.darkSlate,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Center(
-                  child: Text(
-                    'Hubungkan catatan pengeluaran bersama pasangan atau keluarga Anda.',
-                    textAlign: TextAlign.center,
-                    style: GoogleFonts.beVietnamPro(
-                      fontSize: 12,
-                      color: AppTheme.darkSlateVariant,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 20),
-
-                // Form Fields
-                TextField(
-                  controller: emailController,
-                  decoration: const InputDecoration(
-                    labelText: 'Email Anggota',
-                    hintText: 'email@walletshare.com',
-                    prefixIcon: Icon(Icons.alternate_email, size: 20),
-                  ),
-                  keyboardType: TextInputType.emailAddress,
-                ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: groupNameController,
-                  decoration: const InputDecoration(
-                    labelText: 'Nama Grup Bersama',
-                    hintText: 'Keluarga / Patungan',
-                    prefixIcon: Icon(Icons.label_outline, size: 20),
-                  ),
-                ),
-                const SizedBox(height: 24),
-
-                // Action Buttons
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: () => Navigator.of(context).pop(),
-                        style: OutlinedButton.styleFrom(
-                          minimumSize: const Size.fromHeight(50),
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                        ),
-                        child: const Text('Batal'),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: ElevatedButton(
-                        onPressed: () async {
-                          final email = emailController.text.trim();
-                          final groupName = groupNameController.text.trim();
-                          if (email.isNotEmpty) {
-                            final success = await dashboardProvider.sendInvite(
-                              email,
-                              groupName: groupName,
-                            );
-                            if (context.mounted) {
-                              Navigator.of(context).pop();
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text(
-                                    success
-                                        ? 'Undangan berhasil dikirim!'
-                                        : 'Gagal mengirim undangan.',
-                                  ),
-                                  backgroundColor: success
-                                      ? Colors.green
-                                      : AppTheme.error,
-                                ),
-                              );
-                            }
-                          }
-                        },
-                        style: ElevatedButton.styleFrom(
-                          minimumSize: const Size.fromHeight(50),
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                        ),
-                        child: const Text('Kirim'),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
 
   void _showCurrencyPicker(BuildContext context) {
     final dashboardProvider = Provider.of<DashboardProvider>(
@@ -843,7 +615,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
               const SizedBox(height: 20),
               Text(
-                'Pilih Mata Uang',
+                'Choose Currency',
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
@@ -852,7 +624,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
               const SizedBox(height: 6),
               Text(
-                'Ubah mata uang pada dompet aktif Anda.',
+                'Change the currency of your active wallet.',
                 style: GoogleFonts.beVietnamPro(
                   fontSize: 13,
                   color: AppTheme.darkSlateVariant,
@@ -917,8 +689,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           SnackBar(
                             content: Text(
                               success
-                                  ? 'Mata uang berhasil diubah ke ${curr['code']}!'
-                                  : 'Gagal mengubah mata uang.',
+                                  ? 'Currency successfully changed to ${curr['code']}!'
+                                  : 'Failed to change currency.',
                             ),
                             backgroundColor: success
                                 ? Colors.green

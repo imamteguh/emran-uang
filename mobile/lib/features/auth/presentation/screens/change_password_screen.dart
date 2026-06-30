@@ -45,7 +45,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
       if (success) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Kata sandi berhasil diubah!'),
+            content: Text('Password changed successfully!'),
             backgroundColor: Colors.green,
           ),
         );
@@ -53,7 +53,9 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(authProvider.errorMessage ?? 'Gagal mengubah kata sandi.'),
+            content: Text(
+              authProvider.errorMessage ?? 'Failed to change password.',
+            ),
             backgroundColor: AppTheme.error,
           ),
         );
@@ -67,7 +69,9 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
     final authProvider = Provider.of<AuthProvider>(context);
     final user = authProvider.currentUser;
 
-    final double formWidth = responsive.isTablet || responsive.isDesktop ? 480 : double.infinity;
+    final double formWidth = responsive.isTablet || responsive.isDesktop
+        ? 480
+        : double.infinity;
 
     // Check if user is logged in via Google OAuth
     final isGoogleUser = user?.authProvider == 'GOOGLE';
@@ -75,7 +79,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          'Ubah Kata Sandi',
+          'Change Password',
           style: GoogleFonts.plusJakartaSans(
             fontWeight: FontWeight.bold,
             fontSize: responsive.scaleFont(18),
@@ -103,7 +107,10 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                       decoration: BoxDecoration(
                         color: AppTheme.tertiaryFixed,
                         borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: AppTheme.tertiary.withAlpha(50), width: 1),
+                        border: Border.all(
+                          color: AppTheme.tertiary.withAlpha(50),
+                          width: 1,
+                        ),
                       ),
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -119,7 +126,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  'Google Sign-In Aktif',
+                                  'Google Sign-In Active',
                                   style: GoogleFonts.plusJakartaSans(
                                     fontWeight: FontWeight.bold,
                                     color: AppTheme.tertiary,
@@ -128,7 +135,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
-                                  'Akun Anda terhubung melalui Google OAuth. Anda tidak memiliki kata sandi lokal untuk diubah.',
+                                  'Your account is connected via Google OAuth. You do not have a local password to change.',
                                   style: GoogleFonts.beVietnamPro(
                                     color: AppTheme.darkSlateVariant,
                                     fontSize: 13,
@@ -143,12 +150,12 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                     const SizedBox(height: 24),
                     OutlinedButton(
                       onPressed: () => Navigator.of(context).pop(),
-                      child: const Text('Kembali'),
+                      child: const Text('Back'),
                     ),
                   ] else ...[
                     // Description
                     Text(
-                      'Pastikan kata sandi baru Anda aman dan terdiri dari minimal 8 karakter.',
+                      'Make sure your new password is secure and consists of at least 8 characters.',
                       style: GoogleFonts.beVietnamPro(
                         fontSize: 14,
                         color: AppTheme.darkSlateVariant,
@@ -156,111 +163,133 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                     ),
                     const SizedBox(height: 24),
 
-                    // Password Form
-                    Form(
-                      key: _formKey,
-                      child: Column(
-                        children: [
-                          // Current Password Field
-                          TextFormField(
-                            controller: _currentPasswordController,
-                            obscureText: _obscureCurrent,
-                            decoration: InputDecoration(
-                              labelText: 'Kata Sandi Sekarang',
-                              hintText: 'Masukkan kata sandi lama',
-                              prefixIcon: const Icon(Icons.lock_outline),
-                              suffixIcon: IconButton(
-                                icon: Icon(
-                                  _obscureCurrent ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-                                  color: AppTheme.outline,
-                                  size: 20,
+                    // Password Form Card
+                    Container(
+                      padding: const EdgeInsets.all(24),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(24),
+                        boxShadow: AppTheme.softShadow,
+                      ),
+                      child: Form(
+                        key: _formKey,
+                        child: Column(
+                          children: [
+                            // Current Password Field
+                            TextFormField(
+                              controller: _currentPasswordController,
+                              obscureText: _obscureCurrent,
+                              decoration: InputDecoration(
+                                labelText: 'Current Password',
+                                hintText: 'Enter your current password',
+                                prefixIcon: const Icon(Icons.lock_outline),
+                                suffixIcon: IconButton(
+                                  icon: Icon(
+                                    _obscureCurrent
+                                        ? Icons.visibility_off_outlined
+                                        : Icons.visibility_outlined,
+                                    color: AppTheme.outline,
+                                    size: 20,
+                                  ),
+                                  onPressed: () {
+                                    setState(
+                                      () => _obscureCurrent = !_obscureCurrent,
+                                    );
+                                  },
                                 ),
-                                onPressed: () {
-                                  setState(() => _obscureCurrent = !_obscureCurrent);
-                                },
                               ),
+                              validator: (val) {
+                                if (val == null || val.trim().isEmpty) {
+                                  return 'Current password is required';
+                                }
+                                return null;
+                              },
                             ),
-                            validator: (val) {
-                              if (val == null || val.trim().isEmpty) {
-                                return 'Kata sandi saat ini harus diisi';
-                              }
-                              return null;
-                            },
-                          ),
-                          const SizedBox(height: 16),
+                            const SizedBox(height: 16),
 
-                          // New Password Field
-                          TextFormField(
-                            controller: _newPasswordController,
-                            obscureText: _obscureNew,
-                            decoration: InputDecoration(
-                              labelText: 'Kata Sandi Baru',
-                              hintText: 'Minimal 8 karakter',
-                              prefixIcon: const Icon(Icons.lock_open_outlined),
-                              suffixIcon: IconButton(
-                                icon: Icon(
-                                  _obscureNew ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-                                  color: AppTheme.outline,
-                                  size: 20,
+                            // New Password Field
+                            TextFormField(
+                              controller: _newPasswordController,
+                              obscureText: _obscureNew,
+                              decoration: InputDecoration(
+                                labelText: 'New Password',
+                                hintText: 'At least 8 characters',
+                                prefixIcon: const Icon(
+                                  Icons.lock_open_outlined,
                                 ),
-                                onPressed: () {
-                                  setState(() => _obscureNew = !_obscureNew);
-                                },
+                                suffixIcon: IconButton(
+                                  icon: Icon(
+                                    _obscureNew
+                                        ? Icons.visibility_off_outlined
+                                        : Icons.visibility_outlined,
+                                    color: AppTheme.outline,
+                                    size: 20,
+                                  ),
+                                  onPressed: () {
+                                    setState(() => _obscureNew = !_obscureNew);
+                                  },
+                                ),
                               ),
+                              validator: (val) {
+                                if (val == null || val.isEmpty) {
+                                  return 'New password is required';
+                                }
+                                if (val.length < 8) {
+                                  return 'New password must be at least 8 characters';
+                                }
+                                return null;
+                              },
                             ),
-                            validator: (val) {
-                              if (val == null || val.isEmpty) {
-                                return 'Kata sandi baru harus diisi';
-                              }
-                              if (val.length < 8) {
-                                return 'Kata sandi baru harus minimal 8 karakter';
-                              }
-                              return null;
-                            },
-                          ),
-                          const SizedBox(height: 16),
+                            const SizedBox(height: 16),
 
-                          // Confirm New Password Field
-                          TextFormField(
-                            controller: _confirmPasswordController,
-                            obscureText: _obscureConfirm,
-                            decoration: InputDecoration(
-                              labelText: 'Konfirmasi Kata Sandi Baru',
-                              hintText: 'Ulangi kata sandi baru',
-                              prefixIcon: const Icon(Icons.lock_outline),
-                              suffixIcon: IconButton(
-                                icon: Icon(
-                                  _obscureConfirm ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-                                  color: AppTheme.outline,
-                                  size: 20,
+                            // Confirm New Password Field
+                            TextFormField(
+                              controller: _confirmPasswordController,
+                              obscureText: _obscureConfirm,
+                              decoration: InputDecoration(
+                                labelText: 'Confirm New Password',
+                                hintText: 'Repeat your new password',
+                                prefixIcon: const Icon(Icons.lock_outline),
+                                suffixIcon: IconButton(
+                                  icon: Icon(
+                                    _obscureConfirm
+                                        ? Icons.visibility_off_outlined
+                                        : Icons.visibility_outlined,
+                                    color: AppTheme.outline,
+                                    size: 20,
+                                  ),
+                                  onPressed: () {
+                                    setState(
+                                      () => _obscureConfirm = !_obscureConfirm,
+                                    );
+                                  },
                                 ),
-                                onPressed: () {
-                                  setState(() => _obscureConfirm = !_obscureConfirm);
-                                },
                               ),
+                              validator: (val) {
+                                if (val == null || val.isEmpty) {
+                                  return 'Confirm password is required';
+                                }
+                                if (val != _newPasswordController.text) {
+                                  return 'Passwords do not match';
+                                }
+                                return null;
+                              },
                             ),
-                            validator: (val) {
-                              if (val == null || val.isEmpty) {
-                                return 'Konfirmasi kata sandi baru harus diisi';
-                              }
-                              if (val != _newPasswordController.text) {
-                                return 'Konfirmasi kata sandi tidak cocok';
-                              }
-                              return null;
-                            },
-                          ),
-                          const SizedBox(height: 32),
+                            const SizedBox(height: 24),
 
-                          // Submit Button
-                          authProvider.isLoading
-                              ? const Center(
-                                  child: CircularProgressIndicator(color: AppTheme.primary),
-                                )
-                              : ElevatedButton(
-                                  onPressed: _handleSubmit,
-                                  child: const Text('Simpan Kata Sandi'),
-                                ),
-                        ],
+                            // Submit Button
+                            authProvider.isLoading
+                                ? const Center(
+                                    child: CircularProgressIndicator(
+                                      color: AppTheme.primary,
+                                    ),
+                                  )
+                                : ElevatedButton(
+                                    onPressed: _handleSubmit,
+                                    child: const Text('Save Password'),
+                                  ),
+                          ],
+                        ),
                       ),
                     ),
                   ],

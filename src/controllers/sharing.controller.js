@@ -12,14 +12,14 @@ async function sendInvite(req, res) {
   const senderId = req.user.id;
 
   if (!email || !email.trim()) {
-    return error(res, 'Email tujuan wajib diisi', 400);
+    return error(res, 'Recipient email is required', 400);
   }
 
   const targetEmail = email.toLowerCase().trim();
 
   // Can't invite yourself
   if (targetEmail === req.user.email) {
-    return error(res, "Tidak bisa mengundang diri sendiri", 400);
+    return error(res, "You cannot invite yourself", 400);
   }
 
   // Check if there's already a pending invite from this user to this email
@@ -33,7 +33,7 @@ async function sendInvite(req, res) {
   if (pendingInvite) {
     return error(
       res,
-      'Anda sudah memiliki undangan pending ke email ini. Batalkan dulu sebelum mengirim yang baru.',
+      'You already have a pending invitation for this email. Cancel it before sending a new one.',
       409
     );
   }
@@ -87,8 +87,8 @@ async function sendInvite(req, res) {
       targetUserFound: !!targetUser,
     },
     targetUser
-      ? 'Undangan terkirim ke user yang sudah terdaftar'
-      : 'Undangan dibuat — user akan melihatnya saat mereka mendaftar'
+      ? 'Invitation sent to registered user'
+      : 'Invitation created — user will see it when they register'
   );
 }
 
@@ -104,30 +104,30 @@ async function acceptInvite(req, res) {
   });
 
   if (!invite) {
-    return error(res, 'Undangan tidak ditemukan', 404);
+    return error(res, 'Invitation not found', 404);
   }
   if (invite.status !== 'PENDING') {
-    return error(res, `Undangan sudah ${invite.status.toLowerCase()}`, 400);
+    return error(res, `Invitation is already ${invite.status.toLowerCase()}`, 400);
   }
   if (new Date() > invite.expiresAt) {
     await prisma.sharedGroupInvite.update({
       where: { id },
       data: { status: 'EXPIRED' },
     });
-    return error(res, 'Undangan sudah kedaluwarsa', 410);
+    return error(res, 'Invitation has expired', 410);
   }
 
   // Verify this user is the intended receiver
   if (invite.receiverId && invite.receiverId !== userId) {
-    return error(res, 'Undangan ini bukan untuk Anda', 403);
+    return error(res, 'This invitation is not for you', 403);
   }
   if (!invite.receiverId && invite.receiverEmail.toLowerCase().trim() !== req.user.email.toLowerCase().trim()) {
-    return error(res, 'Undangan ini bukan untuk Anda', 403);
+    return error(res, 'This invitation is not for you', 403);
   }
 
   // Can't accept your own invite
   if (invite.senderId === userId) {
-    return error(res, "Tidak bisa menerima undangan sendiri", 400);
+    return error(res, "Cannot accept your own invitation", 400);
   }
 
   // Check if user is already a member of this group
@@ -140,7 +140,7 @@ async function acceptInvite(req, res) {
     },
   });
   if (existingMember) {
-    return error(res, 'Anda sudah menjadi anggota grup ini', 409);
+    return error(res, 'You are already a member of this group', 409);
   }
 
   // Accept: add member, activate group if needed, create shared wallet if first accept
@@ -172,7 +172,7 @@ async function acceptInvite(req, res) {
     if (!existingWallet) {
       sharedWallet = await tx.wallet.create({
         data: {
-          name: group.name ? `${group.name}` : 'Wallet Bersama',
+          name: group.name ? `${group.name}` : 'Shared Wallet',
           type: 'SHARED',
           currency: 'IDR',
           groupId: group.id,
@@ -192,7 +192,7 @@ async function acceptInvite(req, res) {
     return { group, sharedWallet };
   });
 
-  return success(res, result, 'Undangan diterima — data bersama aktif!');
+  return success(res, result, 'Invitation accepted — shared data is active!');
 }
 
 // ─── Reject Sharing Invite ──────────────────────────────────────────────────
@@ -204,18 +204,18 @@ async function rejectInvite(req, res) {
   const invite = await prisma.sharedGroupInvite.findUnique({ where: { id } });
 
   if (!invite) {
-    return error(res, 'Undangan tidak ditemukan', 404);
+    return error(res, 'Invitation not found', 404);
   }
   if (invite.status !== 'PENDING') {
-    return error(res, `Undangan sudah ${invite.status.toLowerCase()}`, 400);
+    return error(res, `Invitation is already ${invite.status.toLowerCase()}`, 400);
   }
 
   // Verify receiver
   if (invite.receiverId && invite.receiverId !== userId) {
-    return error(res, 'Undangan ini bukan untuk Anda', 403);
+    return error(res, 'This invitation is not for you', 403);
   }
   if (!invite.receiverId && invite.receiverEmail.toLowerCase().trim() !== req.user.email.toLowerCase().trim()) {
-    return error(res, 'Undangan ini bukan untuk Anda', 403);
+    return error(res, 'This invitation is not for you', 403);
   }
 
   await prisma.$transaction(async (tx) => {
@@ -239,7 +239,7 @@ async function rejectInvite(req, res) {
     }
   });
 
-  return success(res, null, 'Undangan ditolak');
+  return success(res, null, 'Invitation rejected');
 }
 
 // ─── Get My Shared Groups ───────────────────────────────────────────────────
@@ -317,12 +317,12 @@ async function archiveGroup(req, res) {
   });
 
   if (!membership) {
-    return error(res, 'Anda bukan anggota grup ini atau grup tidak aktif', 404);
+    return error(res, 'You are not a member of this group or the group is inactive', 404);
   }
 
   // Only the owner can archive the group
   if (membership.role !== 'OWNER') {
-    return error(res, 'Hanya pemilik grup yang bisa mengarsipkan', 403);
+    return error(res, 'Only the group owner can archive this group', 403);
   }
 
   await prisma.sharedGroup.update({
@@ -333,7 +333,7 @@ async function archiveGroup(req, res) {
     },
   });
 
-  return success(res, null, 'Grup diarsipkan. Riwayat data bersama tetap tersimpan.');
+  return success(res, null, 'Group archived. Shared data history remains saved.');
 }
 
 // ─── Leave Shared Group ─────────────────────────────────────────────────────
@@ -351,7 +351,7 @@ async function leaveGroup(req, res) {
   });
 
   if (!membership) {
-    return error(res, 'Anda bukan anggota grup ini', 404);
+    return error(res, 'You are not a member of this group', 404);
   }
 
   // If user is the owner, they can't leave — they must archive or transfer ownership
@@ -390,7 +390,7 @@ async function leaveGroup(req, res) {
     });
   }
 
-  return success(res, null, 'Anda telah keluar dari grup.');
+  return success(res, null, 'You have left the group.');
 }
 
 module.exports = {

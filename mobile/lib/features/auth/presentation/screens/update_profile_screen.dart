@@ -20,8 +20,30 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
   String? _selectedAvatarUrl;
 
   final List<String> _avatarPresets = [
-    '🦊', '🐱', '🦁', '🐯', '🐨', '🐼', '🐰', '🐶', '🦄', '🐸', '🐙', '🐵',
-    '🚗', '✈️', '🎮', '🏀', '🍕', '🍩', '🥑', '💼', '💡', '🔥', '✨', '🍀'
+    '🦊',
+    '🐱',
+    '🦁',
+    '🐯',
+    '🐨',
+    '🐼',
+    '🐰',
+    '🐶',
+    '🦄',
+    '🐸',
+    '🐙',
+    '🐵',
+    '🚗',
+    '✈️',
+    '🎮',
+    '🏀',
+    '🍕',
+    '🍩',
+    '🥑',
+    '💼',
+    '💡',
+    '🔥',
+    '✨',
+    '🍀',
   ];
 
   @override
@@ -43,9 +65,10 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
 
   void _showAvatarPicker() {
     final urlController = TextEditingController(
-      text: (_selectedAvatarUrl != null && _selectedAvatarUrl!.startsWith('http')) 
-          ? _selectedAvatarUrl 
-          : ''
+      text:
+          (_selectedAvatarUrl != null && _selectedAvatarUrl!.startsWith('http'))
+          ? _selectedAvatarUrl
+          : '',
     );
 
     showModalBottomSheet(
@@ -82,7 +105,7 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
                   ),
                   const SizedBox(height: 20),
                   Text(
-                    'Pilih Avatar',
+                    'Choose Avatar',
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
@@ -91,28 +114,29 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    'Gunakan preset emoji atau masukkan URL gambar kustom.',
+                    'Use emoji presets or enter a custom image URL.',
                     style: GoogleFonts.beVietnamPro(
                       fontSize: 13,
                       color: AppTheme.darkSlateVariant,
                     ),
                   ),
                   const SizedBox(height: 20),
-                  
+
                   // Emoji presets grid
                   SizedBox(
                     height: 180,
                     child: GridView.builder(
                       itemCount: _avatarPresets.length,
-                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 6,
-                        mainAxisSpacing: 10,
-                        crossAxisSpacing: 10,
-                      ),
+                      gridDelegate:
+                          const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 6,
+                            mainAxisSpacing: 10,
+                            crossAxisSpacing: 10,
+                          ),
                       itemBuilder: (context, index) {
                         final emoji = _avatarPresets[index];
                         final isSelected = _selectedAvatarUrl == emoji;
-                        
+
                         return GestureDetector(
                           onTap: () {
                             setModalState(() {
@@ -125,9 +149,13 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
                           child: Container(
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
-                              color: isSelected ? AppTheme.primaryFixed : const Color(0xFFF1F5F9),
+                              color: isSelected
+                                  ? AppTheme.primaryFixed
+                                  : const Color(0xFFF1F5F9),
                               border: Border.all(
-                                color: isSelected ? AppTheme.primary : Colors.transparent,
+                                color: isSelected
+                                    ? AppTheme.primary
+                                    : Colors.transparent,
                                 width: 2,
                               ),
                             ),
@@ -142,33 +170,37 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  
+
                   // URL input
                   TextField(
                     controller: urlController,
                     decoration: const InputDecoration(
-                      labelText: 'Atau URL Gambar Kustom',
+                      labelText: 'Or Custom Image URL',
                       hintText: 'https://example.com/avatar.jpg',
                       prefixIcon: Icon(Icons.link),
                     ),
                     onChanged: (val) {
                       setModalState(() {
-                        _selectedAvatarUrl = val.trim().isEmpty ? null : val.trim();
+                        _selectedAvatarUrl = val.trim().isEmpty
+                            ? null
+                            : val.trim();
                       });
                       setState(() {
-                        _selectedAvatarUrl = val.trim().isEmpty ? null : val.trim();
+                        _selectedAvatarUrl = val.trim().isEmpty
+                            ? null
+                            : val.trim();
                       });
                     },
                   ),
                   const SizedBox(height: 24),
-                  
+
                   // Action buttons
                   Row(
                     children: [
                       Expanded(
                         child: OutlinedButton(
                           onPressed: () => Navigator.of(context).pop(),
-                          child: const Text('Batal'),
+                          child: const Text('Cancel'),
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -182,7 +214,7 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
                             }
                             Navigator.of(context).pop();
                           },
-                          child: const Text('Pilih'),
+                          child: const Text('Select'),
                         ),
                       ),
                     ],
@@ -217,7 +249,7 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
       if (success) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Profil berhasil diperbarui!'),
+            content: Text('Profile updated successfully!'),
             backgroundColor: Colors.green,
           ),
         );
@@ -225,7 +257,9 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(authProvider.errorMessage ?? 'Gagal memperbarui profil.'),
+            content: Text(
+              authProvider.errorMessage ?? 'Failed to update profile.',
+            ),
             backgroundColor: AppTheme.error,
           ),
         );
@@ -239,13 +273,15 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
     final authProvider = Provider.of<AuthProvider>(context);
     final user = authProvider.currentUser;
 
-    final double formWidth = responsive.isTablet || responsive.isDesktop ? 480 : double.infinity;
+    final double formWidth = responsive.isTablet || responsive.isDesktop
+        ? 480
+        : double.infinity;
     final isGoogleUser = user?.authProvider == 'GOOGLE';
 
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          'Edit Profil',
+          'Edit Profile',
           style: GoogleFonts.plusJakartaSans(
             fontWeight: FontWeight.bold,
             fontSize: responsive.scaleFont(18),
@@ -271,7 +307,9 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
                     children: [
                       UserAvatar(
                         avatarUrl: _selectedAvatarUrl,
-                        displayName: _nameController.text.isNotEmpty ? _nameController.text : 'U',
+                        displayName: _nameController.text.isNotEmpty
+                            ? _nameController.text
+                            : 'U',
                         size: 110,
                       ),
                       Positioned(
@@ -307,90 +345,111 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
                   ),
                   const SizedBox(height: 32),
 
-                  // Form fields
-                  Form(
-                    key: _formKey,
-                    child: Column(
-                      children: [
-                        // Name Field
-                        TextFormField(
-                          controller: _nameController,
-                          decoration: const InputDecoration(
-                            labelText: 'Nama Lengkap',
-                            hintText: 'Masukkan nama Anda',
-                            prefixIcon: Icon(Icons.person_outline),
-                          ),
-                          validator: (val) {
-                            if (val == null || val.trim().isEmpty) {
-                              return 'Nama lengkap harus diisi';
-                            }
-                            return null;
-                          },
-                        ),
-                        const SizedBox(height: 20),
-
-                        // Email Field
-                        TextFormField(
-                          controller: _emailController,
-                          enabled: !isGoogleUser,
-                          keyboardType: TextInputType.emailAddress,
-                          decoration: InputDecoration(
-                            labelText: 'Email',
-                            hintText: 'email@domain.com',
-                            prefixIcon: const Icon(Icons.mail_outline),
-                            fillColor: isGoogleUser ? const Color(0xFFE2E8F0) : null,
-                          ),
-                          validator: (val) {
-                            if (isGoogleUser) return null;
-                            if (val == null || val.trim().isEmpty) {
-                              return 'Email harus diisi';
-                            }
-                            if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(val.trim())) {
-                              return 'Format email tidak valid';
-                            }
-                            return null;
-                          },
-                        ),
-                        const SizedBox(height: 12),
-
-                        if (isGoogleUser) ...[
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                            decoration: BoxDecoration(
-                              color: AppTheme.tertiaryFixed,
-                              borderRadius: BorderRadius.circular(12),
+                  // Form fields card container
+                  Container(
+                    padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(24),
+                      boxShadow: AppTheme.softShadow,
+                    ),
+                    child: Form(
+                      key: _formKey,
+                      child: Column(
+                        children: [
+                          // Name Field
+                          TextFormField(
+                            controller: _nameController,
+                            decoration: const InputDecoration(
+                              labelText: 'Full Name',
+                              hintText: 'Enter your name',
+                              prefixIcon: Icon(Icons.person_outline),
                             ),
-                            child: Row(
-                              children: [
-                                const Icon(Icons.info_outline, color: AppTheme.tertiary, size: 18),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: Text(
-                                    'Email terhubung dengan Google dan tidak dapat diubah.',
-                                    style: GoogleFonts.beVietnamPro(
-                                      fontSize: 11,
-                                      color: AppTheme.darkSlateVariant,
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
-                                ),
-                              ],
+                            validator: (val) {
+                              if (val == null || val.trim().isEmpty) {
+                                return 'Full name is required';
+                              }
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: 20),
+
+                          // Email Field
+                          TextFormField(
+                            controller: _emailController,
+                            enabled: !isGoogleUser,
+                            keyboardType: TextInputType.emailAddress,
+                            decoration: InputDecoration(
+                              labelText: 'Email',
+                              hintText: 'email@domain.com',
+                              prefixIcon: const Icon(Icons.mail_outline),
+                              fillColor: isGoogleUser
+                                  ? const Color(0xFFE2E8F0)
+                                  : null,
                             ),
+                            validator: (val) {
+                              if (isGoogleUser) return null;
+                              if (val == null || val.trim().isEmpty) {
+                                return 'Email is required';
+                              }
+                              if (!RegExp(
+                                r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
+                              ).hasMatch(val.trim())) {
+                                return 'Invalid email format';
+                              }
+                              return null;
+                            },
                           ),
                           const SizedBox(height: 12),
-                        ],
-                        const SizedBox(height: 20),
 
-                        // Submit Button
-                        authProvider.isLoading
-                            ? const Center(
-                                child: CircularProgressIndicator(color: AppTheme.primary),
-                              )
-                            : ElevatedButton(
-                                onPressed: _handleSave,
-                                child: const Text('Simpan Perubahan'),
+                          if (isGoogleUser) ...[
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 10,
                               ),
-                      ],
+                              decoration: BoxDecoration(
+                                color: AppTheme.tertiaryFixed,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Row(
+                                children: [
+                                  const Icon(
+                                    Icons.info_outline,
+                                    color: AppTheme.tertiary,
+                                    size: 18,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      'Email is connected to Google and cannot be changed.',
+                                      style: GoogleFonts.beVietnamPro(
+                                        fontSize: 11,
+                                        color: AppTheme.darkSlateVariant,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                          ],
+                          const SizedBox(height: 24),
+
+                          // Submit Button
+                          authProvider.isLoading
+                              ? const Center(
+                                  child: CircularProgressIndicator(
+                                    color: AppTheme.primary,
+                                  ),
+                                )
+                              : ElevatedButton(
+                                  onPressed: _handleSave,
+                                  child: const Text('Save Changes'),
+                                ),
+                        ],
+                      ),
                     ),
                   ),
                 ],
