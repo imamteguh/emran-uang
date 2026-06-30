@@ -20,6 +20,10 @@ class DashboardProvider extends ChangeNotifier {
   List<dynamic> _sharedGroups = [];
   List<dynamic> _pendingInvites = [];
 
+  // Analytics
+  Map<String, dynamic>? _compareData;
+  Map<String, dynamic>? _breakdownData;
+
   // Getters
   bool get isSharedMode => _selectedWallet?.type == WalletType.shared;
   String get activeTimeframe => _activeTimeframe;
@@ -28,6 +32,8 @@ class DashboardProvider extends ChangeNotifier {
   List<ExpenseCategory> get categories => _categories;
   List<dynamic> get sharedGroups => _sharedGroups;
   List<dynamic> get pendingInvites => _pendingInvites;
+  Map<String, dynamic>? get compareData => _compareData;
+  Map<String, dynamic>? get breakdownData => _breakdownData;
 
   List<WalletEntity> get personalWallets => _personalWallets;
   List<WalletEntity> get sharedWallets => _sharedWallets;
@@ -87,12 +93,19 @@ class DashboardProvider extends ChangeNotifier {
         } else {
           _expenses = [];
         }
+
+        // Also fetch analytics
+        await _fetchAnalyticsOnly();
       } else {
         _expenses = [];
+        _compareData = null;
+        _breakdownData = null;
       }
     } catch (e) {
       debugPrint('DashboardProvider: Fetch expenses failed ($e)');
       _expenses = [];
+      _compareData = null;
+      _breakdownData = null;
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -169,16 +182,72 @@ class DashboardProvider extends ChangeNotifier {
         } else {
           _expenses = [];
         }
+
+        // Also fetch analytics
+        await _fetchAnalyticsOnly();
       } else {
         _expenses = [];
+        _compareData = null;
+        _breakdownData = null;
       }
     } catch (e) {
       debugPrint('DashboardProvider: Live fetch failed ($e)');
       _expenses = [];
+      _compareData = null;
+      _breakdownData = null;
     } finally {
       _isLoading = false;
       notifyListeners();
     }
+  }
+
+  /// Private helper to fetch analytics data from backend
+  Future<void> _fetchAnalyticsOnly() async {
+    final wallet = _selectedWallet;
+    if (wallet == null) return;
+
+    try {
+      // 1. Fetch monthly comparison (last 4 months)
+      final compareRes = await _client.dio.get(
+        '/analytics/compare',
+        queryParameters: {
+          'walletId': wallet.id,
+          'months': 4,
+        },
+      );
+      if (compareRes.data != null && compareRes.data['success'] == true) {
+        _compareData = compareRes.data['data'] as Map<String, dynamic>;
+      } else {
+        _compareData = null;
+      }
+
+      // 2. Fetch category breakdown
+      final breakdownRes = await _client.dio.get(
+        '/analytics/breakdown',
+        queryParameters: {
+          'walletId': wallet.id,
+          'timeframe': 'monthly',
+        },
+      );
+      if (breakdownRes.data != null && breakdownRes.data['success'] == true) {
+        _breakdownData = breakdownRes.data['data'] as Map<String, dynamic>;
+      } else {
+        _breakdownData = null;
+      }
+    } catch (e) {
+      debugPrint('DashboardProvider: Fetch analytics failed ($e)');
+      _compareData = null;
+      _breakdownData = null;
+    }
+  }
+
+  /// Public method to manually fetch/refresh analytics
+  Future<void> fetchAnalytics() async {
+    _isLoading = true;
+    notifyListeners();
+    await _fetchAnalyticsOnly();
+    _isLoading = false;
+    notifyListeners();
   }
 
   /// Fetch categories from the backend.
