@@ -11,6 +11,7 @@ import '../../domain/entities/wallet.dart';
 import '../providers/dashboard_provider.dart';
 import '../widgets/add_edit_bill_dialog.dart';
 import '../widgets/category_icon.dart';
+import '../widgets/bills_skeleton.dart';
 
 class BillsScreen extends StatefulWidget {
   const BillsScreen({super.key});
@@ -596,25 +597,7 @@ class _BillsScreenState extends State<BillsScreen>
                 child: dashboardProvider.isLoading && activeReminders.isEmpty
                     ? const SingleChildScrollView(
                         physics: AlwaysScrollableScrollPhysics(),
-                        child: SizedBox(
-                          height: 400,
-                          child: Center(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                CircularProgressIndicator(color: AppTheme.primary),
-                                SizedBox(height: 16),
-                                Text(
-                                  'Loading bills...',
-                                  style: TextStyle(
-                                    color: AppTheme.darkSlateVariant,
-                                    fontSize: 14,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
+                        child: BillsSkeleton(),
                       )
                     : SingleChildScrollView(
                         physics: const AlwaysScrollableScrollPhysics(),

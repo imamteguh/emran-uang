@@ -59,6 +59,10 @@ dependencies:
   shared_preferences: ^2.2.3
   flutter_dotenv: ^6.0.1
 
+  # Performance & UX
+  dio_smart_retry: ^7.0.1
+  shimmer: ^3.0.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

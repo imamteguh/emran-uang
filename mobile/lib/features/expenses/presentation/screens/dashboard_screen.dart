@@ -8,6 +8,7 @@ import '../../../../core/utils/currency_helper.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../providers/dashboard_provider.dart';
 import '../widgets/category_icon.dart';
+import '../widgets/dashboard_skeleton.dart';
 import '../../domain/entities/wallet.dart';
 import 'expense_entry_screen.dart';
 import 'shared_groups_screen.dart';
@@ -252,90 +253,103 @@ class DashboardScreen extends StatelessWidget {
           onRefresh: () async {
             await provider.refreshData();
           },
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              final double horizontalPadding = responsive.scale(16);
-
-              return SingleChildScrollView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                padding: EdgeInsets.symmetric(
-                  horizontal: horizontalPadding,
-                  vertical: 16,
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+          child: provider.isInitialLoad
+              // Skeleton shimmer while first load is in progress
+              ? const SingleChildScrollView(
+                  physics: AlwaysScrollableScrollPhysics(),
+                  child: DashboardSkeleton(),
+                )
+              : Stack(
                   children: [
-                    // Daily Spending Hero Card
-                    _buildDailySummaryCard(
-                      context,
-                      provider,
-                      responsive,
-                      currencyFormatter,
-                    ),
-                    const SizedBox(height: 20),
+                    LayoutBuilder(
+                      builder: (context, constraints) {
+                        final double horizontalPadding = responsive.scale(16);
 
-                    // Bento Stats Grid (Monthly Savings & Top Category)
-                    _buildBentoGrid(
-                      context,
-                      provider,
-                      responsive,
-                      currencyFormatter,
-                    ),
-                    const SizedBox(height: 24),
+                        return SingleChildScrollView(
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          padding: EdgeInsets.symmetric(
+                            horizontal: horizontalPadding,
+                            vertical: 16,
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Daily Spending Hero Card
+                              _buildDailySummaryCard(
+                                context,
+                                provider,
+                                responsive,
+                                currencyFormatter,
+                              ),
+                              const SizedBox(height: 20),
 
-                    // Recent activity section
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'Recent Activity',
-                          style: AppTheme.headlineSm.copyWith(
-                            fontSize: responsive.scaleFont(20),
-                            color: AppTheme.darkSlate,
-                          ),
-                        ),
-                        TextButton(
-                          onPressed: () => _showAllExpensesBottomSheet(
-                            context,
-                            provider,
-                            currencyFormatter,
-                            user?.id,
-                          ),
-                          child: Text(
-                            'See all',
-                            style: AppTheme.labelMd.copyWith(
-                              color: AppTheme.primary,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
+                              // Bento Stats Grid (Monthly Savings & Top Category)
+                              _buildBentoGrid(
+                                context,
+                                provider,
+                                responsive,
+                                currencyFormatter,
+                              ),
+                              const SizedBox(height: 24),
 
+                              // Recent activity section
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    'Recent Activity',
+                                    style: AppTheme.headlineSm.copyWith(
+                                      fontSize: responsive.scaleFont(20),
+                                      color: AppTheme.darkSlate,
+                                    ),
+                                  ),
+                                  TextButton(
+                                    onPressed: () => _showAllExpensesBottomSheet(
+                                      context,
+                                      provider,
+                                      currencyFormatter,
+                                      user?.id,
+                                    ),
+                                    child: Text(
+                                      'See all',
+                                      style: AppTheme.labelMd.copyWith(
+                                        color: AppTheme.primary,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+
+                              if (provider.expenses.isEmpty)
+                                _buildEmptyState(provider)
+                              else
+                                _buildExpensesList(
+                                  context,
+                                  provider,
+                                  responsive,
+                                  currencyFormatter,
+                                  user?.id,
+                                ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+                    // Subtle loading indicator for background refreshes
                     if (provider.isLoading)
-                      const Center(
-                        child: Padding(
-                          padding: EdgeInsets.all(32.0),
-                          child: CircularProgressIndicator(
-                            color: AppTheme.primary,
-                          ),
+                      Positioned(
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        child: LinearProgressIndicator(
+                          backgroundColor: Colors.transparent,
+                          color: AppTheme.primary.withAlpha(120),
+                          minHeight: 2,
                         ),
-                      )
-                    else if (provider.expenses.isEmpty)
-                      _buildEmptyState(provider)
-                    else
-                      _buildExpensesList(
-                        context,
-                        provider,
-                        responsive,
-                        currencyFormatter,
-                        user?.id,
                       ),
                   ],
                 ),
-              );
-            },
-          ),
         ),
       ),
       floatingActionButton: Padding(

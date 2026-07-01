@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:dio_smart_retry/dio_smart_retry.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -22,8 +23,9 @@ class DioClient {
     dio = Dio(
       BaseOptions(
         baseUrl: dotenv.env['API_URL'] ?? 'http://localhost:3000/api',
-        connectTimeout: const Duration(seconds: 10),
-        receiveTimeout: const Duration(seconds: 10),
+        connectTimeout: const Duration(seconds: 15),
+        receiveTimeout: const Duration(seconds: 30),
+        sendTimeout: const Duration(seconds: 15),
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
@@ -49,8 +51,8 @@ class DioClient {
               final refreshDio = Dio(
                 BaseOptions(
                   baseUrl: dio.options.baseUrl,
-                  connectTimeout: const Duration(seconds: 10),
-                  receiveTimeout: const Duration(seconds: 10),
+                  connectTimeout: const Duration(seconds: 15),
+                  receiveTimeout: const Duration(seconds: 30),
                   headers: {
                     'Content-Type': 'application/json',
                     'Accept': 'application/json',
@@ -105,6 +107,20 @@ class DioClient {
           }
           return handler.next(error);
         },
+      ),
+    );
+
+    // Retry interceptor for flaky connections (cold starts, timeouts)
+    dio.interceptors.add(
+      RetryInterceptor(
+        dio: dio,
+        retries: 2,
+        retryDelays: const [
+          Duration(seconds: 1),
+          Duration(seconds: 3),
+        ],
+        retryableExtraStatuses: {408, 429, 502, 503, 504},
+        logPrint: (message) => debugPrint('RetryInterceptor: $message'),
       ),
     );
   }

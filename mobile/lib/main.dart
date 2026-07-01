@@ -18,16 +18,24 @@ class EmranUangApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MultiProvider(
-      providers: [
-        ChangeNotifierProvider(create: (_) => AuthProvider()),
-        ChangeNotifierProvider(create: (_) => DashboardProvider()),
-      ],
-      child: MaterialApp(
-        title: 'Wallet Share',
-        debugShowCheckedModeBanner: false,
-        theme: AppTheme.lightTheme,
-        home: const AuthWrapper(),
+    return ChangeNotifierProvider(
+      create: (_) => AuthProvider(),
+      child: Consumer<AuthProvider>(
+        builder: (context, auth, _) {
+          final userId = auth.currentUser?.id;
+          return MultiProvider(
+            key: ValueKey(userId),
+            providers: [
+              ChangeNotifierProvider(create: (_) => DashboardProvider()),
+            ],
+            child: MaterialApp(
+              title: 'Wallet Share',
+              debugShowCheckedModeBanner: false,
+              theme: AppTheme.lightTheme,
+              home: const AuthWrapper(),
+            ),
+          );
+        },
       ),
     );
   }

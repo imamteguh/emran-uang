@@ -8,6 +8,7 @@ import '../../../../core/utils/currency_helper.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../providers/dashboard_provider.dart';
 import '../../domain/entities/wallet.dart';
+import '../widgets/analytics_skeleton.dart';
 
 class AnalyticsScreen extends StatefulWidget {
   const AnalyticsScreen({super.key});
@@ -331,7 +332,10 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
           scrolledUnderElevation: 0,
           title: _buildAppBarTitle(provider, authProvider, responsive),
         ),
-        body: const Center(child: CircularProgressIndicator()),
+        body: const SingleChildScrollView(
+          physics: NeverScrollableScrollPhysics(),
+          child: AnalyticsSkeleton(),
+        ),
       );
     }
 
