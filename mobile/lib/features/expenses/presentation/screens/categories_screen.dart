@@ -436,6 +436,13 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
         ),
         backgroundColor: Colors.white,
         elevation: 0.5,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.add, color: AppTheme.primary),
+            onPressed: () => _showCategoryFormDialog(),
+          ),
+          const SizedBox(width: 8),
+        ],
       ),
       body: Center(
         child: Container(
@@ -564,16 +571,6 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
               ),
             ],
           ),
-        ),
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _showCategoryFormDialog(),
-        backgroundColor: AppTheme.primary,
-        foregroundColor: Colors.white,
-        icon: const Icon(Icons.add),
-        label: Text(
-          'Add Category',
-          style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.bold),
         ),
       ),
     );

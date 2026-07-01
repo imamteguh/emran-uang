@@ -316,21 +316,17 @@ class _LoginScreenState extends State<LoginScreen>
                                   const Expanded(
                                     child: Divider(color: Color(0xFFE2E8F0)),
                                   ),
-                                  Flexible(
-                                    child: Padding(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 12.0,
-                                      ),
-                                      child: Text(
-                                        'OR LOGIN WITH EMAIL',
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: GoogleFonts.beVietnamPro(
-                                          fontSize: 11,
-                                          fontWeight: FontWeight.w600,
-                                          color: AppTheme.darkSlateVariant,
-                                          letterSpacing: 1.5,
-                                        ),
+                                  Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 12.0,
+                                    ),
+                                    child: Text(
+                                      'OR LOGIN WITH EMAIL',
+                                      style: GoogleFonts.beVietnamPro(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w600,
+                                        color: AppTheme.darkSlateVariant,
+                                        letterSpacing: 1.5,
                                       ),
                                     ),
                                   ),
@@ -409,9 +405,8 @@ class _LoginScreenState extends State<LoginScreen>
                                             },
                                             activeColor: AppTheme.primary,
                                             shape: RoundedRectangleBorder(
-                                              borderRadius: BorderRadius.circular(
-                                                4,
-                                              ),
+                                              borderRadius:
+                                                  BorderRadius.circular(4),
                                             ),
                                           ),
                                         ),

@@ -96,7 +96,7 @@ class DioClient {
               await prefs.remove('accessToken');
               await prefs.remove('refreshToken');
               await prefs.remove('user');
-              
+
               if (onAuthFailure != null) {
                 onAuthFailure!();
               }
@@ -128,7 +128,8 @@ class DioClient {
     if (exception.response?.data != null &&
         exception.response?.data is Map &&
         exception.response?.data['message'] != null) {
-      return exception.response?.data['message'].toString() ?? 'An error occurred';
+      return exception.response?.data['message'].toString() ??
+          'An error occurred';
     }
     return exception.message ?? 'Network error occurred';
   }

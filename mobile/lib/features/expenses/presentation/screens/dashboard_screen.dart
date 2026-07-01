@@ -51,7 +51,9 @@ class DashboardScreen extends StatelessWidget {
               child: Icon(
                 provider.activeWallet == null
                     ? Icons.account_balance_wallet
-                    : (provider.isSharedMode ? Icons.groups_rounded : Icons.person_rounded),
+                    : (provider.isSharedMode
+                          ? Icons.groups_rounded
+                          : Icons.person_rounded),
                 color: Colors.white,
                 size: 22,
               ),
@@ -113,7 +115,8 @@ class DashboardScreen extends StatelessWidget {
                                 child: Text(
                                   wallet.name,
                                   style: GoogleFonts.plusJakartaSans(
-                                    fontWeight: provider.activeWallet?.id == wallet.id
+                                    fontWeight:
+                                        provider.activeWallet?.id == wallet.id
                                         ? FontWeight.bold
                                         : FontWeight.normal,
                                     color: AppTheme.darkSlate,
@@ -121,7 +124,11 @@ class DashboardScreen extends StatelessWidget {
                                 ),
                               ),
                               if (provider.activeWallet?.id == wallet.id)
-                                const Icon(Icons.check_rounded, color: AppTheme.primary, size: 18),
+                                const Icon(
+                                  Icons.check_rounded,
+                                  color: AppTheme.primary,
+                                  size: 18,
+                                ),
                             ],
                           ),
                         ),
@@ -161,7 +168,8 @@ class DashboardScreen extends StatelessWidget {
                                 child: Text(
                                   wallet.name,
                                   style: GoogleFonts.plusJakartaSans(
-                                    fontWeight: provider.activeWallet?.id == wallet.id
+                                    fontWeight:
+                                        provider.activeWallet?.id == wallet.id
                                         ? FontWeight.bold
                                         : FontWeight.normal,
                                     color: AppTheme.darkSlate,
@@ -169,7 +177,11 @@ class DashboardScreen extends StatelessWidget {
                                 ),
                               ),
                               if (provider.activeWallet?.id == wallet.id)
-                                const Icon(Icons.check_rounded, color: AppTheme.primary, size: 18),
+                                const Icon(
+                                  Icons.check_rounded,
+                                  color: AppTheme.primary,
+                                  size: 18,
+                                ),
                             ],
                           ),
                         ),
@@ -181,7 +193,9 @@ class DashboardScreen extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     ConstrainedBox(
-                      constraints: BoxConstraints(maxWidth: responsive.scale(150)),
+                      constraints: BoxConstraints(
+                        maxWidth: responsive.scale(150),
+                      ),
                       child: Text(
                         provider.activeWallet?.name ?? 'Select Wallet',
                         style: GoogleFonts.plusJakartaSans(
@@ -210,7 +224,11 @@ class DashboardScreen extends StatelessWidget {
                 MaterialPageRoute(builder: (_) => const SharedGroupsScreen()),
               );
             },
-            icon: const Icon(Icons.group_outlined, size: 28, color: AppTheme.primary),
+            icon: const Icon(
+              Icons.group_outlined,
+              size: 28,
+              color: AppTheme.primary,
+            ),
             splashRadius: 24,
           ),
           IconButton(
@@ -219,7 +237,11 @@ class DashboardScreen extends StatelessWidget {
                 const SnackBar(content: Text('No new notifications')),
               );
             },
-            icon: const Icon(Icons.notifications_none_outlined, size: 28, color: AppTheme.primary),
+            icon: const Icon(
+              Icons.notifications_none_outlined,
+              size: 28,
+              color: AppTheme.primary,
+            ),
             splashRadius: 24,
           ),
           const SizedBox(width: 8),
@@ -243,7 +265,6 @@ class DashboardScreen extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-
                     // Daily Spending Hero Card
                     _buildDailySummaryCard(
                       context,
@@ -336,8 +357,6 @@ class DashboardScreen extends StatelessWidget {
     );
   }
 
-
-
   // ─── Daily Summary Card ───────────────────────────────────────────────────
 
   void _showSetBudgetDialog(BuildContext context, DashboardProvider provider) {
@@ -346,174 +365,216 @@ class DashboardScreen extends StatelessWidget {
           ? provider.activeWallet!.dailyBudget!.toStringAsFixed(0)
           : '',
     );
+    bool isSaving = false;
     showDialog(
       context: context,
       builder: (context) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(24),
-          ),
-          backgroundColor: Colors.white,
-          titlePadding: const EdgeInsets.fromLTRB(24, 16, 16, 0),
-          contentPadding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
-          title: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
+        return StatefulBuilder(
+          builder: (context, setStateModal) {
+            return AlertDialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(24),
+              ),
+              backgroundColor: Colors.white,
+              titlePadding: const EdgeInsets.fromLTRB(24, 16, 16, 0),
+              contentPadding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
+              title: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: AppTheme.primary.withAlpha(20),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(
-                      Icons.insights_rounded,
-                      color: AppTheme.primary,
-                      size: 24,
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: AppTheme.primary.withAlpha(20),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.insights_rounded,
+                          color: AppTheme.primary,
+                          size: 24,
+                        ),
+                      ),
+                      const SizedBox(width: 14),
+                      Text(
+                        'Daily Budget Limit',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 18,
+                          color: AppTheme.darkSlate,
+                        ),
+                      ),
+                    ],
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close, color: Colors.grey, size: 20),
+                    onPressed: isSaving
+                        ? null
+                        : () => Navigator.of(context).pop(),
+                    splashRadius: 20,
+                  ),
+                ],
+              ),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Set your daily target limit. A realistic budget helps you optimize your savings automatically.',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 13,
+                      color: AppTheme.darkSlateVariant,
+                      height: 1.4,
                     ),
                   ),
-                  const SizedBox(width: 14),
-                  Text(
-                    'Daily Budget Limit',
+                  const SizedBox(height: 20),
+                  TextField(
+                    controller: controller,
+                    enabled: !isSaving,
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
                     style: GoogleFonts.plusJakartaSans(
                       fontWeight: FontWeight.bold,
-                      fontSize: 18,
+                      fontSize: 16,
                       color: AppTheme.darkSlate,
+                    ),
+                    decoration: InputDecoration(
+                      prefixIcon: const Icon(
+                        Icons.payments_outlined,
+                        color: AppTheme.primary,
+                        size: 20,
+                      ),
+                      prefixText: 'Rp ',
+                      prefixStyle: GoogleFonts.plusJakartaSans(
+                        fontWeight: FontWeight.bold,
+                        color: AppTheme.primary,
+                        fontSize: 16,
+                      ),
+                      hintText: 'e.g. 150,000',
+                      hintStyle: GoogleFonts.plusJakartaSans(
+                        color: Colors.grey[400],
+                        fontSize: 14,
+                        fontWeight: FontWeight.normal,
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        vertical: 16,
+                        horizontal: 16,
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: BorderSide(
+                          color: Colors.grey[200]!,
+                          width: 1.5,
+                        ),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: const BorderSide(
+                          color: AppTheme.primary,
+                          width: 2,
+                        ),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: BorderSide(
+                          color: Colors.grey[300]!,
+                          width: 1.5,
+                        ),
+                      ),
                     ),
                   ),
                 ],
               ),
-              IconButton(
-                icon: const Icon(Icons.close, color: Colors.grey, size: 20),
-                onPressed: () => Navigator.of(context).pop(),
-                splashRadius: 20,
-              ),
-            ],
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Set your daily target limit. A realistic budget helps you optimize your savings automatically.',
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 13,
-                  color: AppTheme.darkSlateVariant,
-                  height: 1.4,
-                ),
-              ),
-              const SizedBox(height: 20),
-              TextField(
-                controller: controller,
-                keyboardType: const TextInputType.numberWithOptions(
-                  decimal: true,
-                ),
-                style: GoogleFonts.plusJakartaSans(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                  color: AppTheme.darkSlate,
-                ),
-                decoration: InputDecoration(
-                  prefixIcon: const Icon(
-                    Icons.payments_outlined,
-                    color: AppTheme.primary,
-                    size: 20,
-                  ),
-                  prefixText: 'Rp ',
-                  prefixStyle: GoogleFonts.plusJakartaSans(
-                    fontWeight: FontWeight.bold,
-                    color: AppTheme.primary,
-                    fontSize: 16,
-                  ),
-                  hintText: 'e.g. 150,000',
-                  hintStyle: GoogleFonts.plusJakartaSans(
-                    color: Colors.grey[400],
-                    fontSize: 14,
-                    fontWeight: FontWeight.normal,
-                  ),
-                  contentPadding: const EdgeInsets.symmetric(
-                    vertical: 16,
-                    horizontal: 16,
-                  ),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    borderSide: BorderSide(
-                      color: Colors.grey[200]!,
-                      width: 1.5,
-                    ),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    borderSide: const BorderSide(
-                      color: AppTheme.primary,
-                      width: 2,
-                    ),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    borderSide: BorderSide(
-                      color: Colors.grey[300]!,
-                      width: 1.5,
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-          actionsPadding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
-          actions: [
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () async {
-                  final double? newBudget = double.tryParse(
-                    controller.text.trim(),
-                  );
-                  if (newBudget != null && newBudget >= 0) {
-                    final success = await provider.updateDailyBudget(newBudget);
-                    if (context.mounted) {
-                      Navigator.of(context).pop();
-                      if (success) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Daily budget updated!'),
-                          ),
-                        );
-                      } else {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Failed to update budget.'),
-                          ),
-                        );
-                      }
-                    }
-                  } else {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Please enter a valid amount'),
+              actionsPadding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+              actions: [
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: isSaving
+                        ? null
+                        : () async {
+                            final double? newBudget = double.tryParse(
+                              controller.text.trim(),
+                            );
+                            if (newBudget != null && newBudget >= 0) {
+                              setStateModal(() {
+                                isSaving = true;
+                              });
+                              try {
+                                final success = await provider
+                                    .updateDailyBudget(newBudget);
+                                if (context.mounted) {
+                                  Navigator.of(context).pop();
+                                  if (success) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text('Daily budget updated!'),
+                                      ),
+                                    );
+                                  } else {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text(
+                                          'Failed to update budget.',
+                                        ),
+                                      ),
+                                    );
+                                  }
+                                }
+                              } catch (e) {
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text('An error occurred: $e'),
+                                    ),
+                                  );
+                                }
+                              } finally {
+                                if (context.mounted) {
+                                  setStateModal(() {
+                                    isSaving = false;
+                                  });
+                                }
+                              }
+                            } else {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Please enter a valid amount'),
+                                ),
+                              );
+                            }
+                          },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.primary,
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
                       ),
-                    );
-                  }
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.primary,
-                  foregroundColor: Colors.white,
-                  elevation: 0,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: isSaving
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
+                          )
+                        : Text(
+                            'Save Limit',
+                            style: GoogleFonts.plusJakartaSans(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                            ),
+                          ),
                   ),
                 ),
-                child: Text(
-                  'Save Limit',
-                  style: GoogleFonts.plusJakartaSans(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            ),
-          ],
+              ],
+            );
+          },
         );
       },
     );
@@ -532,9 +593,7 @@ class DashboardScreen extends StatelessWidget {
         : (spendToday > budgetLimit ? 1.0 : (spendToday / budgetLimit));
 
     return Container(
-      decoration: BoxDecoration(
-        boxShadow: AppTheme.softShadow,
-      ),
+      decoration: BoxDecoration(boxShadow: AppTheme.softShadow),
       child: ClipRRect(
         borderRadius: AppTheme.roundedBorder,
         child: Container(
@@ -600,7 +659,11 @@ class DashboardScreen extends StatelessWidget {
                                 ),
                               ),
                               const SizedBox(width: 6),
-                              const Icon(Icons.edit, size: 14, color: AppTheme.primary),
+                              const Icon(
+                                Icons.edit,
+                                size: 14,
+                                color: AppTheme.primary,
+                              ),
                             ],
                           ),
                           Text(

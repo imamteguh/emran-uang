@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/intl.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/responsive_helper.dart';
 import '../../../../core/utils/currency_helper.dart';
@@ -25,6 +27,8 @@ class _ExpenseEntryScreenState extends State<ExpenseEntryScreen> {
 
   bool _isRoutine = false;
   ExpenseCategory? _selectedCategory;
+  DateTime _selectedDate = DateTime.now();
+  bool _isSaving = false;
 
   @override
   void initState() {
@@ -48,6 +52,7 @@ class _ExpenseEntryScreenState extends State<ExpenseEntryScreen> {
   }
 
   void _handleSubmit() async {
+    if (_isSaving) return;
     if (_formKey.currentState!.validate()) {
       if (_selectedCategory == null) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -55,50 +60,78 @@ class _ExpenseEntryScreenState extends State<ExpenseEntryScreen> {
         );
         return;
       }
-      final provider = Provider.of<DashboardProvider>(context, listen: false);
-      final currencyCode = provider.activeWallet?.currency ?? 'IDR';
-      final decimalDigits = CurrencyHelper.getFormatter(
-        currencyCode,
-      ).decimalDigits;
 
-      String amountText = _amountController.text.trim();
-      if (decimalDigits == 0) {
-        // IDR/JPY: remove all formatting/thousand separators
-        amountText = amountText.replaceAll(RegExp(r'[.,\s]'), '');
-      } else {
-        // USD/EUR: standard decimals
-        if (amountText.contains(',') && amountText.contains('.')) {
-          amountText = amountText.replaceAll(',', '');
-        } else if (amountText.contains(',')) {
-          amountText = amountText.replaceAll(',', '.');
+      setState(() {
+        _isSaving = true;
+      });
+
+      try {
+        final provider = Provider.of<DashboardProvider>(context, listen: false);
+        final currencyCode = provider.activeWallet?.currency ?? 'IDR';
+        final decimalDigits = CurrencyHelper.getFormatter(
+          currencyCode,
+        ).decimalDigits;
+
+        String amountText = _amountController.text.trim();
+        if (decimalDigits == 0) {
+          // IDR/JPY: remove all formatting/thousand separators
+          amountText = amountText.replaceAll(RegExp(r'[.,\s]'), '');
+        } else {
+          // USD/EUR: standard decimals
+          if (amountText.contains(',') && amountText.contains('.')) {
+            amountText = amountText.replaceAll(',', '');
+          } else if (amountText.contains(',')) {
+            amountText = amountText.replaceAll(',', '.');
+          }
         }
-      }
 
-      final double? amount = double.tryParse(amountText);
-      if (amount == null || amount <= 0) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Please enter a positive amount')),
+        final double? amount = double.tryParse(amountText);
+        if (amount == null || amount <= 0) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Please enter a positive amount')),
+          );
+          setState(() {
+            _isSaving = false;
+          });
+          return;
+        }
+
+        final newExpense = ExpenseEntity(
+          id: 'new_exp_${DateTime.now().millisecondsSinceEpoch}',
+          amount: amount,
+          description: _descController.text.trim().isEmpty
+              ? null
+              : _descController.text.trim(),
+          date: _selectedDate,
+          type: _isRoutine ? ExpenseType.routine : ExpenseType.nonRoutine,
+          userId: 'user1',
+          walletId: provider.activeWallet?.id ?? 'personal_w1',
+          category: _selectedCategory!,
+          creatorName: 'Imam',
         );
-        return;
-      }
 
-      final newExpense = ExpenseEntity(
-        id: 'new_exp_${DateTime.now().millisecondsSinceEpoch}',
-        amount: amount,
-        description: _descController.text.trim().isEmpty
-            ? null
-            : _descController.text.trim(),
-        date: DateTime.now(),
-        type: _isRoutine ? ExpenseType.routine : ExpenseType.nonRoutine,
-        userId: 'user1',
-        walletId: provider.activeWallet?.id ?? 'personal_w1',
-        category: _selectedCategory!,
-        creatorName: 'Imam',
-      );
+        final success = await provider.addExpense(newExpense);
+        if (!success && mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Failed to save transaction. Please try again.')),
+          );
+        }
 
-      await provider.addExpense(newExpense);
-      if (mounted) {
-        Navigator.of(context).pop();
+        if (mounted && success) {
+          Navigator.of(context).pop();
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('An error occurred: $e')),
+          );
+        }
+      } finally {
+        if (mounted) {
+          setState(() {
+            _isSaving = false;
+          });
+        }
       }
     }
   }
@@ -107,143 +140,250 @@ class _ExpenseEntryScreenState extends State<ExpenseEntryScreen> {
     BuildContext context,
     List<ExpenseCategory> categories,
   ) {
+    String searchQuery = '';
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) {
-        return DraggableScrollableSheet(
-          initialChildSize: 0.65,
-          minChildSize: 0.4,
-          maxChildSize: 0.9,
-          builder: (context, scrollController) {
-            return Container(
-              decoration: const BoxDecoration(
-                color: Color(0xFFF8FAFC),
-                borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
-              ),
-              child: Column(
-                children: [
-                  const SizedBox(height: 12),
-                  Container(
-                    width: 36,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: Colors.grey[300],
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 20,
-                      vertical: 8,
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'All Categories',
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: AppTheme.darkSlate,
-                          ),
-                        ),
-                        IconButton(
-                          icon: const Icon(
-                            Icons.close,
-                            color: Colors.grey,
-                            size: 22,
-                          ),
-                          onPressed: () => Navigator.of(context).pop(),
-                          splashRadius: 20,
-                        ),
-                      ],
-                    ),
-                  ),
-                  const Divider(height: 1, color: Color(0xFFE2E8F0)),
-                  Expanded(
-                    child: GridView.builder(
-                      controller: scrollController,
-                      padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
-                      gridDelegate:
-                          const SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 4,
-                            crossAxisSpacing: 12,
-                            mainAxisSpacing: 12,
-                            childAspectRatio: 0.95,
-                          ),
-                      itemCount: categories.length,
-                      itemBuilder: (context, index) {
-                        final cat = categories[index];
-                        final isSelected = _selectedCategory?.id == cat.id;
-                        final color = Color(
-                          int.parse(cat.color.replaceFirst('#', '0xFF')),
-                        );
+        return StatefulBuilder(
+          builder: (context, setStateModal) {
+            final filteredCategories = categories.where((cat) {
+              return cat.name.toLowerCase().contains(searchQuery.toLowerCase());
+            }).toList();
 
-                        return GestureDetector(
-                          onTap: () {
-                            setState(() {
-                              _selectedCategory = cat;
-                            });
-                            Navigator.of(context).pop();
-                          },
-                          child: Container(
-                            decoration: BoxDecoration(
-                              color: isSelected
-                                  ? AppTheme.primary.withAlpha(20)
-                                  : Colors.white,
-                              borderRadius: BorderRadius.circular(16),
-                              boxShadow: AppTheme.softShadow,
-                              border: Border.all(
-                                color: isSelected
-                                    ? AppTheme.primary
-                                    : const Color(0xFFF1F5F9),
-                                width: isSelected ? 2.5 : 1.5,
+            return DraggableScrollableSheet(
+              initialChildSize: 0.75,
+              minChildSize: 0.4,
+              maxChildSize: 0.95,
+              expand: false,
+              builder: (context, scrollController) {
+                return Container(
+                  decoration: const BoxDecoration(
+                    color: Color(0xFFF8FAFC),
+                    borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+                  ),
+                  child: Column(
+                    children: [
+                      const SizedBox(height: 12),
+                      Container(
+                        width: 36,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: Colors.grey[300],
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 8,
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'All Categories',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: AppTheme.darkSlate,
                               ),
                             ),
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Container(
-                                  width: 52,
-                                  height: 52,
-                                  decoration: BoxDecoration(
-                                    color: color.withAlpha(30),
-                                    shape: BoxShape.circle,
-                                  ),
-                                  alignment: Alignment.center,
-                                  child: CategoryIcon(
-                                    icon: cat.icon,
-                                    color: color,
-                                    size: 32,
-                                  ),
-                                ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  cat.name,
-                                  style: GoogleFonts.beVietnamPro(
-                                    fontSize: 10,
-                                    fontWeight: isSelected
-                                        ? FontWeight.bold
-                                        : FontWeight.normal,
-                                    color: isSelected
-                                        ? AppTheme.primary
-                                        : AppTheme.darkSlateVariant,
-                                  ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ],
+                            IconButton(
+                              icon: const Icon(
+                                Icons.close,
+                                color: Colors.grey,
+                                size: 22,
+                              ),
+                              onPressed: () => Navigator.of(context).pop(),
+                              splashRadius: 20,
+                            ),
+                          ],
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                        child: TextField(
+                          onChanged: (val) {
+                            setStateModal(() {
+                              searchQuery = val;
+                            });
+                          },
+                          style: GoogleFonts.beVietnamPro(fontSize: 14),
+                          decoration: InputDecoration(
+                            hintText: 'Search categories...',
+                            prefixIcon: const Icon(Icons.search_rounded, size: 20, color: AppTheme.primary),
+                            suffixIcon: searchQuery.isNotEmpty
+                                ? IconButton(
+                                    icon: const Icon(Icons.clear_rounded, size: 20),
+                                    onPressed: () {
+                                      setStateModal(() {
+                                        searchQuery = '';
+                                      });
+                                    },
+                                  )
+                                : null,
+                            filled: true,
+                            fillColor: Colors.white,
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 12,
+                            ),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(16),
+                              borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(16),
+                              borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(16),
+                              borderSide: const BorderSide(color: AppTheme.primary, width: 1.5),
                             ),
                           ),
-                        );
-                      },
-                    ),
+                        ),
+                      ),
+                      const Divider(height: 1, color: Color(0xFFE2E8F0)),
+                      Expanded(
+                        child: filteredCategories.isEmpty
+                            ? Center(
+                                child: Padding(
+                                  padding: const EdgeInsets.all(32.0),
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(Icons.search_off_rounded, size: 48, color: Colors.grey[400]),
+                                      const SizedBox(height: 16),
+                                      Text(
+                                        'No categories found',
+                                        style: GoogleFonts.beVietnamPro(
+                                          color: Colors.grey[600],
+                                          fontSize: 14,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              )
+                            : GridView.builder(
+                                controller: scrollController,
+                                padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+                                gridDelegate:
+                                    const SliverGridDelegateWithFixedCrossAxisCount(
+                                      crossAxisCount: 4,
+                                      crossAxisSpacing: 12,
+                                      mainAxisSpacing: 12,
+                                      childAspectRatio: 0.95,
+                                    ),
+                                itemCount: filteredCategories.length,
+                                itemBuilder: (context, index) {
+                                  final cat = filteredCategories[index];
+                                  final isSelected = _selectedCategory?.id == cat.id;
+                                  final color = Color(
+                                    int.parse(cat.color.replaceFirst('#', '0xFF')),
+                                  );
+
+                                  return GestureDetector(
+                                    onTap: () {
+                                      setState(() {
+                                        _selectedCategory = cat;
+                                      });
+                                      Navigator.of(context).pop();
+                                    },
+                                    child: AnimatedContainer(
+                                      duration: const Duration(milliseconds: 200),
+                                      decoration: BoxDecoration(
+                                        color: isSelected
+                                            ? color.withAlpha(25)
+                                            : Colors.white,
+                                        borderRadius: BorderRadius.circular(16),
+                                        boxShadow: isSelected ? AppTheme.interactiveShadow : AppTheme.softShadow,
+                                        border: Border.all(
+                                          color: isSelected
+                                              ? color
+                                              : const Color(0xFFF1F5F9),
+                                          width: isSelected ? 2.5 : 1.5,
+                                        ),
+                                      ),
+                                      child: Stack(
+                                        clipBehavior: Clip.none,
+                                        children: [
+                                          Column(
+                                            mainAxisAlignment: MainAxisAlignment.center,
+                                            children: [
+                                              Center(
+                                                child: AnimatedScale(
+                                                  scale: isSelected ? 1.05 : 1.0,
+                                                  duration: const Duration(milliseconds: 200),
+                                                  child: Container(
+                                                    width: 38,
+                                                    height: 38,
+                                                    decoration: BoxDecoration(
+                                                      color: color.withAlpha(30),
+                                                      shape: BoxShape.circle,
+                                                    ),
+                                                    alignment: Alignment.center,
+                                                    child: CategoryIcon(
+                                                      icon: cat.icon,
+                                                      color: color,
+                                                      size: 20,
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+                                              const SizedBox(height: 6),
+                                              Padding(
+                                                padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                                                child: Text(
+                                                  cat.name,
+                                                  style: GoogleFonts.beVietnamPro(
+                                                    fontSize: 10,
+                                                    fontWeight: isSelected
+                                                        ? FontWeight.bold
+                                                        : FontWeight.normal,
+                                                    color: isSelected
+                                                        ? color
+                                                        : AppTheme.darkSlateVariant,
+                                                  ),
+                                                  maxLines: 1,
+                                                  overflow: TextOverflow.ellipsis,
+                                                  textAlign: TextAlign.center,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                          if (isSelected)
+                                            Positioned(
+                                              top: -4,
+                                              right: -4,
+                                              child: Container(
+                                                padding: const EdgeInsets.all(3),
+                                                decoration: BoxDecoration(
+                                                  color: color,
+                                                  shape: BoxShape.circle,
+                                                  border: Border.all(color: Colors.white, width: 1.5),
+                                                ),
+                                                child: const Icon(
+                                                  Icons.check_rounded,
+                                                  color: Colors.white,
+                                                  size: 10,
+                                                ),
+                                              ),
+                                            ),
+                                        ],
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
+                      ),
+                    ],
                   ),
-                ],
-              ),
+                );
+              },
             );
           },
         );
@@ -492,55 +632,86 @@ class _ExpenseEntryScreenState extends State<ExpenseEntryScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    // Enter Amount Section
-                    Center(
+                    // Enter Amount Section - Redesigned to Premium Card
+                    Container(
+                      padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: AppTheme.roundedBorder,
+                        boxShadow: AppTheme.softShadow,
+                        border: Border.all(
+                          color: const Color(0xFFF1F5F9),
+                          width: 1.5,
+                        ),
+                      ),
                       child: Column(
                         children: [
                           Text(
-                            'Enter Amount',
+                            'ENTER AMOUNT',
                             style: GoogleFonts.plusJakartaSans(
-                              fontSize: 13,
-                              fontWeight: FontWeight.bold,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: 1.2,
                               color: AppTheme.darkSlateVariant,
                             ),
                           ),
-                          const SizedBox(height: 8),
+                          const SizedBox(height: 12),
                           Row(
                             mainAxisAlignment: MainAxisAlignment.center,
+                            crossAxisAlignment: CrossAxisAlignment.center,
                             children: [
-                              Text(
-                                currencySymbol,
-                                style: GoogleFonts.plusJakartaSans(
-                                  fontSize: 32,
-                                  fontWeight: FontWeight.bold,
-                                  color: AppTheme.primary,
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                                decoration: BoxDecoration(
+                                  color: AppTheme.primary.withAlpha(15),
+                                  borderRadius: BorderRadius.circular(12),
                                 ),
-                              ),
-                              SizedBox(
-                                width: 200,
-                                child: TextFormField(
-                                  controller: _amountController,
-                                  keyboardType:
-                                      const TextInputType.numberWithOptions(
-                                        decimal: true,
-                                      ),
+                                child: Text(
+                                  currencySymbol.trim(),
                                   style: GoogleFonts.plusJakartaSans(
-                                    fontSize: 40,
+                                    fontSize: 20,
                                     fontWeight: FontWeight.w800,
                                     color: AppTheme.primary,
                                   ),
-                                  decoration: const InputDecoration(
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: TextFormField(
+                                  controller: _amountController,
+                                  keyboardType: const TextInputType.numberWithOptions(
+                                    decimal: true,
+                                    signed: false,
+                                  ),
+                                  inputFormatters: [
+                                    CurrencyInputFormatter(
+                                      CurrencyHelper.getFormatter(currencyCode),
+                                    ),
+                                  ],
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 36,
+                                    fontWeight: FontWeight.w800,
+                                    color: AppTheme.primary,
+                                  ),
+                                  decoration: InputDecoration(
                                     border: InputBorder.none,
                                     enabledBorder: InputBorder.none,
                                     focusedBorder: InputBorder.none,
-                                    hintText: '0.00',
+                                    errorBorder: InputBorder.none,
+                                    focusedErrorBorder: InputBorder.none,
+                                    hintText: CurrencyHelper.getFormatter(currencyCode).decimalDigits == 0 ? '0' : '0.00',
+                                    hintStyle: GoogleFonts.plusJakartaSans(
+                                      color: AppTheme.primary.withAlpha(70),
+                                      fontSize: 36,
+                                      fontWeight: FontWeight.w800,
+                                    ),
                                     fillColor: Colors.transparent,
                                     contentPadding: EdgeInsets.zero,
                                   ),
                                   textAlign: TextAlign.left,
                                   validator: (val) {
-                                    if (val == null || val.isEmpty) {
-                                      return 'Required';
+                                    if (val == null || val.trim().isEmpty) {
+                                      return 'Amount is required';
                                     }
                                     return null;
                                   },
@@ -616,52 +787,87 @@ class _ExpenseEntryScreenState extends State<ExpenseEntryScreen> {
                               });
                             }
                           },
-                          child: Container(
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 200),
+                            curve: Curves.easeInOut,
                             decoration: BoxDecoration(
                               color: isSelected
-                                  ? AppTheme.primary.withAlpha(20)
+                                  ? color.withAlpha(25)
                                   : Colors.white,
                               borderRadius: BorderRadius.circular(16),
-                              boxShadow: AppTheme.softShadow,
+                              boxShadow: isSelected ? AppTheme.interactiveShadow : AppTheme.softShadow,
                               border: Border.all(
                                 color: isSelected
-                                    ? AppTheme.primary
+                                    ? color
                                     : const Color(0xFFF1F5F9),
                                 width: isSelected ? 2.5 : 1.5,
                               ),
                             ),
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
+                            child: Stack(
+                              clipBehavior: Clip.none,
                               children: [
-                                Container(
-                                  width: 52,
-                                  height: 52,
-                                  decoration: BoxDecoration(
-                                    color: color.withAlpha(30),
-                                    shape: BoxShape.circle,
-                                  ),
-                                  alignment: Alignment.center,
-                                  child: CategoryIcon(
-                                    icon: cat.icon,
-                                    color: color,
-                                    size: 32,
-                                  ),
+                                Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Center(
+                                      child: AnimatedScale(
+                                        scale: isSelected ? 1.05 : 1.0,
+                                        duration: const Duration(milliseconds: 200),
+                                        child: Container(
+                                          width: 38,
+                                          height: 38,
+                                          decoration: BoxDecoration(
+                                            color: color.withAlpha(30),
+                                            shape: BoxShape.circle,
+                                          ),
+                                          alignment: Alignment.center,
+                                          child: CategoryIcon(
+                                            icon: cat.icon,
+                                            color: color,
+                                            size: 20,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 6),
+                                    Padding(
+                                      padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                                      child: Text(
+                                        cat.name,
+                                        style: GoogleFonts.beVietnamPro(
+                                          fontSize: 10,
+                                          fontWeight: isSelected
+                                              ? FontWeight.bold
+                                              : FontWeight.normal,
+                                          color: isSelected
+                                              ? color
+                                              : AppTheme.darkSlateVariant,
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        textAlign: TextAlign.center,
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  cat.name,
-                                  style: GoogleFonts.beVietnamPro(
-                                    fontSize: 10,
-                                    fontWeight: isSelected
-                                        ? FontWeight.bold
-                                        : FontWeight.normal,
-                                    color: isSelected
-                                        ? AppTheme.primary
-                                        : AppTheme.darkSlateVariant,
+                                if (isSelected)
+                                  Positioned(
+                                    top: -4,
+                                    right: -4,
+                                    child: Container(
+                                      padding: const EdgeInsets.all(3),
+                                      decoration: BoxDecoration(
+                                        color: color,
+                                        shape: BoxShape.circle,
+                                        border: Border.all(color: Colors.white, width: 1.5),
+                                      ),
+                                      child: const Icon(
+                                        Icons.check_rounded,
+                                        color: Colors.white,
+                                        size: 10,
+                                      ),
+                                    ),
                                   ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
                               ],
                             ),
                           ),
@@ -670,7 +876,54 @@ class _ExpenseEntryScreenState extends State<ExpenseEntryScreen> {
                     ),
                     const SizedBox(height: 32),
 
-                    // Input Form Fields
+                    // Transaction Date Selector
+                    Text(
+                      'Transaction Date',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                        color: AppTheme.darkSlateVariant,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _buildDateChip(
+                            label: 'Today',
+                            isSelected: _isSameDay(_selectedDate, DateTime.now()),
+                            onTap: () {
+                              setState(() {
+                                _selectedDate = DateTime.now();
+                              });
+                            },
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: _buildDateChip(
+                            label: 'Yesterday',
+                            isSelected: _isSameDay(
+                              _selectedDate,
+                              DateTime.now().subtract(const Duration(days: 1)),
+                            ),
+                            onTap: () {
+                              setState(() {
+                                _selectedDate = DateTime.now().subtract(const Duration(days: 1));
+                              });
+                            },
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          flex: 2,
+                          child: _buildCustomDateButton(context),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 32),
+
+                    // Input Form Fields (Notes / Description)
                     TextFormField(
                       controller: _descController,
                       style: GoogleFonts.beVietnamPro(
@@ -678,36 +931,45 @@ class _ExpenseEntryScreenState extends State<ExpenseEntryScreen> {
                         color: AppTheme.darkSlate,
                       ),
                       decoration: InputDecoration(
-                        hintText: 'What was this for?',
+                        labelText: 'Transaction Note',
+                        labelStyle: GoogleFonts.plusJakartaSans(
+                          fontWeight: FontWeight.bold,
+                          color: AppTheme.primary,
+                        ),
+                        hintText: 'What was this expense for?',
                         hintStyle: GoogleFonts.beVietnamPro(
                           color: Colors.grey[400],
                           fontSize: 14,
                         ),
-                        suffixIcon: Icon(
-                          Icons.edit,
-                          color: Colors.grey[400],
+                        prefixIcon: const Icon(
+                          Icons.notes_rounded,
+                          color: AppTheme.primary,
                           size: 20,
                         ),
                         filled: true,
-                        fillColor: const Color(0xFFF2F4F6),
+                        fillColor: const Color(0xFFF1F5F9),
                         contentPadding: const EdgeInsets.symmetric(
                           horizontal: 20,
                           vertical: 16,
                         ),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(16),
-                          borderSide: BorderSide.none,
+                          borderSide: const BorderSide(color: Color(0xFFE2E8F0), width: 1.5),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(16),
+                          borderSide: const BorderSide(color: Color(0xFFE2E8F0), width: 1.5),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(16),
                           borderSide: const BorderSide(
                             color: AppTheme.primary,
-                            width: 2,
+                            width: 2.0,
                           ),
                         ),
                       ),
                     ),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 24),
 
                     // Routine Toggle Card
                     Container(
@@ -716,6 +978,10 @@ class _ExpenseEntryScreenState extends State<ExpenseEntryScreen> {
                         color: Colors.white,
                         borderRadius: AppTheme.roundedBorder,
                         boxShadow: AppTheme.softShadow,
+                        border: Border.all(
+                          color: const Color(0xFFF1F5F9),
+                          width: 1.5,
+                        ),
                       ),
                       child: Row(
                         children: [
@@ -770,13 +1036,17 @@ class _ExpenseEntryScreenState extends State<ExpenseEntryScreen> {
                     const SizedBox(height: 16),
 
                     // Shared With section (only relevant in shared mode)
-                    if (provider.isSharedMode)
+                    if (provider.isSharedMode) ...[
                       Container(
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
                           color: Colors.white,
                           borderRadius: AppTheme.roundedBorder,
                           boxShadow: AppTheme.softShadow,
+                          border: Border.all(
+                            color: const Color(0xFFF1F5F9),
+                            width: 1.5,
+                          ),
                         ),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -822,40 +1092,159 @@ class _ExpenseEntryScreenState extends State<ExpenseEntryScreen> {
                           ],
                         ),
                       ),
-                    const SizedBox(height: 36),
+                      const SizedBox(height: 16),
+                    ],
+                    const SizedBox(height: 20),
 
                     ElevatedButton(
-                      onPressed: _handleSubmit,
+                      onPressed: _isSaving ? null : _handleSubmit,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppTheme.primary,
                         foregroundColor: Colors.white,
-                        shadowColor: AppTheme.primary.withValues(alpha: 0.3),
-                        elevation: 6,
+                        shadowColor: AppTheme.primary.withAlpha(76),
+                        elevation: 4,
                         minimumSize: const Size(double.infinity, 56),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
+                        shape: const StadiumBorder(),
                       ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Icon(Icons.save, size: 20),
-                          const SizedBox(width: 8),
-                          Text(
-                            'Save Transaction',
-                            style: GoogleFonts.plusJakartaSans(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
+                      child: _isSaving
+                          ? const SizedBox(
+                              width: 24,
+                              height: 24,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2.5,
+                                color: Colors.white,
+                              ),
+                            )
+                          : Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Icon(Icons.save_rounded, size: 20),
+                                const SizedBox(width: 8),
+                                Text(
+                                  'Save Transaction',
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                              ],
                             ),
-                          ),
-                        ],
-                      ),
                     ),
                   ],
                 ),
               ),
             ),
           ),
+        ),
+      ),
+    );
+  }
+
+  bool _isSameDay(DateTime d1, DateTime d2) {
+    return d1.year == d2.year && d1.month == d2.month && d1.day == d2.day;
+  }
+
+  Widget _buildDateChip({
+    required String label,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(vertical: 14),
+        decoration: BoxDecoration(
+          color: isSelected ? AppTheme.primary.withAlpha(20) : Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isSelected ? AppTheme.primary : const Color(0xFFE2E8F0),
+            width: isSelected ? 2.0 : 1.0,
+          ),
+          boxShadow: isSelected ? AppTheme.interactiveShadow : AppTheme.softShadow,
+        ),
+        alignment: Alignment.center,
+        child: Text(
+          label,
+          style: GoogleFonts.plusJakartaSans(
+            fontSize: 13,
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+            color: isSelected ? AppTheme.primary : AppTheme.darkSlateVariant,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCustomDateButton(BuildContext context) {
+    final isToday = _isSameDay(_selectedDate, DateTime.now());
+    final isYesterday = _isSameDay(_selectedDate, DateTime.now().subtract(const Duration(days: 1)));
+    final isQuickSelect = isToday || isYesterday;
+
+    final String formattedDate = DateFormat('EEE, d MMM yyyy').format(_selectedDate);
+
+    return InkWell(
+      onTap: () async {
+        final DateTime? picked = await showDatePicker(
+          context: context,
+          initialDate: _selectedDate,
+          firstDate: DateTime(2020),
+          lastDate: DateTime.now().add(const Duration(days: 365)),
+          builder: (context, child) {
+            return Theme(
+              data: Theme.of(context).copyWith(
+                colorScheme: const ColorScheme.light(
+                  primary: AppTheme.primary,
+                  onPrimary: Colors.white,
+                  onSurface: AppTheme.darkSlate,
+                ),
+              ),
+              child: child!,
+            );
+          },
+        );
+        if (picked != null && picked != _selectedDate) {
+          setState(() {
+            _selectedDate = picked;
+          });
+        }
+      },
+      borderRadius: BorderRadius.circular(16),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
+        decoration: BoxDecoration(
+          color: !isQuickSelect ? AppTheme.primary.withAlpha(20) : Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: !isQuickSelect ? AppTheme.primary : const Color(0xFFE2E8F0),
+            width: !isQuickSelect ? 2.0 : 1.0,
+          ),
+          boxShadow: !isQuickSelect ? AppTheme.interactiveShadow : AppTheme.softShadow,
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.calendar_today_rounded,
+              size: 14,
+              color: !isQuickSelect ? AppTheme.primary : AppTheme.darkSlateVariant,
+            ),
+            const SizedBox(width: 6),
+            Expanded(
+              child: Text(
+                isQuickSelect ? 'Other Date...' : formattedDate,
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 12,
+                  fontWeight: !isQuickSelect ? FontWeight.bold : FontWeight.normal,
+                  color: !isQuickSelect ? AppTheme.primary : AppTheme.darkSlateVariant,
+                ),
+                textAlign: TextAlign.center,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -914,6 +1303,48 @@ class _ExpenseEntryScreenState extends State<ExpenseEntryScreen> {
             ),
         ],
       ),
+    );
+  }
+}
+
+class CurrencyInputFormatter extends TextInputFormatter {
+  final NumberFormat formatter;
+  CurrencyInputFormatter(this.formatter);
+
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    if (newValue.text.isEmpty) {
+      return newValue.copyWith(text: '');
+    }
+
+    // Strip all non-digits to get raw number value
+    String digitsOnly = newValue.text.replaceAll(RegExp(r'\D'), '');
+    if (digitsOnly.isEmpty) {
+      return newValue.copyWith(text: '', selection: const TextSelection.collapsed(offset: 0));
+    }
+
+    double value = double.parse(digitsOnly);
+    if (formatter.decimalDigits! > 0) {
+      value /= 100.0;
+    }
+
+    // Format the number part (without the currency symbol prefix)
+    String symbol = formatter.currencySymbol;
+    String formatted = formatter.format(value);
+    
+    // Safely remove the currency symbol from the formatted text
+    // E.g., for 'Rp 10.000', remove 'Rp ' or 'Rp'
+    String formattedNumber = formatted
+        .replaceFirst(symbol.trim(), '')
+        .replaceFirst(symbol, '')
+        .trim();
+
+    return newValue.copyWith(
+      text: formattedNumber,
+      selection: TextSelection.collapsed(offset: formattedNumber.length),
     );
   }
 }

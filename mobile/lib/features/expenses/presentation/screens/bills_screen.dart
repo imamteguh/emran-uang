@@ -131,9 +131,19 @@ class _BillsScreenState extends State<BillsScreen>
       ),
     );
 
+    if (!context.mounted) return;
+
     if (confirm == true) {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(
+          child: CircularProgressIndicator(color: AppTheme.primary),
+        ),
+      );
       final success = await provider.payBill(reminder);
       if (context.mounted) {
+        Navigator.of(context).pop(); // dismiss loading dialog
         if (success) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -165,7 +175,12 @@ class _BillsScreenState extends State<BillsScreen>
           color: Colors.white,
           borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
         ),
-        padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
+        padding: EdgeInsets.only(
+          top: 24,
+          left: 20,
+          right: 20,
+          bottom: MediaQuery.of(context).padding.bottom + 24,
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -235,9 +250,19 @@ class _BillsScreenState extends State<BillsScreen>
                   ),
                 );
 
+                if (!context.mounted) return;
+
                 if (confirm == true) {
+                  showDialog(
+                    context: context,
+                    barrierDismissible: false,
+                    builder: (context) => const Center(
+                      child: CircularProgressIndicator(color: AppTheme.primary),
+                    ),
+                  );
                   final success = await provider.deleteReminder(reminder.id);
                   if (context.mounted) {
+                    Navigator.of(context).pop(); // dismiss loading dialog
                     if (success) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
@@ -554,18 +579,50 @@ class _BillsScreenState extends State<BillsScreen>
         ],
       ),
       body: SafeArea(
-        child: RefreshIndicator(
-          onRefresh: () async {
-            await dashboardProvider.fetchReminders();
-          },
-          color: AppTheme.primary,
-          child: SingleChildScrollView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            padding: responsive.screenPadding,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Summary Header
+        child: Column(
+          children: [
+            if (dashboardProvider.isLoading)
+              const LinearProgressIndicator(
+                color: AppTheme.primary,
+                backgroundColor: Color(0xFFF1F5F9),
+                minHeight: 2,
+              ),
+            Expanded(
+              child: RefreshIndicator(
+                onRefresh: () async {
+                  await dashboardProvider.fetchReminders();
+                },
+                color: AppTheme.primary,
+                child: dashboardProvider.isLoading && activeReminders.isEmpty
+                    ? const SingleChildScrollView(
+                        physics: AlwaysScrollableScrollPhysics(),
+                        child: SizedBox(
+                          height: 400,
+                          child: Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                CircularProgressIndicator(color: AppTheme.primary),
+                                SizedBox(height: 16),
+                                Text(
+                                  'Loading bills...',
+                                  style: TextStyle(
+                                    color: AppTheme.darkSlateVariant,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      )
+                    : SingleChildScrollView(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        padding: responsive.screenPadding,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Summary Header
                 Text(
                   'Upcoming Bills',
                   style: GoogleFonts.plusJakartaSans(
@@ -1123,8 +1180,11 @@ class _BillsScreenState extends State<BillsScreen>
           ),
         ),
       ),
-    );
-  }
+    ],
+  ),
+),
+);
+}
 
   Widget _buildBillItem(
     BillReminderEntity reminder,
