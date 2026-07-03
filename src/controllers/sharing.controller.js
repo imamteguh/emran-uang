@@ -43,6 +43,10 @@ async function sendInvite(req, res) {
     where: { email: targetEmail },
   });
 
+  if (!targetUser) {
+    return error(res, 'User with this email does not exist. They must register first.', 404);
+  }
+
   // Create the shared group + invite in a transaction
   const result = await prisma.$transaction(async (tx) => {
     // Create shared group container
@@ -268,7 +272,18 @@ async function getMyGroups(req, res) {
             },
           },
           sharedWallets: {
-            select: { id: true, name: true, currency: true },
+            include: {
+              expenses: {
+                select: {
+                  amount: true,
+                  userId: true,
+                },
+              },
+              billReminders: {
+                where: { status: 'ACTIVE' },
+                select: { id: true },
+              },
+            },
           },
         },
       },
@@ -291,10 +306,60 @@ async function getMyGroups(req, res) {
     },
   });
 
-  const groups = memberships.map((m) => ({
-    group: m.group,
-    myRole: m.role,
-  }));
+  const groups = memberships.map((m) => {
+    let totalSpent = 0;
+    let yourPaid = 0;
+    let activeBillsCount = 0;
+
+    const group = m.group;
+    if (group.sharedWallets) {
+      for (const wallet of group.sharedWallets) {
+        if (wallet.billReminders) {
+          activeBillsCount += wallet.billReminders.length;
+        }
+        if (wallet.expenses) {
+          for (const expense of wallet.expenses) {
+            const amount = parseFloat(expense.amount) || 0;
+            totalSpent += amount;
+            if (expense.userId === userId) {
+              yourPaid += amount;
+            }
+          }
+        }
+      }
+    }
+
+    const memberCount = group.members ? group.members.length : 0;
+    const share = memberCount > 0 ? (totalSpent / memberCount) : 0;
+    const yourBalance = yourPaid - share;
+
+    // Clean up detailed lists before sending to client
+    const cleanSharedWallets = group.sharedWallets.map((w) => ({
+      id: w.id,
+      name: w.name,
+      currency: w.currency,
+    }));
+
+    // Create a copy of group details without the raw expenses/reminders lists
+    const cleanGroup = {
+      id: group.id,
+      name: group.name,
+      status: group.status,
+      createdAt: group.createdAt,
+      updatedAt: group.updatedAt,
+      archivedAt: group.archivedAt,
+      members: group.members,
+      sharedWallets: cleanSharedWallets,
+      totalSpent,
+      yourBalance,
+      activeBillsCount,
+    };
+
+    return {
+      group: cleanGroup,
+      myRole: m.role,
+    };
+  });
 
   return success(res, {
     groups,
@@ -302,9 +367,9 @@ async function getMyGroups(req, res) {
   });
 }
 
-// ─── Archive Shared Group ───────────────────────────────────────────────────
+// ─── Delete Shared Group ─────────────────────────────────────────────────────
 
-async function archiveGroup(req, res) {
+async function deleteGroup(req, res) {
   const { id } = req.params;
   const userId = req.user.id;
 
@@ -320,20 +385,17 @@ async function archiveGroup(req, res) {
     return error(res, 'You are not a member of this group or the group is inactive', 404);
   }
 
-  // Only the owner can archive the group
+  // Only the owner can delete the group
   if (membership.role !== 'OWNER') {
-    return error(res, 'Only the group owner can archive this group', 403);
+    return error(res, 'Only the group owner can delete this group', 403);
   }
 
-  await prisma.sharedGroup.update({
+  // Cascade delete group (deletes memberships, wallets, invites, expenses, reminders)
+  await prisma.sharedGroup.delete({
     where: { id },
-    data: {
-      status: 'ARCHIVED',
-      archivedAt: new Date(),
-    },
   });
 
-  return success(res, null, 'Group archived. Shared data history remains saved.');
+  return success(res, null, 'Group and all associated data deleted successfully.');
 }
 
 // ─── Leave Shared Group ─────────────────────────────────────────────────────
@@ -373,14 +435,13 @@ async function leaveGroup(req, res) {
         });
       });
     } else {
-      // Last member leaving — archive the group
+      // Last member leaving — delete the group
       await prisma.$transaction(async (tx) => {
         await tx.sharedGroupMember.delete({
           where: { id: membership.id },
         });
-        await tx.sharedGroup.update({
+        await tx.sharedGroup.delete({
           where: { id },
-          data: { status: 'ARCHIVED', archivedAt: new Date() },
         });
       });
     }
@@ -398,6 +459,6 @@ module.exports = {
   acceptInvite,
   rejectInvite,
   getMyGroups,
-  archiveGroup,
+  deleteGroup,
   leaveGroup,
 };

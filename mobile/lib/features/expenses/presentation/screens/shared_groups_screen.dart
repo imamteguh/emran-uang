@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/responsive_helper.dart';
+import '../../../../core/utils/currency_helper.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../providers/dashboard_provider.dart';
 
@@ -16,6 +17,10 @@ class SharedGroupsScreen extends StatefulWidget {
 
 class _SharedGroupsScreenState extends State<SharedGroupsScreen> {
   bool _isInit = true;
+  bool _isActionLoading = false;
+  String? _processingInviteId;
+  final GlobalKey<RefreshIndicatorState> _refreshIndicatorKey =
+      GlobalKey<RefreshIndicatorState>();
 
   @override
   void didChangeDependencies() {
@@ -36,96 +41,92 @@ class _SharedGroupsScreenState extends State<SharedGroupsScreen> {
     final currentUser = authProvider.currentUser;
     final responsive = ResponsiveHelper(context);
 
-    return Scaffold(
-      backgroundColor: AppTheme.background,
-      appBar: AppBar(
-        backgroundColor: AppTheme.background,
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: AppTheme.primary),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-        title: Row(
-          children: [
-            if (currentUser?.avatarUrl != null)
-              CircleAvatar(
-                radius: 18,
-                backgroundImage: NetworkImage(currentUser!.avatarUrl!),
-              )
-            else
-              CircleAvatar(
-                radius: 18,
-                backgroundColor: AppTheme.primaryContainer.withAlpha(51),
-                child: Text(
-                  currentUser?.displayName.substring(0, 1).toUpperCase() ?? 'U',
-                  style: const TextStyle(
-                    color: AppTheme.primary,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
-                  ),
-                ),
-              ),
-            const SizedBox(width: 12),
-            Text(
-              'WalletShare',
+    return Stack(
+      children: [
+        Scaffold(
+          backgroundColor: const Color(0xFFF8FAFC),
+          appBar: AppBar(
+            backgroundColor: const Color(0xFFF8FAFC),
+            elevation: 0,
+            scrolledUnderElevation: 0,
+            centerTitle: true,
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back, color: AppTheme.primary),
+              onPressed: _isActionLoading
+                  ? null
+                  : () => Navigator.of(context).pop(),
+            ),
+            title: Text(
+              'Shared Groups',
               style: GoogleFonts.plusJakartaSans(
                 color: AppTheme.primary,
                 fontWeight: FontWeight.bold,
-                fontSize: responsive.scaleFont(20),
+                fontSize: responsive.scaleFont(18),
               ),
             ),
-          ],
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh, color: AppTheme.primary),
-            onPressed: () => provider.fetchSharedGroups(),
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.refresh, color: AppTheme.primary),
+                onPressed: _isActionLoading
+                    ? null
+                    : () => _refreshIndicatorKey.currentState?.show(),
+              ),
+              const SizedBox(width: 8),
+            ],
           ),
-          const SizedBox(width: 8),
-        ],
-      ),
-      body: SafeArea(
-        child: RefreshIndicator(
-          onRefresh: () async {
-            await provider.fetchSharedGroups();
-          },
-          child: SingleChildScrollView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppTheme.marginMobile,
-              vertical: 16,
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // 1. Create New Group Card
-                _buildCreateGroupCard(context, provider),
-                const SizedBox(height: 24),
-
-                // 2. Pending Invitations Section
-                if (provider.pendingInvites.isNotEmpty) ...[
-                  _buildPendingInvitations(
-                    context,
-                    provider,
-                    responsive,
-                    currentUser?.id,
-                  ),
-                  const SizedBox(height: 24),
-                ],
-
-                // 3. Active Shared Groups Section
-                _buildActiveGroups(
-                  context,
-                  provider,
-                  responsive,
-                  currentUser?.id,
+          body: SafeArea(
+            child: RefreshIndicator(
+              key: _refreshIndicatorKey,
+              onRefresh: () async {
+                await provider.fetchSharedGroups();
+              },
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppTheme.marginMobile,
+                  vertical: 16,
                 ),
-              ],
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // 1. Create New Group Card
+                    _buildCreateGroupCard(context, provider),
+                    const SizedBox(height: 24),
+
+                    // 2. Pending Invitations Section
+                    if (provider.pendingInvites.isNotEmpty) ...[
+                      _buildPendingInvitations(
+                        context,
+                        provider,
+                        responsive,
+                        currentUser?.id,
+                      ),
+                      const SizedBox(height: 24),
+                    ],
+
+                    // 3. Active Shared Groups Section
+                    _buildActiveGroups(
+                      context,
+                      provider,
+                      responsive,
+                      currentUser?.id,
+                    ),
+                  ],
+                ),
+              ),
             ),
           ),
         ),
-      ),
+        if (_isActionLoading)
+          Positioned.fill(
+            child: Container(
+              color: Colors.black.withAlpha(51),
+              child: const Center(
+                child: CircularProgressIndicator(color: AppTheme.primary),
+              ),
+            ),
+          ),
+      ],
     );
   }
 
@@ -200,140 +201,170 @@ class _SharedGroupsScreenState extends State<SharedGroupsScreen> {
 
     showDialog(
       context: context,
+      barrierDismissible: false,
       builder: (context) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(24),
-          ),
-          backgroundColor: Colors.white,
-          titlePadding: const EdgeInsets.fromLTRB(24, 16, 16, 0),
-          contentPadding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
-          title: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Create New Group',
-                style: GoogleFonts.plusJakartaSans(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 18,
-                  color: AppTheme.darkSlate,
+        bool isSubmitting = false;
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(24),
+              ),
+              backgroundColor: Colors.white,
+              titlePadding: const EdgeInsets.fromLTRB(24, 16, 16, 0),
+              contentPadding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
+              title: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Create New Group',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 18,
+                      color: AppTheme.darkSlate,
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close, color: Colors.grey, size: 20),
+                    onPressed: isSubmitting
+                        ? null
+                        : () => Navigator.of(context).pop(),
+                    splashRadius: 20,
+                  ),
+                ],
+              ),
+              content: Form(
+                key: formKey,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'Set up a shared group. We will automatically create a Shared Wallet for you and invite your friend.',
+                      style: GoogleFonts.beVietnamPro(
+                        fontSize: 13,
+                        color: AppTheme.darkSlateVariant,
+                        height: 1.4,
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    TextFormField(
+                      controller: nameController,
+                      enabled: !isSubmitting,
+                      style: GoogleFonts.plusJakartaSans(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 15,
+                      ),
+                      decoration: const InputDecoration(
+                        prefixIcon: Icon(Icons.group_work_outlined),
+                        hintText: 'Group Name (e.g. Housemates, Trip)',
+                        labelText: 'GROUP NAME',
+                      ),
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) {
+                          return 'Please enter a group name';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: emailController,
+                      enabled: !isSubmitting,
+                      keyboardType: TextInputType.emailAddress,
+                      style: GoogleFonts.plusJakartaSans(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 15,
+                      ),
+                      decoration: const InputDecoration(
+                        prefixIcon: Icon(Icons.mail_outline),
+                        hintText: 'friend@email.com',
+                        labelText: 'INVITE EMAIL',
+                      ),
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) {
+                          return 'Please enter email to invite';
+                        }
+                        if (!RegExp(
+                          r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
+                        ).hasMatch(value.trim())) {
+                          return 'Please enter a valid email';
+                        }
+                        return null;
+                      },
+                    ),
+                  ],
                 ),
               ),
-              IconButton(
-                icon: const Icon(Icons.close, color: Colors.grey, size: 20),
-                onPressed: () => Navigator.of(context).pop(),
-                splashRadius: 20,
-              ),
-            ],
-          ),
-          content: Form(
-            key: formKey,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  'Set up a shared group. We will automatically create a Shared Wallet for you and invite your friend.',
-                  style: GoogleFonts.beVietnamPro(
-                    fontSize: 13,
-                    color: AppTheme.darkSlateVariant,
-                    height: 1.4,
+              actionsPadding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+              actions: [
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: isSubmitting
+                        ? null
+                        : () async {
+                            if (formKey.currentState!.validate()) {
+                              setDialogState(() {
+                                isSubmitting = true;
+                              });
+                              final errorMsg = await provider.sendInvite(
+                                emailController.text.trim(),
+                                groupName: nameController.text.trim(),
+                              );
+                              if (context.mounted) {
+                                if (errorMsg == null) {
+                                  Navigator.of(context).pop();
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                        'Group created and invitation sent!',
+                                      ),
+                                    ),
+                                  );
+                                } else {
+                                  setDialogState(() {
+                                    isSubmitting = false;
+                                  });
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(errorMsg),
+                                      backgroundColor: AppTheme.error,
+                                    ),
+                                  );
+                                }
+                              }
+                            }
+                          },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.primary,
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: isSubmitting
+                        ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 2,
+                            ),
+                          )
+                        : Text(
+                            'Create Group',
+                            style: GoogleFonts.plusJakartaSans(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 15,
+                            ),
+                          ),
                   ),
-                ),
-                const SizedBox(height: 20),
-                TextFormField(
-                  controller: nameController,
-                  style: GoogleFonts.plusJakartaSans(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 15,
-                  ),
-                  decoration: const InputDecoration(
-                    prefixIcon: Icon(Icons.group_work_outlined),
-                    hintText: 'Group Name (e.g. Housemates, Trip)',
-                    labelText: 'GROUP NAME',
-                  ),
-                  validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
-                      return 'Please enter a group name';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: emailController,
-                  keyboardType: TextInputType.emailAddress,
-                  style: GoogleFonts.plusJakartaSans(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 15,
-                  ),
-                  decoration: const InputDecoration(
-                    prefixIcon: Icon(Icons.mail_outline),
-                    hintText: 'friend@email.com',
-                    labelText: 'INVITE EMAIL',
-                  ),
-                  validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
-                      return 'Please enter email to invite';
-                    }
-                    if (!RegExp(
-                      r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
-                    ).hasMatch(value.trim())) {
-                      return 'Please enter a valid email';
-                    }
-                    return null;
-                  },
                 ),
               ],
-            ),
-          ),
-          actionsPadding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
-          actions: [
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () async {
-                  if (formKey.currentState!.validate()) {
-                    final success = await provider.sendInvite(
-                      emailController.text.trim(),
-                      groupName: nameController.text.trim(),
-                    );
-                    if (context.mounted) {
-                      Navigator.of(context).pop();
-                      if (success) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Group created and invitation sent!'),
-                          ),
-                        );
-                      } else {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Failed to create group invitation.'),
-                          ),
-                        );
-                      }
-                    }
-                  }
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.primary,
-                  foregroundColor: Colors.white,
-                  elevation: 0,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                child: Text(
-                  'Create Group',
-                  style: GoogleFonts.plusJakartaSans(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 15,
-                  ),
-                ),
-              ),
-            ),
-          ],
+            );
+          },
         );
       },
     );
@@ -445,59 +476,97 @@ class _SharedGroupsScreenState extends State<SharedGroupsScreen> {
                     ),
                   ),
                   if (!isSentByMe)
-                    Row(
-                      children: [
-                        IconButton(
-                          onPressed: () async {
-                            final success = await provider.rejectGroupInvite(
-                              invite['id'],
-                            );
-                            if (success && context.mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('Invitation rejected'),
+                    _processingInviteId == invite['id']
+                        ? const Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 16),
+                            child: SizedBox(
+                              width: 24,
+                              height: 24,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: AppTheme.primary,
+                              ),
+                            ),
+                          )
+                        : Row(
+                            children: [
+                              IconButton(
+                                onPressed: _processingInviteId != null
+                                    ? null
+                                    : () async {
+                                        setState(() {
+                                          _processingInviteId = invite['id'];
+                                        });
+                                        final success = await provider
+                                            .rejectGroupInvite(invite['id']);
+                                        if (context.mounted) {
+                                          setState(() {
+                                            _processingInviteId = null;
+                                          });
+                                          if (success) {
+                                            ScaffoldMessenger.of(
+                                              context,
+                                            ).showSnackBar(
+                                              const SnackBar(
+                                                content: Text(
+                                                  'Invitation rejected',
+                                                ),
+                                              ),
+                                            );
+                                          }
+                                        }
+                                      },
+                                icon: const Icon(
+                                  Icons.close,
+                                  color: Colors.grey,
+                                  size: 20,
                                 ),
-                              );
-                            }
-                          },
-                          icon: const Icon(
-                            Icons.close,
-                            color: Colors.grey,
-                            size: 20,
-                          ),
-                          style: IconButton.styleFrom(
-                            backgroundColor: const Color(0xFFF1F5F9),
-                            shape: const CircleBorder(),
-                          ),
-                        ),
-                        const SizedBox(width: 4),
-                        IconButton(
-                          onPressed: () async {
-                            final success = await provider.acceptGroupInvite(
-                              invite['id'],
-                            );
-                            if (success && context.mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text(
-                                    'Invitation accepted! Shared wallet active.',
+                                style: IconButton.styleFrom(
+                                  backgroundColor: const Color(0xFFF1F5F9),
+                                  shape: const CircleBorder(),
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                              IconButton(
+                                onPressed: _processingInviteId != null
+                                    ? null
+                                    : () async {
+                                        setState(() {
+                                          _processingInviteId = invite['id'];
+                                        });
+                                        final success = await provider
+                                            .acceptGroupInvite(invite['id']);
+                                        if (context.mounted) {
+                                          setState(() {
+                                            _processingInviteId = null;
+                                          });
+                                          if (success) {
+                                            ScaffoldMessenger.of(
+                                              context,
+                                            ).showSnackBar(
+                                              const SnackBar(
+                                                content: Text(
+                                                  'Invitation accepted! Shared wallet active.',
+                                                ),
+                                              ),
+                                            );
+                                          }
+                                        }
+                                      },
+                                icon: const Icon(
+                                  Icons.check,
+                                  color: AppTheme.primary,
+                                  size: 20,
+                                ),
+                                style: IconButton.styleFrom(
+                                  backgroundColor: AppTheme.primary.withAlpha(
+                                    20,
                                   ),
+                                  shape: const CircleBorder(),
                                 ),
-                              );
-                            }
-                          },
-                          icon: const Icon(
-                            Icons.check,
-                            color: AppTheme.primary,
-                            size: 20,
-                          ),
-                          style: IconButton.styleFrom(
-                            backgroundColor: AppTheme.primary.withAlpha(20),
-                            shape: const CircleBorder(),
-                          ),
-                        ),
-                      ],
-                    )
+                              ),
+                            ],
+                          )
                   else
                     Container(
                       padding: const EdgeInsets.symmetric(
@@ -598,107 +667,103 @@ class _SharedGroupsScreenState extends State<SharedGroupsScreen> {
             final membersList = group['members'] as List? ?? [];
             final stripeColor = topColors[index % topColors.length];
 
+            // Parse statistics computed by the backend
+            final totalSpentRaw = group['totalSpent'];
+            final yourBalanceRaw = group['yourBalance'];
+            final activeBillsCount = group['activeBillsCount'] ?? 0;
+
+            final double totalSpent = (totalSpentRaw is num)
+                ? totalSpentRaw.toDouble()
+                : 0.0;
+            final double yourBalance = (yourBalanceRaw is num)
+                ? yourBalanceRaw.toDouble()
+                : 0.0;
+
+            // Resolve currency code
+            final sharedWallets = group['sharedWallets'] as List? ?? [];
+            final String currencyCode = sharedWallets.isNotEmpty
+                ? (sharedWallets[0]['currency'] ?? 'IDR')
+                : 'IDR';
+
+            final String subtitleText =
+                '${membersList.length} members • $activeBillsCount active bill${activeBillsCount == 1 ? "" : "s"}';
+
             return Container(
               margin: const EdgeInsets.only(bottom: 16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: AppTheme.softShadow,
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(16),
-                child: Column(
-                  children: [
-                    Container(
-                      height: 8,
-                      width: double.infinity,
-                      color: stripeColor,
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(16),
+                  splashColor: stripeColor.withAlpha(50),
+                  highlightColor: stripeColor.withAlpha(20),
+                  onTap: () {
+                    // Navigate to group details in the future
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      color: stripeColor.withAlpha(51), // approx 20% opacity
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border(
+                        left: BorderSide(color: stripeColor, width: 4),
+                      ),
                     ),
-                    Padding(
-                      padding: const EdgeInsets.all(20),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      groupName,
-                                      style: GoogleFonts.plusJakartaSans(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 16,
-                                        color: AppTheme.darkSlate,
-                                      ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    groupName,
+                                    style: GoogleFonts.plusJakartaSans(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 20,
+                                      color: AppTheme.onSurface,
                                     ),
-                                    const SizedBox(height: 2),
-                                    Text(
-                                      '${membersList.length} members • Active',
-                                      style: GoogleFonts.beVietnamPro(
-                                        fontSize: 12,
-                                        color: AppTheme.darkSlateVariant,
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Row(
+                                    children: [
+                                      const Icon(
+                                        Icons.group,
+                                        size: 14,
+                                        color: AppTheme.onSurfaceVariant,
                                       ),
-                                    ),
-                                  ],
-                                ),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        subtitleText,
+                                        style: GoogleFonts.beVietnamPro(
+                                          fontSize: 12,
+                                          color: AppTheme.onSurfaceVariant,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
                               ),
-                              _buildOverlappingAvatars(
-                                membersList,
-                                currentUserId,
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 16),
-                          Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: AppTheme.surfaceContainerLow,
-                              borderRadius: BorderRadius.circular(12),
                             ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            Row(
                               children: [
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      'MEMBERS LIST',
-                                      style: GoogleFonts.plusJakartaSans(
-                                        fontSize: 10,
-                                        fontWeight: FontWeight.bold,
-                                        color: AppTheme.darkSlateVariant,
-                                        letterSpacing: 0.8,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      membersList
-                                          .map(
-                                            (m) =>
-                                                m['user']?['displayName'] ??
-                                                'User',
-                                          )
-                                          .join(', '),
-                                      style: GoogleFonts.beVietnamPro(
-                                        fontSize: 13,
-                                        fontWeight: FontWeight.w500,
-                                        color: AppTheme.darkSlate,
-                                      ),
-                                    ),
-                                  ],
-                                ),
+                                _buildOverlappingAvatars(membersList),
+                                const SizedBox(width: 8),
                                 PopupMenuButton<String>(
                                   icon: const Icon(
                                     Icons.more_vert,
-                                    color: AppTheme.darkSlateVariant,
+                                    color: AppTheme.onSurfaceVariant,
+                                    size: 20,
                                   ),
                                   color: Colors.white,
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(12),
                                   ),
+                                  padding: EdgeInsets.zero,
+                                  constraints: const BoxConstraints(),
                                   onSelected: (value) async {
                                     if (value == 'leave') {
                                       final confirm = await _showConfirmDialog(
@@ -706,40 +771,56 @@ class _SharedGroupsScreenState extends State<SharedGroupsScreen> {
                                         'Leave Group',
                                         'Are you sure you want to leave this shared group?',
                                       );
-                                      if (confirm == true && context.mounted) {
+                                      if (confirm == true && mounted) {
+                                        setState(() {
+                                          _isActionLoading = true;
+                                        });
                                         final success = await provider
                                             .leaveGroup(group['id']);
-                                        if (success && context.mounted) {
-                                          ScaffoldMessenger.of(
-                                            context,
-                                          ).showSnackBar(
-                                            const SnackBar(
-                                              content: Text(
-                                                'Left the group successfully',
+                                        if (mounted) {
+                                          setState(() {
+                                            _isActionLoading = false;
+                                          });
+                                          if (success) {
+                                            ScaffoldMessenger.of(
+                                              this.context,
+                                            ).showSnackBar(
+                                              const SnackBar(
+                                                content: Text(
+                                                  'Left the group successfully',
+                                                ),
                                               ),
-                                            ),
-                                          );
+                                            );
+                                          }
                                         }
                                       }
-                                    } else if (value == 'archive') {
+                                    } else if (value == 'delete') {
                                       final confirm = await _showConfirmDialog(
                                         context,
-                                        'Archive Group',
-                                        'Only the owner can archive this group. Are you sure you want to archive it?',
+                                        'Delete Group',
+                                        'Are you sure you want to delete this shared group and all its associated data? This action is permanent and cannot be undone.',
                                       );
-                                      if (confirm == true && context.mounted) {
+                                      if (confirm == true && mounted) {
+                                        setState(() {
+                                          _isActionLoading = true;
+                                        });
                                         final success = await provider
-                                            .archiveGroup(group['id']);
-                                        if (success && context.mounted) {
-                                          ScaffoldMessenger.of(
-                                            context,
-                                          ).showSnackBar(
-                                            const SnackBar(
-                                              content: Text(
-                                                'Group archived successfully',
+                                            .deleteGroup(group['id']);
+                                        if (mounted) {
+                                          setState(() {
+                                            _isActionLoading = false;
+                                          });
+                                          if (success) {
+                                            ScaffoldMessenger.of(
+                                              this.context,
+                                            ).showSnackBar(
+                                              const SnackBar(
+                                                content: Text(
+                                                  'Group and all associated data deleted successfully',
+                                                ),
                                               ),
-                                            ),
-                                          );
+                                            );
+                                          }
                                         }
                                       }
                                     }
@@ -761,16 +842,16 @@ class _SharedGroupsScreenState extends State<SharedGroupsScreen> {
                                     ),
                                     if (myRole == 'OWNER')
                                       const PopupMenuItem(
-                                        value: 'archive',
+                                        value: 'delete',
                                         child: Row(
                                           children: [
                                             Icon(
-                                              Icons.archive_outlined,
-                                              color: AppTheme.primary,
+                                              Icons.delete_forever,
+                                              color: AppTheme.error,
                                               size: 20,
                                             ),
                                             SizedBox(width: 8),
-                                            Text('Archive Group'),
+                                            Text('Delete Group'),
                                           ],
                                         ),
                                       ),
@@ -778,11 +859,124 @@ class _SharedGroupsScreenState extends State<SharedGroupsScreen> {
                                 ),
                               ],
                             ),
-                          ),
-                        ],
-                      ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withAlpha(153),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'TOTAL SHARED',
+                                      style: GoogleFonts.plusJakartaSans(
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.bold,
+                                        color: AppTheme.onSurfaceVariant,
+                                        letterSpacing: 0.8,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      CurrencyHelper.format(
+                                        totalSpent,
+                                        currencyCode,
+                                      ),
+                                      style: GoogleFonts.plusJakartaSans(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                        color: AppTheme.onSurface,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: yourBalance.abs() < 0.01
+                                      ? AppTheme.secondaryContainer.withAlpha(76)
+                                      : (yourBalance > 0
+                                          ? AppTheme.primaryContainer
+                                              .withAlpha(25)
+                                          : AppTheme.errorContainer
+                                              .withAlpha(76)),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.end,
+                                  children: [
+                                    Text(
+                                      yourBalance.abs() < 0.01
+                                          ? 'SETTLED'
+                                          : 'YOUR BALANCE',
+                                      style: GoogleFonts.plusJakartaSans(
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.bold,
+                                        color: AppTheme.onSurfaceVariant,
+                                        letterSpacing: 0.8,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.end,
+                                      children: [
+                                        if (yourBalance.abs() < 0.01)
+                                          const Icon(
+                                            Icons.check_circle,
+                                            color: AppTheme.secondary,
+                                            size: 14,
+                                          )
+                                        else if (yourBalance > 0)
+                                          const Icon(
+                                            Icons.balance,
+                                            color: AppTheme.primary,
+                                            size: 14,
+                                          )
+                                        else
+                                          const Icon(
+                                            Icons.warning,
+                                            color: AppTheme.error,
+                                            size: 14,
+                                          ),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          yourBalance.abs() < 0.01
+                                              ? 'Done'
+                                              : (yourBalance > 0
+                                                  ? '+${CurrencyHelper.format(yourBalance, currencyCode)}'
+                                                  : '-${CurrencyHelper.format(yourBalance.abs(), currencyCode)}'),
+                                          style: GoogleFonts.plusJakartaSans(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.bold,
+                                            color: yourBalance.abs() < 0.01
+                                                ? AppTheme.secondary
+                                                : (yourBalance > 0
+                                                    ? AppTheme.primary
+                                                    : AppTheme.error),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
               ),
             );
@@ -792,34 +986,41 @@ class _SharedGroupsScreenState extends State<SharedGroupsScreen> {
     );
   }
 
-  Widget _buildOverlappingAvatars(
-    List<dynamic> members,
-    String? currentUserId,
-  ) {
+  Widget _buildOverlappingAvatars(List<dynamic> members) {
     final displayMembers = members.take(3).toList();
     final remainingCount = members.length - displayMembers.length;
+    const double avatarSize = 32.0; // w-8 h-8 (32px)
+    const double spacing = 20.0; // 32px size - 12px overlap (-space-x-3)
 
     return SizedBox(
-      height: 32,
-      width: (displayMembers.length * 20.0) + (remainingCount > 0 ? 24.0 : 0.0),
+      height: avatarSize,
+      width: displayMembers.isEmpty
+          ? 0.0
+          : (remainingCount > 0
+              ? (displayMembers.length * spacing) + avatarSize
+              : ((displayMembers.length - 1) * spacing) + avatarSize),
       child: Stack(
         children: [
+          // Draw members in forward order so the left member is at the bottom, 
+          // and subsequent members overlap towards the right.
           for (int i = 0; i < displayMembers.length; i++)
             Positioned(
-              left: i * 20.0,
-              child: _buildAvatarCircle(
-                displayMembers[i]['user'],
-                currentUserId,
-              ),
+              left: i * spacing,
+              child: _buildAvatarCircle(displayMembers[i]['user'], avatarSize),
             ),
+          
+          // Draw remaining count last so it sits at the very top of the stack
           if (remainingCount > 0)
             Positioned(
-              left: displayMembers.length * 20.0,
+              left: displayMembers.length * spacing,
               child: Container(
-                width: 32,
-                height: 32,
+                width: avatarSize,
+                height: avatarSize,
                 decoration: BoxDecoration(
-                  color: AppTheme.tertiaryFixed,
+                  color: AppTheme.surfaceContainerHigh,
+                  shape: BoxShape.circle,
+                ),
+                foregroundDecoration: BoxDecoration(
                   shape: BoxShape.circle,
                   border: Border.all(color: Colors.white, width: 2),
                 ),
@@ -827,8 +1028,8 @@ class _SharedGroupsScreenState extends State<SharedGroupsScreen> {
                 child: Text(
                   '+$remainingCount',
                   style: GoogleFonts.plusJakartaSans(
-                    color: AppTheme.onTertiaryFixed,
-                    fontSize: 10,
+                    color: AppTheme.onSurface,
+                    fontSize: 11,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -839,17 +1040,12 @@ class _SharedGroupsScreenState extends State<SharedGroupsScreen> {
     );
   }
 
-  Widget _buildAvatarCircle(dynamic user, String? currentUserId) {
+  Widget _buildAvatarCircle(dynamic user, double size) {
     if (user == null) return const SizedBox();
-    final isMe = user['id'] == currentUserId;
     final name = user['displayName'] ?? '';
     final avatarUrl = user['avatarUrl'];
 
-    if (isMe) {
-      return UserAvatar(avatarUrl: avatarUrl, displayName: "ME", size: 32);
-    }
-
-    return UserAvatar(avatarUrl: avatarUrl, displayName: name, size: 32);
+    return UserAvatar(avatarUrl: avatarUrl, displayName: name, size: size);
   }
 
   Future<bool?> _showConfirmDialog(

@@ -10,7 +10,7 @@ const {
   acceptInvite,
   rejectInvite,
   getMyGroups,
-  archiveGroup,
+  deleteGroup,
   leaveGroup,
 } = require('../controllers/sharing.controller');
 
@@ -22,7 +22,7 @@ router.get('/groups', asyncHandler(getMyGroups));
 router.post('/invite', asyncHandler(sendInvite));
 router.post('/invite/:id/accept', asyncHandler(acceptInvite));
 router.post('/invite/:id/reject', asyncHandler(rejectInvite));
-router.post('/groups/:id/archive', asyncHandler(archiveGroup));
+router.delete('/groups/:id', asyncHandler(deleteGroup));
 router.post('/groups/:id/leave', asyncHandler(leaveGroup));
 
 module.exports = router;

@@ -16,20 +16,30 @@ class UserAvatar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final double fontSize = size * 0.38;
-    final String fallbackLetter = displayName.isNotEmpty ? displayName[0].toUpperCase() : 'U';
+    final String fallbackLetter =
+        displayName.isNotEmpty ? displayName[0].toUpperCase() : 'U';
 
     if (avatarUrl != null && avatarUrl!.isNotEmpty) {
-      if (avatarUrl!.startsWith('http://') || avatarUrl!.startsWith('https://')) {
+      if (avatarUrl!.startsWith('http://') ||
+          avatarUrl!.startsWith('https://')) {
         return Container(
           width: size,
           height: size,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             color: AppTheme.primaryFixed,
+          ),
+          foregroundDecoration: BoxDecoration(
+            shape: BoxShape.circle,
             border: Border.all(color: Colors.white, width: 2),
-            image: DecorationImage(
-              image: NetworkImage(avatarUrl!),
+          ),
+          child: ClipOval(
+            child: Image.network(
+              avatarUrl!,
               fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) {
+                return _buildDefaultFallback(fallbackLetter, fontSize);
+              },
             ),
           ),
         );
@@ -40,15 +50,15 @@ class UserAvatar extends StatelessWidget {
           height: size,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            border: Border.all(color: Colors.white, width: 2),
             gradient: const LinearGradient(
-              colors: [
-                AppTheme.primaryContainer,
-                AppTheme.primary,
-              ],
+              colors: [AppTheme.primaryContainer, AppTheme.primary],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
+          ),
+          foregroundDecoration: BoxDecoration(
+            shape: BoxShape.circle,
+            border: Border.all(color: Colors.white, width: 2),
           ),
           alignment: Alignment.center,
           child: Text(
@@ -60,12 +70,19 @@ class UserAvatar extends StatelessWidget {
     }
 
     // Default Fallback Initial
+    return _buildDefaultFallback(fallbackLetter, fontSize);
+  }
+
+  Widget _buildDefaultFallback(String fallbackLetter, double fontSize) {
     return Container(
       width: size,
       height: size,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         color: AppTheme.primary,
+      ),
+      foregroundDecoration: BoxDecoration(
+        shape: BoxShape.circle,
         border: Border.all(color: Colors.white, width: 2),
       ),
       alignment: Alignment.center,

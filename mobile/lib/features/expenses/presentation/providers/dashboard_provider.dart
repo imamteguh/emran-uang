@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:dio/dio.dart';
 import '../../../../core/network/dio_client.dart';
 import '../../domain/entities/expense.dart';
 import '../../domain/entities/wallet.dart';
@@ -684,11 +685,14 @@ class DashboardProvider extends ChangeNotifier {
       debugPrint('DashboardProvider: Failed to fetch shared groups ($e)');
       _sharedGroups = [];
       _pendingInvites = [];
+    } finally {
+      notifyListeners();
     }
   }
 
   /// Send sharing invite to target email
-  Future<bool> sendInvite(String email, {String? groupName}) async {
+  /// Returns null on success, or an error message on failure.
+  Future<String?> sendInvite(String email, {String? groupName}) async {
     try {
       final response = await _client.dio.post(
         '/sharing/invite',
@@ -700,12 +704,16 @@ class DashboardProvider extends ChangeNotifier {
           _fetchWallets(),
         ]);
         notifyListeners();
-        return true;
+        return null;
       }
+      return response.data?['message'] ?? 'Failed to send invite';
     } catch (e) {
       debugPrint('DashboardProvider: Failed to send invite ($e)');
+      if (e is DioException && e.response?.data != null) {
+        return e.response?.data['message'] ?? 'Failed to send invite';
+      }
+      return 'Connection error. Please try again.';
     }
-    return false;
   }
 
   /// Accept an invitation
@@ -762,10 +770,10 @@ class DashboardProvider extends ChangeNotifier {
     return false;
   }
 
-  /// Archive a group
-  Future<bool> archiveGroup(String groupId) async {
+  /// Delete a group and all its data
+  Future<bool> deleteGroup(String groupId) async {
     try {
-      final response = await _client.dio.post('/sharing/groups/$groupId/archive');
+      final response = await _client.dio.delete('/sharing/groups/$groupId');
       if (response.data != null && response.data['success'] == true) {
         await Future.wait([
           fetchSharedGroups(),
@@ -775,7 +783,7 @@ class DashboardProvider extends ChangeNotifier {
         return true;
       }
     } catch (e) {
-      debugPrint('DashboardProvider: Failed to archive group ($e)');
+      debugPrint('DashboardProvider: Failed to delete group ($e)');
     }
     return false;
   }
