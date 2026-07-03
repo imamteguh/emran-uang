@@ -4,6 +4,7 @@
 
 const prisma = require('../config/prisma');
 const firebaseAdmin = require('../config/firebase');
+const { getMessaging } = require('firebase-admin/messaging');
 
 /**
  * Send FCM push notification asynchronously.
@@ -33,7 +34,8 @@ async function sendFcmPush(token, title, body, metadata = {}, type) {
   };
 
   try {
-    await firebaseAdmin.messaging().send(message);
+    const messaging = getMessaging();
+    await messaging.send(message);
     console.log('[FCM] Successfully sent push notification.');
   } catch (error) {
     console.error('[FCM] Error sending push notification:', error.message);
