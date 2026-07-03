@@ -1,6 +1,7 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'dio_client.dart';
 import '../../firebase_options.dart';
 
@@ -16,6 +17,7 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 class PushNotificationService {
   static final PushNotificationService _singleton = PushNotificationService._internal();
   final DioClient _dioClient = DioClient();
+  final FlutterLocalNotificationsPlugin _localNotifications = FlutterLocalNotificationsPlugin();
   bool _initialized = false;
 
   factory PushNotificationService() {
@@ -35,6 +37,31 @@ class PushNotificationService {
       // Register background handler
       FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
+      // Setup Local Notifications for Android/iOS
+      if (!kIsWeb) {
+        const androidInit = AndroidInitializationSettings('@mipmap/launcher_icon');
+        const iosInit = DarwinInitializationSettings(
+          requestAlertPermission: false,
+          requestBadgePermission: false,
+          requestSoundPermission: false,
+        );
+        const initSettings = InitializationSettings(android: androidInit, iOS: iosInit);
+        await _localNotifications.initialize(initSettings);
+
+        // Create high importance channel
+        const channel = AndroidNotificationChannel(
+          'high_importance_channel',
+          'High Importance Notifications',
+          description: 'This channel is used for important notifications.',
+          importance: Importance.max,
+          playSound: true,
+        );
+
+        await _localNotifications
+            .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
+            ?.createNotificationChannel(channel);
+      }
+
       // Request notification permissions
       final messaging = FirebaseMessaging.instance;
       final settings = await messaging.requestPermission(
@@ -48,8 +75,15 @@ class PushNotificationService {
 
       if (settings.authorizationStatus == AuthorizationStatus.authorized ||
           settings.authorizationStatus == AuthorizationStatus.provisional) {
+        
+        // Setup iOS foreground notification presentation options
+        await messaging.setForegroundNotificationPresentationOptions(
+          alert: true,
+          badge: true,
+          sound: true,
+        );
+
         // Retrieve FCM token
-        // Use default web push keys (VAPID) if on web, but let's try standard getToken first
         String? token;
         try {
           token = await messaging.getToken();
@@ -71,7 +105,32 @@ class PushNotificationService {
         // Listen to foreground notifications
         FirebaseMessaging.onMessage.listen((RemoteMessage message) {
           debugPrint('Received foreground notification: ${message.notification?.title}');
-          // If you need to trigger in-app updates, you can notify users or providers here
+          
+          final notification = message.notification;
+          
+          if (notification != null && !kIsWeb) {
+            _localNotifications.show(
+              notification.hashCode,
+              notification.title,
+              notification.body,
+              const NotificationDetails(
+                android: AndroidNotificationDetails(
+                  'high_importance_channel',
+                  'High Importance Notifications',
+                  channelDescription: 'This channel is used for important notifications.',
+                  icon: '@mipmap/launcher_icon',
+                  importance: Importance.max,
+                  priority: Priority.high,
+                  playSound: true,
+                ),
+                iOS: DarwinNotificationDetails(
+                  presentAlert: true,
+                  presentBadge: true,
+                  presentSound: true,
+                ),
+              ),
+            );
+          }
         });
 
         // Listen to notification clicks when app is in background but still running
