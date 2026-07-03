@@ -52,7 +52,7 @@ try {
   // Initialize Firebase Admin if credentials found
   if (serviceAccount) {
     admin.initializeApp({
-      credential: admin.credential.cert(serviceAccount),
+      credential: admin.cert(serviceAccount),
     });
     firebaseAdminInstance = admin;
     console.log('[Firebase] Firebase Admin SDK initialized successfully.');
