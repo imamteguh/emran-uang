@@ -12,9 +12,13 @@ const {
   markAllAsRead,
   deleteNotification,
   clearAllNotifications,
+  triggerBillReminderCron,
 } = require('../controllers/notification.controller');
 
 const router = Router();
+
+// Public / Cron endpoint (self-authenticated via CRON_SECRET)
+router.get('/cron/bill-reminders', asyncHandler(triggerBillReminderCron));
 
 router.use(authenticate);
 

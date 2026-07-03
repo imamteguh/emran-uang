@@ -110,6 +110,26 @@ async function clearAllNotifications(req, res) {
   return success(res, { deletedCount: result.count }, 'All notifications cleared successfully');
 }
 
+async function triggerBillReminderCron(req, res) {
+  const authHeader = req.headers.authorization;
+  const cronSecret = process.env.CRON_SECRET;
+
+  // Verify auth header if in production
+  if (process.env.NODE_ENV === 'production') {
+    if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
+      return res.status(401).json({ success: false, message: 'Unauthorized' });
+    }
+  }
+
+  try {
+    const { checkBillReminders } = require('../utils/bill-reminder-cron');
+    await checkBillReminders();
+    return res.json({ success: true, message: 'Bill reminders checked successfully' });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+}
+
 module.exports = {
   getNotifications,
   getUnreadCount,
@@ -117,4 +137,5 @@ module.exports = {
   markAllAsRead,
   deleteNotification,
   clearAllNotifications,
+  triggerBillReminderCron,
 };
