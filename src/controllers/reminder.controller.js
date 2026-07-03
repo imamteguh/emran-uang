@@ -5,6 +5,7 @@
 const prisma = require('../config/prisma');
 const { success, created, error, paginated } = require('../utils/apiResponse');
 const { parsePagination } = require('../utils/dateHelpers');
+const { notifyGroupMembers } = require('../utils/notification.helper');
 
 // ─── Create Reminder ────────────────────────────────────────────────────────
 
@@ -68,6 +69,24 @@ async function createReminder(req, res) {
       expenses: { select: { id: true, amount: true, date: true } },
     },
   });
+
+  // ── Notify group members if this is a shared wallet reminder ──
+  if (req.wallet.type === 'SHARED' && req.wallet.groupId) {
+    const group = await prisma.sharedGroup.findUnique({
+      where: { id: req.wallet.groupId },
+      select: { name: true },
+    });
+    await notifyGroupMembers(prisma, req.wallet.groupId, [req.user.id], {
+      type: 'GROUP_BILL_ADDED',
+      title: 'New Bill Reminder',
+      body: `${req.user.displayName} added a bill "${title}" of Rp ${Number(amount).toLocaleString('id-ID')} in "${group?.name || 'shared group'}"`,
+      metadata: {
+        groupId: req.wallet.groupId,
+        reminderId: reminder.id,
+        amount: Number(amount),
+      },
+    });
+  }
 
   return created(res, reminder, 'Bill reminder created');
 }

@@ -5,6 +5,7 @@
 const prisma = require('../config/prisma');
 const { success, created, error, paginated } = require('../utils/apiResponse');
 const { getDateRange, parsePagination } = require('../utils/dateHelpers');
+const { notifyGroupMembers } = require('../utils/notification.helper');
 
 // ─── Create Expense ─────────────────────────────────────────────────────────
 
@@ -44,6 +45,24 @@ async function createExpense(req, res) {
       user: { select: { id: true, displayName: true, avatarUrl: true } },
     },
   });
+
+  // ── Notify group members if this is a shared wallet expense ──
+  if (req.wallet.type === 'SHARED' && req.wallet.groupId) {
+    const group = await prisma.sharedGroup.findUnique({
+      where: { id: req.wallet.groupId },
+      select: { name: true },
+    });
+    await notifyGroupMembers(prisma, req.wallet.groupId, [req.user.id], {
+      type: 'GROUP_EXPENSE_ADDED',
+      title: 'New Expense',
+      body: `${req.user.displayName} added an expense of Rp ${Number(amount).toLocaleString('id-ID')}${description ? ' — ' + description : ''} in "${group?.name || 'shared group'}"`,
+      metadata: {
+        groupId: req.wallet.groupId,
+        expenseId: expense.id,
+        amount: Number(amount),
+      },
+    });
+  }
 
   return created(res, expense, 'Expense created');
 }

@@ -5,6 +5,7 @@ import 'core/theme/app_theme.dart';
 import 'features/auth/presentation/providers/auth_provider.dart';
 import 'features/auth/presentation/screens/login_screen.dart';
 import 'features/expenses/presentation/providers/dashboard_provider.dart';
+import 'features/expenses/presentation/providers/notification_provider.dart';
 import 'features/expenses/presentation/screens/main_shell.dart';
 
 Future<void> main() async {
@@ -27,6 +28,7 @@ class EmranUangApp extends StatelessWidget {
             key: ValueKey(userId),
             providers: [
               ChangeNotifierProvider(create: (_) => DashboardProvider()),
+              ChangeNotifierProvider(create: (_) => NotificationProvider()),
             ],
             child: MaterialApp(
               title: 'Wallet Share',

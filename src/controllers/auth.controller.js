@@ -416,6 +416,22 @@ async function changePassword(req, res) {
   return success(res, null, 'Password changed successfully');
 }
 
+async function updateFcmToken(req, res) {
+  const userId = req.user.id;
+  const { fcmToken } = req.body;
+
+  if (fcmToken === undefined) {
+    return error(res, 'fcmToken is required', 400);
+  }
+
+  await prisma.user.update({
+    where: { id: userId },
+    data: { fcmToken: fcmToken || null },
+  });
+
+  return success(res, null, 'FCM token updated successfully');
+}
+
 module.exports = {
   register,
   login,
@@ -425,5 +441,6 @@ module.exports = {
   getAuthConfig,
   updateProfile,
   changePassword,
+  updateFcmToken,
 };
 

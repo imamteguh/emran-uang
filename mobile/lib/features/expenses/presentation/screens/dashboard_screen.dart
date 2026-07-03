@@ -7,11 +7,13 @@ import '../../../../core/utils/responsive_helper.dart';
 import '../../../../core/utils/currency_helper.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../providers/dashboard_provider.dart';
+import '../providers/notification_provider.dart';
 import '../widgets/category_icon.dart';
 import '../widgets/dashboard_skeleton.dart';
 import '../../domain/entities/wallet.dart';
 import 'expense_entry_screen.dart';
 import 'shared_groups_screen.dart';
+import 'notifications_screen.dart';
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
@@ -234,14 +236,50 @@ class DashboardScreen extends StatelessWidget {
           ),
           IconButton(
             onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('No new notifications')),
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const NotificationsScreen()),
               );
             },
-            icon: const Icon(
-              Icons.notifications_none_outlined,
-              size: 28,
-              color: AppTheme.primary,
+            icon: Consumer<NotificationProvider>(
+              builder: (context, notifProvider, _) {
+                return Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    const Icon(
+                      Icons.notifications_none_outlined,
+                      size: 28,
+                      color: AppTheme.primary,
+                    ),
+                    if (notifProvider.hasUnread)
+                      Positioned(
+                        right: -4,
+                        top: -4,
+                        child: Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: const BoxDecoration(
+                            color: AppTheme.error,
+                            shape: BoxShape.circle,
+                          ),
+                          constraints: const BoxConstraints(
+                            minWidth: 18,
+                            minHeight: 18,
+                          ),
+                          child: Text(
+                            notifProvider.unreadCount > 99
+                                ? '99+'
+                                : '${notifProvider.unreadCount}',
+                            style: GoogleFonts.plusJakartaSans(
+                              color: Colors.white,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                      ),
+                  ],
+                );
+              },
             ),
             splashRadius: 24,
           ),

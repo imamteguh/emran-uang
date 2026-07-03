@@ -26,6 +26,7 @@ const reminderRoutes = require('../src/routes/reminder.routes');
 const walletRoutes = require('../src/routes/wallet.routes');
 const categoryRoutes = require('../src/routes/category.routes');
 const sharingRoutes = require('../src/routes/sharing.routes');
+const notificationRoutes = require('../src/routes/notification.routes');
 
 // ── Express App ──────────────────────────────────────────────────────────────
 const app = express();
@@ -47,10 +48,10 @@ app.use(
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
-// Rate limiting — 100 requests per 15 minutes per IP
+// Rate limiting — 500 requests per 15 minutes per IP
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 100,
+  max: isDev ? 1000 : 500,
   standardHeaders: true,
   legacyHeaders: false,
   message: {
@@ -78,6 +79,7 @@ app.use('/api/reminders', reminderRoutes);
 app.use('/api/wallets', walletRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/sharing', sharingRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 // ── 404 Handler ──────────────────────────────────────────────────────────────
 app.use('/api/*', (req, res) => {
@@ -95,6 +97,10 @@ if (process.env.NODE_ENV !== 'production') {
   const PORT = process.env.PORT || 3000;
   app.listen(PORT, () => {
     console.log(`\nWalletShare API running at http://localhost:${PORT}/api\n`);
+
+    // Start bill reminder cron job (dev/production)
+    const { startBillReminderCron } = require('../src/utils/bill-reminder-cron');
+    startBillReminderCron();
   });
 }
 

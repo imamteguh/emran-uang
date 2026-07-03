@@ -4,6 +4,7 @@
 
 const prisma = require('../config/prisma');
 const { success, created, error } = require('../utils/apiResponse');
+const { createNotification, notifyGroupMembers } = require('../utils/notification.helper');
 
 // ─── Send Sharing Invite ────────────────────────────────────────────────────
 
@@ -82,6 +83,21 @@ async function sendInvite(req, res) {
 
     return { group, invite };
   });
+
+  // ── Create notification for receiver ──
+  if (targetUser) {
+    await createNotification(prisma, {
+      userId: targetUser.id,
+      type: 'GROUP_INVITE',
+      title: 'Group Invitation',
+      body: `${req.user.displayName} invited you to join "${result.group.name || 'a shared group'}"`,
+      metadata: {
+        groupId: result.group.id,
+        inviteId: result.invite.id,
+        senderId: senderId,
+      },
+    });
+  }
 
   return created(
     res,
@@ -196,6 +212,17 @@ async function acceptInvite(req, res) {
     return { group, sharedWallet };
   });
 
+  // ── Notify all existing group members (except the one who just joined) ──
+  await notifyGroupMembers(prisma, invite.groupId, [userId], {
+    type: 'GROUP_INVITE_ACCEPTED',
+    title: 'Invitation Accepted',
+    body: `${req.user.displayName} has joined "${result.group.name || 'the shared group'}"`,
+    metadata: {
+      groupId: invite.groupId,
+      userId: userId,
+    },
+  });
+
   return success(res, result, 'Invitation accepted — shared data is active!');
 }
 
@@ -241,6 +268,18 @@ async function rejectInvite(req, res) {
       await tx.sharedGroupMember.deleteMany({ where: { groupId: invite.groupId } });
       await tx.sharedGroup.delete({ where: { id: invite.groupId } });
     }
+  });
+
+  // ── Notify the sender that their invite was rejected ──
+  await createNotification(prisma, {
+    userId: invite.senderId,
+    type: 'GROUP_INVITE_REJECTED',
+    title: 'Invitation Declined',
+    body: `${req.user.displayName} declined your group invitation`,
+    metadata: {
+      groupId: invite.groupId,
+      inviteId: invite.id,
+    },
   });
 
   return success(res, null, 'Invitation rejected');
@@ -448,6 +487,29 @@ async function leaveGroup(req, res) {
   } else {
     await prisma.sharedGroupMember.delete({
       where: { id: membership.id },
+    });
+  }
+
+  // ── Notify remaining group members ──
+  // Get remaining members (after removal)
+  const remainingMembers = await prisma.sharedGroupMember.findMany({
+    where: { groupId: id },
+    select: { userId: true },
+  });
+  const group = await prisma.sharedGroup.findUnique({
+    where: { id },
+    select: { name: true },
+  });
+
+  if (remainingMembers.length > 0 && group) {
+    await notifyGroupMembers(prisma, id, [userId], {
+      type: 'GROUP_MEMBER_LEFT',
+      title: 'Member Left',
+      body: `${req.user.displayName} has left "${group.name || 'the shared group'}"`,
+      metadata: {
+        groupId: id,
+        userId: userId,
+      },
     });
   }
 

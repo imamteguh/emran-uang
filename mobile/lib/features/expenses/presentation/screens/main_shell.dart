@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/network/push_notification_service.dart';
 import 'dashboard_screen.dart';
 import 'analytics_screen.dart';
 import 'bills_screen.dart';
@@ -19,6 +20,14 @@ class MainShellScreen extends StatefulWidget {
 
 class _MainShellScreenState extends State<MainShellScreen> {
   int _currentIndex = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      PushNotificationService().initialize();
+    });
+  }
 
   final List<Widget> _screens = [
     const DashboardScreen(),

@@ -4,6 +4,7 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../core/network/dio_client.dart';
+import '../../../../core/network/push_notification_service.dart';
 
 class AuthUser {
   final String id;
@@ -405,6 +406,9 @@ class AuthProvider extends ChangeNotifier {
 
   /// Logs out the user and clears SharedPreferences session data.
   Future<void> logout() async {
+    // Clear FCM token on server before clearing local session
+    await PushNotificationService().clearToken();
+
     _currentUser = null;
     _client.setTokens(accessToken: null, refreshToken: null);
 

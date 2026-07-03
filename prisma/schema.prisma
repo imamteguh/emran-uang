@@ -64,6 +64,16 @@ enum InviteStatus {
   EXPIRED
 }
 
+enum NotificationType {
+  GROUP_INVITE           // Someone invited you to a group
+  GROUP_INVITE_ACCEPTED  // Your invite was accepted
+  GROUP_INVITE_REJECTED  // Your invite was rejected
+  GROUP_MEMBER_LEFT      // A member left the group
+  GROUP_EXPENSE_ADDED    // New expense in shared group
+  GROUP_BILL_ADDED       // New bill reminder in shared group
+  BILL_REMINDER          // Bill due date approaching
+}
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // 2. USER
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -76,6 +86,7 @@ model User {
   avatarUrl     String?
   authProvider  AuthProvider @default(EMAIL)
   googleId      String?      @unique // Google OAuth subject ID
+  fcmToken      String?      // Firebase Cloud Messaging token for push notifications
 
   // ── Timestamps ───────────────────────────────────────────────────────────
   createdAt DateTime @default(now())
@@ -89,6 +100,7 @@ model User {
   categories         Category[]       // user-defined custom categories
   sentInvites        SharedGroupInvite[]   @relation("InviteSender")
   receivedInvites    SharedGroupInvite[]   @relation("InviteReceiver")
+  notifications      Notification[]
 
   @@map("users")
 }
@@ -298,4 +310,27 @@ model BillReminder {
   @@index([userId, status])
   @@index([dueDate])
   @@map("bill_reminders")
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// 8. NOTIFICATIONS
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/// In-app notifications for group activity, invites, and bill reminders.
+model Notification {
+  id        String           @id @default(cuid())
+  type      NotificationType
+  title     String
+  body      String
+  isRead    Boolean          @default(false)
+  metadata  Json?            // extra context: { groupId, expenseId, etc. }
+
+  userId    String
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime         @default(now())
+
+  @@index([userId, isRead])
+  @@index([userId, createdAt])
+  @@map("notifications")
 }

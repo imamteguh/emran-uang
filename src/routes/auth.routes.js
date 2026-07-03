@@ -14,6 +14,7 @@ const {
   getAuthConfig,
   updateProfile,
   changePassword,
+  updateFcmToken,
 } = require('../controllers/auth.controller');
 
 const router = Router();
@@ -29,5 +30,6 @@ router.post('/refresh', asyncHandler(refresh));
 router.get('/me', authenticate, asyncHandler(getMe));
 router.put('/profile', authenticate, asyncHandler(updateProfile));
 router.put('/change-password', authenticate, asyncHandler(changePassword));
+router.post('/fcm-token', authenticate, asyncHandler(updateFcmToken));
 
 module.exports = router;
