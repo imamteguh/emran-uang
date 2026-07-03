@@ -2,13 +2,14 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'dio_client.dart';
+import '../../firebase_options.dart';
 
 /// Top-level background message handler.
 /// Must be top-level or static, otherwise it throws.
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   // Initialize Firebase if needed (often necessary for background message handling)
-  await Firebase.initializeApp();
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   debugPrint('Handling a background message: ${message.messageId}');
 }
 
@@ -29,7 +30,7 @@ class PushNotificationService {
 
     try {
       // Initialize Firebase (safely wraps for web or platforms without setup)
-      await Firebase.initializeApp();
+      await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
       
       // Register background handler
       FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
