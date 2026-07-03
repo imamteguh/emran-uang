@@ -34,6 +34,17 @@ class DashboardProvider extends ChangeNotifier {
   bool get isLoading => _isLoading;
   bool get isInitialLoad => _isInitialLoad;
   List<ExpenseEntity> get expenses => _expenses;
+  List<ExpenseEntity> get todayExpenses {
+    final now = DateTime.now();
+    return _expenses
+        .where(
+          (item) =>
+              item.date.year == now.year &&
+              item.date.month == now.month &&
+              item.date.day == now.day,
+        )
+        .toList();
+  }
   List<ExpenseCategory> get categories => _categories;
   List<dynamic> get sharedGroups => _sharedGroups;
   List<dynamic> get pendingInvites => _pendingInvites;

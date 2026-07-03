@@ -11,9 +11,11 @@ import '../providers/notification_provider.dart';
 import '../widgets/category_icon.dart';
 import '../widgets/dashboard_skeleton.dart';
 import '../../domain/entities/wallet.dart';
+import '../../domain/entities/expense.dart';
 import 'expense_entry_screen.dart';
 import 'shared_groups_screen.dart';
 import 'notifications_screen.dart';
+import 'activity_list_screen.dart';
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
@@ -330,23 +332,22 @@ class DashboardScreen extends StatelessWidget {
                               ),
                               const SizedBox(height: 24),
 
-                              // Recent activity section
+                              // Today activity section
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
                                   Text(
-                                    'Recent Activity',
+                                    'Today Activity',
                                     style: AppTheme.headlineSm.copyWith(
                                       fontSize: responsive.scaleFont(20),
                                       color: AppTheme.darkSlate,
                                     ),
                                   ),
                                   TextButton(
-                                    onPressed: () => _showAllExpensesBottomSheet(
-                                      context,
-                                      provider,
-                                      currencyFormatter,
-                                      user?.id,
+                                    onPressed: () => Navigator.of(context).push(
+                                      MaterialPageRoute(
+                                        builder: (_) => const ActivityListScreen(),
+                                      ),
                                     ),
                                     child: Text(
                                       'See all',
@@ -359,15 +360,16 @@ class DashboardScreen extends StatelessWidget {
                               ),
                               const SizedBox(height: 8),
 
-                              if (provider.expenses.isEmpty)
+                              if (provider.todayExpenses.isEmpty)
                                 _buildEmptyState(provider)
                               else
                                 _buildExpensesList(
                                   context,
-                                  provider,
+                                  provider.todayExpenses,
                                   responsive,
                                   currencyFormatter,
                                   user?.id,
+                                  provider,
                                 ),
                             ],
                           ),
@@ -876,17 +878,18 @@ class DashboardScreen extends StatelessWidget {
 
   Widget _buildExpensesList(
     BuildContext context,
-    DashboardProvider provider,
+    List<ExpenseEntity> expenses,
     ResponsiveHelper responsive,
     NumberFormat formatter,
     String? currentUserId,
+    DashboardProvider provider,
   ) {
     return ListView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      itemCount: provider.expenses.length,
+      itemCount: expenses.length,
       itemBuilder: (context, index) {
-        final expense = provider.expenses[index];
+        final expense = expenses[index];
         final catColor = Color(
           int.parse(expense.category.color.replaceFirst('#', '0xFF')),
         );
@@ -905,6 +908,9 @@ class DashboardScreen extends StatelessWidget {
               ),
               child: const Icon(Icons.delete, color: Colors.white),
             ),
+            confirmDismiss: (direction) async {
+              return await _showDeleteConfirmationDialog(context);
+            },
             onDismissed: (_) {
               provider.deleteExpense(expense.id);
               ScaffoldMessenger.of(
@@ -1038,290 +1044,7 @@ class DashboardScreen extends StatelessWidget {
     );
   }
 
-  void _showAllExpensesBottomSheet(
-    BuildContext context,
-    DashboardProvider provider,
-    NumberFormat formatter,
-    String? currentUserId,
-  ) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) {
-        return Container(
-          height: MediaQuery.of(context).size.height * 0.8,
-          decoration: const BoxDecoration(
-            color: Color(0xFFF8FAFC), // Premium light background
-            borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
-          ),
-          child: Column(
-            children: [
-              const SizedBox(height: 12),
-              Container(
-                width: 36,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: Colors.grey[300],
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-              const SizedBox(height: 8),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 8, 8, 8),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Row(
-                      children: [
-                        Text(
-                          'All Transactions',
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: AppTheme.darkSlate,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: AppTheme.primary.withAlpha(20),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Text(
-                            '${provider.expenses.length}',
-                            style: GoogleFonts.plusJakartaSans(
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
-                              color: AppTheme.primary,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    IconButton(
-                      icon: const Icon(
-                        Icons.close,
-                        color: Colors.grey,
-                        size: 22,
-                      ),
-                      onPressed: () => Navigator.of(context).pop(),
-                      splashRadius: 20,
-                    ),
-                  ],
-                ),
-              ),
-              const Divider(height: 1, color: Color(0xFFE2E8F0)),
-              const SizedBox(height: 16),
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: provider.expenses.isEmpty
-                      ? Center(
-                          child: Text(
-                            'No transactions yet',
-                            style: GoogleFonts.plusJakartaSans(
-                              color: Colors.grey[500],
-                            ),
-                          ),
-                        )
-                      : ListView.builder(
-                          physics: const BouncingScrollPhysics(),
-                          itemCount: provider.expenses.length,
-                          itemBuilder: (context, index) {
-                            final expense = provider.expenses[index];
-                            final catColor = Color(
-                              int.parse(
-                                expense.category.color.replaceFirst(
-                                  '#',
-                                  '0xFF',
-                                ),
-                              ),
-                            );
-                            return Padding(
-                              padding: const EdgeInsets.only(bottom: 12),
-                              child: Dismissible(
-                                key: Key('all_${expense.id}'),
-                                direction: DismissDirection.endToStart,
-                                background: Container(
-                                  padding: const EdgeInsets.only(right: 20),
-                                  alignment: Alignment.centerRight,
-                                  decoration: BoxDecoration(
-                                    color: AppTheme.error,
-                                    borderRadius: BorderRadius.circular(16),
-                                  ),
-                                  child: const Icon(
-                                    Icons.delete,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                                onDismissed: (_) {
-                                  provider.deleteExpense(expense.id);
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text('Expense deleted'),
-                                    ),
-                                  );
-                                },
-                                child: Container(
-                                  padding: const EdgeInsets.all(16),
-                                  decoration: BoxDecoration(
-                                    color: Colors.white,
-                                    borderRadius: BorderRadius.circular(16),
-                                    boxShadow: AppTheme.softShadow,
-                                  ),
-                                  child: Row(
-                                    children: [
-                                      CircleAvatar(
-                                        backgroundColor: catColor.withAlpha(30),
-                                        child: CategoryIcon(
-                                          icon: expense.category.icon,
-                                          color: catColor,
-                                          size: 20,
-                                        ),
-                                      ),
-                                      const SizedBox(width: 16),
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            Text(
-                                              expense.description ??
-                                                  expense.category.name,
-                                              style:
-                                                  GoogleFonts.plusJakartaSans(
-                                                    fontWeight: FontWeight.bold,
-                                                    color: AppTheme.darkSlate,
-                                                    fontSize: 14,
-                                                  ),
-                                            ),
-                                            const SizedBox(height: 4),
-                                            Row(
-                                              children: [
-                                                Text(
-                                                  DateFormat(
-                                                    'dd MMM yyyy, hh:mm a',
-                                                  ).format(expense.date),
-                                                  style:
-                                                      GoogleFonts.beVietnamPro(
-                                                        fontSize: 11,
-                                                        color: AppTheme
-                                                            .darkSlateVariant,
-                                                      ),
-                                                ),
-                                                const SizedBox(width: 6),
-                                                const Text(
-                                                  '•',
-                                                  style: TextStyle(
-                                                    color: Colors.grey,
-                                                    fontSize: 10,
-                                                  ),
-                                                ),
-                                                const SizedBox(width: 6),
-                                                Container(
-                                                  padding:
-                                                      const EdgeInsets.symmetric(
-                                                        horizontal: 8,
-                                                        vertical: 2,
-                                                      ),
-                                                  decoration: BoxDecoration(
-                                                    color: const Color(
-                                                      0xFFF1F5F9,
-                                                    ),
-                                                    borderRadius:
-                                                        BorderRadius.circular(
-                                                          12,
-                                                        ),
-                                                  ),
-                                                  child: Text(
-                                                    expense.category.name,
-                                                    style: const TextStyle(
-                                                      fontSize: 9,
-                                                      fontWeight:
-                                                          FontWeight.bold,
-                                                    ),
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                      Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.end,
-                                        children: [
-                                          Text(
-                                            '-${formatter.format(expense.amount)}',
-                                            style: GoogleFonts.plusJakartaSans(
-                                              fontWeight: FontWeight.w800,
-                                              color: AppTheme.darkSlate,
-                                              fontSize: 15,
-                                            ),
-                                          ),
-                                          const SizedBox(height: 4),
-                                          Container(
-                                            width: 20,
-                                            height: 20,
-                                            decoration: BoxDecoration(
-                                              color:
-                                                  expense.userId ==
-                                                      currentUserId
-                                                  ? Colors.blue[100]
-                                                  : Colors.pink[100],
-                                              shape: BoxShape.circle,
-                                              border: Border.all(
-                                                color: Colors.white,
-                                                width: 1,
-                                              ),
-                                            ),
-                                            alignment: Alignment.center,
-                                            child: Text(
-                                              expense.userId == currentUserId
-                                                  ? 'ME'
-                                                  : (expense
-                                                                .creatorName
-                                                                .length >=
-                                                            2
-                                                        ? expense.creatorName
-                                                              .substring(0, 2)
-                                                              .toUpperCase()
-                                                        : (expense
-                                                                  .creatorName
-                                                                  .isNotEmpty
-                                                              ? expense
-                                                                    .creatorName
-                                                                    .toUpperCase()
-                                                              : 'SO')),
-                                              style: const TextStyle(
-                                                fontSize: 7,
-                                                fontWeight: FontWeight.bold,
-                                              ),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-                ),
-              ),
-              const SizedBox(height: 16),
-            ],
-          ),
-        );
-      },
-    );
-  }
+
 
   Widget _buildEmptyState(DashboardProvider provider) {
     return Container(
@@ -1350,6 +1073,88 @@ class DashboardScreen extends StatelessWidget {
                 : 'Tap the "+" button below to record an expense.',
             textAlign: TextAlign.center,
             style: const TextStyle(color: Colors.grey, fontSize: 13),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<bool?> _showDeleteConfirmationDialog(BuildContext context) {
+    return showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(24),
+        ),
+        backgroundColor: Colors.white,
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: AppTheme.error.withAlpha(20),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.warning_amber_rounded,
+                color: AppTheme.error,
+                size: 24,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Text(
+              'Delete Activity',
+              style: GoogleFonts.plusJakartaSans(
+                fontWeight: FontWeight.bold,
+                fontSize: 18,
+                color: AppTheme.darkSlate,
+              ),
+            ),
+          ],
+        ),
+        content: Text(
+          'Are you sure you want to delete this activity? This action cannot be undone.',
+          style: GoogleFonts.plusJakartaSans(
+            fontSize: 14,
+            color: AppTheme.darkSlateVariant,
+            height: 1.4,
+          ),
+        ),
+        actionsPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            style: TextButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            child: Text(
+              'Cancel',
+              style: GoogleFonts.plusJakartaSans(
+                color: Colors.grey[600],
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.error,
+              foregroundColor: Colors.white,
+              elevation: 0,
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            child: Text(
+              'Delete',
+              style: GoogleFonts.plusJakartaSans(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
         ],
       ),

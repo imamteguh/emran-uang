@@ -14,7 +14,8 @@ import '../widgets/user_avatar.dart';
 import 'categories_screen.dart';
 
 class ExpenseEntryScreen extends StatefulWidget {
-  const ExpenseEntryScreen({super.key});
+  final DateTime? initialDate;
+  const ExpenseEntryScreen({super.key, this.initialDate});
 
   @override
   State<ExpenseEntryScreen> createState() => _ExpenseEntryScreenState();
@@ -27,12 +28,13 @@ class _ExpenseEntryScreenState extends State<ExpenseEntryScreen> {
 
   bool _isRoutine = false;
   ExpenseCategory? _selectedCategory;
-  DateTime _selectedDate = DateTime.now();
+  late DateTime _selectedDate;
   bool _isSaving = false;
 
   @override
   void initState() {
     super.initState();
+    _selectedDate = widget.initialDate ?? DateTime.now();
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final provider = Provider.of<DashboardProvider>(context, listen: false);
       await provider.fetchCategories();

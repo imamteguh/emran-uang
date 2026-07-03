@@ -24,7 +24,7 @@ class DashboardSkeleton extends StatelessWidget {
             _buildBentoGridSkeleton(),
             const SizedBox(height: 24),
 
-            // "Recent Activity" title skeleton
+            // "Today Activity" title skeleton
             _buildSectionTitleSkeleton(),
             const SizedBox(height: 12),
 
