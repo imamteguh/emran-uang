@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:provider/provider.dart';
 import 'core/theme/app_theme.dart';
-import 'features/auth/presentation/providers/auth_provider.dart';
+import 'features/auth/presentation/bloc/auth_bloc.dart';
+import 'features/auth/presentation/bloc/auth_event.dart';
+import 'features/auth/presentation/bloc/auth_state.dart';
 import 'features/auth/presentation/screens/login_screen.dart';
-import 'features/expenses/presentation/providers/dashboard_provider.dart';
-import 'features/expenses/presentation/providers/notification_provider.dart';
+import 'features/expenses/presentation/bloc/dashboard_bloc.dart';
+import 'features/expenses/presentation/bloc/dashboard_event.dart';
+import 'features/expenses/presentation/bloc/notification_bloc.dart';
+import 'features/expenses/presentation/bloc/notification_event.dart';
 import 'features/expenses/presentation/screens/main_shell.dart';
 
 Future<void> main() async {
@@ -19,16 +23,20 @@ class EmranUangApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (_) => AuthProvider(),
-      child: Consumer<AuthProvider>(
-        builder: (context, auth, _) {
-          final userId = auth.currentUser?.id;
-          return MultiProvider(
+    return BlocProvider(
+      create: (_) => AuthBloc()..add(const AuthAutoLoginRequested()),
+      child: BlocBuilder<AuthBloc, AuthState>(
+        builder: (context, authState) {
+          final userId = authState.currentUser?.id;
+          return MultiBlocProvider(
             key: ValueKey(userId),
             providers: [
-              ChangeNotifierProvider(create: (_) => DashboardProvider()),
-              ChangeNotifierProvider(create: (_) => NotificationProvider()),
+              BlocProvider(
+                create: (_) => DashboardBloc()..add(const DashboardInitializeRequested()),
+              ),
+              BlocProvider(
+                create: (_) => NotificationBloc()..add(const NotificationFetchUnreadCountRequested()),
+              ),
             ],
             child: MaterialApp(
               title: 'Wallet Share',
@@ -43,31 +51,14 @@ class EmranUangApp extends StatelessWidget {
   }
 }
 
-class AuthWrapper extends StatefulWidget {
+class AuthWrapper extends StatelessWidget {
   const AuthWrapper({super.key});
 
   @override
-  State<AuthWrapper> createState() => _AuthWrapperState();
-}
-
-class _AuthWrapperState extends State<AuthWrapper> {
-  late Future<void> _autoLoginFuture;
-
-  @override
-  void initState() {
-    super.initState();
-    _autoLoginFuture = Provider.of<AuthProvider>(
-      context,
-      listen: false,
-    ).tryAutoLogin();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    return FutureBuilder<void>(
-      future: _autoLoginFuture,
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
+    return BlocBuilder<AuthBloc, AuthState>(
+      builder: (context, state) {
+        if (state.status == AuthStatus.initial || state.status == AuthStatus.loading) {
           return const Scaffold(
             body: Center(
               child: CircularProgressIndicator(color: AppTheme.primary),
@@ -75,8 +66,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
           );
         }
 
-        final authProvider = Provider.of<AuthProvider>(context);
-        if (authProvider.isAuthenticated) {
+        if (state.isAuthenticated) {
           return const MainShellScreen();
         } else {
           return const LoginScreen();

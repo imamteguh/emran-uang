@@ -1,6 +1,7 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/theme/app_theme.dart';
@@ -8,7 +9,8 @@ import '../../../../core/utils/responsive_helper.dart';
 import '../../../../core/utils/currency_helper.dart';
 import '../../domain/entities/expense.dart';
 import '../../domain/entities/wallet.dart';
-import '../providers/dashboard_provider.dart';
+import '../bloc/dashboard_bloc.dart';
+import '../bloc/dashboard_event.dart';
 import '../widgets/category_icon.dart';
 import '../widgets/user_avatar.dart';
 import 'categories_screen.dart';
@@ -35,14 +37,8 @@ class _ExpenseEntryScreenState extends State<ExpenseEntryScreen> {
   void initState() {
     super.initState();
     _selectedDate = widget.initialDate ?? DateTime.now();
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      final provider = Provider.of<DashboardProvider>(context, listen: false);
-      await provider.fetchCategories();
-      if (mounted && provider.categories.isNotEmpty) {
-        setState(() {
-          _selectedCategory ??= provider.categories.first;
-        });
-      }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<DashboardBloc>().add(const DashboardFetchCategoriesRequested());
     });
   }
 
@@ -68,8 +64,9 @@ class _ExpenseEntryScreenState extends State<ExpenseEntryScreen> {
       });
 
       try {
-        final provider = Provider.of<DashboardProvider>(context, listen: false);
-        final currencyCode = provider.activeWallet?.currency ?? 'IDR';
+        final dashboardBloc = context.read<DashboardBloc>();
+        final dashboardState = dashboardBloc.state;
+        final currencyCode = dashboardState.activeWallet?.currency ?? 'IDR';
         final decimalDigits = CurrencyHelper.getFormatter(
           currencyCode,
         ).decimalDigits;
@@ -107,12 +104,14 @@ class _ExpenseEntryScreenState extends State<ExpenseEntryScreen> {
           date: _selectedDate,
           type: _isRoutine ? ExpenseType.routine : ExpenseType.nonRoutine,
           userId: 'user1',
-          walletId: provider.activeWallet?.id ?? 'personal_w1',
+          walletId: dashboardState.activeWallet?.id ?? 'personal_w1',
           category: _selectedCategory!,
           creatorName: 'Imam',
         );
 
-        final success = await provider.addExpense(newExpense);
+        final completer = Completer<bool>();
+        dashboardBloc.add(DashboardAddExpenseRequested(newExpense, completer));
+        final success = await completer.future;
         if (!success && mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Failed to save transaction. Please try again.')),
@@ -396,8 +395,11 @@ class _ExpenseEntryScreenState extends State<ExpenseEntryScreen> {
   @override
   Widget build(BuildContext context) {
     final responsive = ResponsiveHelper(context);
-    final provider = Provider.of<DashboardProvider>(context);
+    final provider = context.watch<DashboardBloc>().state;
     final displayCategories = provider.categories;
+    if (_selectedCategory == null && displayCategories.isNotEmpty) {
+      _selectedCategory = displayCategories.first;
+    }
 
     final List<ExpenseCategory> gridCategories = [];
     if (displayCategories.length > 8) {
@@ -459,7 +461,7 @@ class _ExpenseEntryScreenState extends State<ExpenseEntryScreen> {
               child: Center(
                 child: PopupMenuButton<WalletEntity>(
                   onSelected: (WalletEntity wallet) {
-                    provider.selectWallet(wallet);
+                    context.read<DashboardBloc>().add(DashboardSelectWalletRequested(wallet));
                   },
                   offset: const Offset(0, 40),
                   shape: RoundedRectangleBorder(

@@ -1,10 +1,12 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/responsive_helper.dart';
 import '../../../expenses/presentation/widgets/user_avatar.dart';
-import '../providers/auth_provider.dart';
+import '../bloc/auth_bloc.dart';
+import '../bloc/auth_event.dart';
 
 class UpdateProfileScreen extends StatefulWidget {
   const UpdateProfileScreen({super.key});
@@ -49,8 +51,8 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
   @override
   void initState() {
     super.initState();
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    final user = authProvider.currentUser;
+    final authBloc = context.read<AuthBloc>();
+    final user = authBloc.state.currentUser;
     _nameController = TextEditingController(text: user?.displayName ?? '');
     _emailController = TextEditingController(text: user?.email ?? '');
     _selectedAvatarUrl = user?.avatarUrl;
@@ -228,22 +230,26 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
     );
   }
 
-  Future<void> _handleSave() async {
+  void _handleSave() async {
     if (!_formKey.currentState!.validate()) return;
 
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    final user = authProvider.currentUser;
+    final authBloc = context.read<AuthBloc>();
+    final user = authBloc.state.currentUser;
 
     // Check if user has made any changes
     final name = _nameController.text.trim();
     final email = _emailController.text.trim();
 
+    final completer = Completer<bool>();
     // Call update API
-    final success = await authProvider.updateProfile(
+    authBloc.add(AuthProfileUpdated(
       displayName: name,
       email: user?.authProvider == 'GOOGLE' ? null : email,
       avatarUrl: _selectedAvatarUrl,
-    );
+      completer: completer,
+    ));
+
+    final success = await completer.future;
 
     if (mounted) {
       if (success) {
@@ -258,7 +264,7 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              authProvider.errorMessage ?? 'Failed to update profile.',
+              authBloc.state.errorMessage ?? 'Failed to update profile.',
             ),
             backgroundColor: AppTheme.error,
           ),
@@ -270,8 +276,8 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
   @override
   Widget build(BuildContext context) {
     final responsive = ResponsiveHelper(context);
-    final authProvider = Provider.of<AuthProvider>(context);
-    final user = authProvider.currentUser;
+    final authState = context.watch<AuthBloc>().state;
+    final user = authState.currentUser;
 
     final double formWidth = responsive.isTablet || responsive.isDesktop
         ? 480
@@ -438,7 +444,7 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
                           const SizedBox(height: 24),
 
                           // Submit Button
-                          authProvider.isLoading
+                          authState.isLoading
                               ? const Center(
                                   child: CircularProgressIndicator(
                                     color: AppTheme.primary,

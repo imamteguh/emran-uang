@@ -1,13 +1,17 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/responsive_helper.dart';
-import '../../../auth/presentation/providers/auth_provider.dart';
+import '../../../auth/presentation/bloc/auth_bloc.dart';
+import '../../../auth/presentation/bloc/auth_event.dart';
+import '../../../auth/presentation/bloc/auth_user.dart';
 import '../../../auth/presentation/screens/login_screen.dart';
 import '../../../auth/presentation/screens/change_password_screen.dart';
 import '../../../auth/presentation/screens/update_profile_screen.dart';
-import '../providers/dashboard_provider.dart';
+import '../bloc/dashboard_bloc.dart';
+import '../bloc/dashboard_event.dart';
 import '../widgets/user_avatar.dart';
 import 'categories_screen.dart';
 
@@ -22,8 +26,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   bool _notificationsEnabled = true;
 
   void _handleLogout() {
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    authProvider.logout();
+    context.read<AuthBloc>().add(const AuthLogoutRequested());
     if (mounted) {
       Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(builder: (_) => const LoginScreen()),
@@ -35,8 +38,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     final responsive = ResponsiveHelper(context);
-    final authProvider = Provider.of<AuthProvider>(context);
-    final user = authProvider.currentUser;
+    final authState = context.watch<AuthBloc>().state;
+    final user = authState.currentUser;
 
     final double cardWidth = responsive.isTablet || responsive.isDesktop
         ? 480
@@ -220,9 +223,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           icon: Icons.currency_exchange,
                           title: 'Currency',
                           trailingText:
-                              Provider.of<DashboardProvider>(
-                                context,
-                              ).activeWallet?.currency ??
+                              context.watch<DashboardBloc>().state.activeWallet?.currency ??
                               'IDR',
                           iconColor: AppTheme.primary,
                           bgIconColor: AppTheme.primary.withAlpha(25),
@@ -575,11 +576,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
 
   void _showCurrencyPicker(BuildContext context) {
-    final dashboardProvider = Provider.of<DashboardProvider>(
-      context,
-      listen: false,
-    );
-    final currentCurrency = dashboardProvider.activeWallet?.currency ?? 'IDR';
+    final dashboardBloc = context.read<DashboardBloc>();
+    final currentCurrency = dashboardBloc.state.activeWallet?.currency ?? 'IDR';
 
     final List<Map<String, String>> currencies = [
       {'code': 'IDR', 'name': 'Rupiah (IDR)', 'symbol': 'Rp'},
@@ -682,8 +680,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         : null,
                     onTap: () async {
                       Navigator.of(context).pop();
-                      final success = await dashboardProvider
-                          .updateWalletCurrency(curr['code']!);
+                      final completer = Completer<bool>();
+                      dashboardBloc.add(DashboardUpdateWalletCurrencyRequested(curr['code']!, completer));
+                      final success = await completer.future;
                       if (context.mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(

@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:provider/provider.dart';
+import 'dart:async';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/currency_helper.dart';
-import '../../../auth/presentation/providers/auth_provider.dart';
-import '../providers/dashboard_provider.dart';
+import '../../../auth/presentation/bloc/auth_bloc.dart';
+import '../bloc/dashboard_bloc.dart';
+import '../bloc/dashboard_event.dart';
 import '../widgets/category_icon.dart';
 import '../../domain/entities/expense.dart';
 import 'expense_entry_screen.dart';
@@ -178,9 +180,9 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final provider = Provider.of<DashboardProvider>(context);
-    final authProvider = Provider.of<AuthProvider>(context);
-    final user = authProvider.currentUser;
+    final provider = context.watch<DashboardBloc>().state;
+    final authState = context.watch<AuthBloc>().state;
+    final user = authState.currentUser;
 
     final currencyCode = provider.activeWallet?.currency ?? 'IDR';
     final currencyFormatter = CurrencyHelper.getFormatter(currencyCode);
@@ -451,7 +453,7 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
                               return await _showDeleteConfirmationDialog(context);
                             },
                             onDismissed: (_) {
-                              provider.deleteExpense(expense.id);
+                              context.read<DashboardBloc>().add(DashboardDeleteExpenseRequested(expense.id, Completer<bool>()));
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
                                   content: Text('Expense deleted'),

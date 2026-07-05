@@ -19,16 +19,22 @@ async function compareMonths(req, res) {
   const refDate = date ? new Date(date) : new Date();
   const monthCount = Math.min(12, Math.max(1, parseInt(months, 10) || 2));
 
-  const results = [];
-
+  // 1. Prepare month dates and ranges
+  const monthRanges = [];
   for (let i = 0; i < monthCount; i++) {
     const monthDate = new Date(
       Date.UTC(refDate.getUTCFullYear(), refDate.getUTCMonth() - i, 1)
     );
-    const start = startOfMonth(monthDate);
-    const end = endOfMonth(monthDate);
+    monthRanges.push({
+      monthDate,
+      start: startOfMonth(monthDate),
+      end: endOfMonth(monthDate),
+    });
+  }
 
-    const [totalAgg, byCategory, byType] = await Promise.all([
+  // 2. Fetch all monthly aggregations in parallel
+  const aggregationPromises = monthRanges.map(({ start, end }) => {
+    return Promise.all([
       // Total for the month
       prisma.expense.aggregate({
         where: { walletId, date: { gte: start, lte: end } },
@@ -53,16 +59,36 @@ async function compareMonths(req, res) {
         _count: { id: true },
       }),
     ]);
+  });
 
-    // Enrich category names
-    const categoryIds = byCategory.map((c) => c.categoryId);
+  const allAggregations = await Promise.all(aggregationPromises);
+
+  // 3. Collect all category IDs across all months to batch fetch them
+  const categoryIdsSet = new Set();
+  allAggregations.forEach(([_, byCategory]) => {
+    byCategory.forEach((c) => {
+      if (c.categoryId) {
+        categoryIdsSet.add(c.categoryId);
+      }
+    });
+  });
+
+  const categoryIds = Array.from(categoryIdsSet);
+  let categoryMap = {};
+
+  if (categoryIds.length > 0) {
     const categories = await prisma.category.findMany({
       where: { id: { in: categoryIds } },
       select: { id: true, name: true, icon: true, color: true },
     });
-    const categoryMap = Object.fromEntries(categories.map((c) => [c.id, c]));
+    categoryMap = Object.fromEntries(categories.map((c) => [c.id, c]));
+  }
 
-    results.push({
+  // 4. Build results
+  const results = monthRanges.map(({ monthDate }, index) => {
+    const [totalAgg, byCategory, byType] = allAggregations[index];
+
+    return {
       month: `${monthDate.getUTCFullYear()}-${String(monthDate.getUTCMonth() + 1).padStart(2, '0')}`,
       total: totalAgg._sum.amount || 0,
       count: totalAgg._count.id || 0,
@@ -76,8 +102,8 @@ async function compareMonths(req, res) {
         total: t._sum.amount || 0,
         count: t._count.id || 0,
       })),
-    });
-  }
+    };
+  });
 
   // Calculate change percentage between current and previous month
   const comparison = {

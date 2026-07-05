@@ -1,11 +1,12 @@
 import 'dart:ui';
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/responsive_helper.dart';
-import '../providers/auth_provider.dart';
+import '../bloc/auth_bloc.dart';
+import '../bloc/auth_event.dart';
 import '../../../expenses/presentation/screens/main_shell.dart';
 import 'register_screen.dart';
 import 'package:google_sign_in/google_sign_in.dart';
@@ -54,12 +55,16 @@ class _LoginScreenState extends State<LoginScreen>
 
   void _handleLogin() async {
     if (_formKey.currentState!.validate()) {
-      final authProvider = Provider.of<AuthProvider>(context, listen: false);
-      final success = await authProvider.login(
-        _emailController.text.trim(),
-        _passwordController.text,
+      final authBloc = context.read<AuthBloc>();
+      final completer = Completer<bool>();
+      authBloc.add(AuthLoginRequested(
+        email: _emailController.text.trim(),
+        password: _passwordController.text,
         rememberMe: _rememberMe,
-      );
+        completer: completer,
+      ));
+
+      final success = await completer.future;
 
       if (success && mounted) {
         Navigator.of(context).pushReplacement(
@@ -68,7 +73,7 @@ class _LoginScreenState extends State<LoginScreen>
       } else if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(authProvider.errorMessage ?? 'Login failed'),
+            content: Text(authBloc.state.errorMessage ?? 'Login failed'),
             backgroundColor: AppTheme.error,
           ),
         );
@@ -77,17 +82,20 @@ class _LoginScreenState extends State<LoginScreen>
   }
 
   void _handleGoogleLogin() async {
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    final success = await authProvider.loginWithGoogle();
+    final authBloc = context.read<AuthBloc>();
+    final completer = Completer<bool>();
+    authBloc.add(AuthGoogleLoginRequested(completer: completer));
+
+    final success = await completer.future;
 
     if (success && mounted) {
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(builder: (_) => const MainShellScreen()),
       );
-    } else if (mounted && authProvider.errorMessage != null) {
+    } else if (mounted && authBloc.state.errorMessage != null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(authProvider.errorMessage!),
+          content: Text(authBloc.state.errorMessage!),
           backgroundColor: AppTheme.error,
         ),
       );
@@ -97,7 +105,7 @@ class _LoginScreenState extends State<LoginScreen>
   @override
   Widget build(BuildContext context) {
     final responsive = ResponsiveHelper(context);
-    final authProvider = Provider.of<AuthProvider>(context);
+    final authState = context.watch<AuthBloc>().state;
 
     // Responsive width for content card
     final double cardWidth = responsive.isTablet || responsive.isDesktop
@@ -281,7 +289,7 @@ class _LoginScreenState extends State<LoginScreen>
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
                               OutlinedButton(
-                                onPressed: authProvider.isLoading
+                                onPressed: authState.isLoading
                                     ? null
                                     : _handleGoogleLogin,
                                 child: Row(
@@ -447,10 +455,10 @@ class _LoginScreenState extends State<LoginScreen>
                                   boxShadow: AppTheme.interactiveShadow,
                                 ),
                                 child: ElevatedButton(
-                                  onPressed: authProvider.isLoading
+                                  onPressed: authState.isLoading
                                       ? null
                                       : _handleLogin,
-                                  child: authProvider.isLoading
+                                  child: authState.isLoading
                                       ? const SizedBox(
                                           height: 20,
                                           width: 20,

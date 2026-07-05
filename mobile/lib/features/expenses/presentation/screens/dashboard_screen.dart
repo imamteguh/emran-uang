@@ -1,13 +1,17 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/responsive_helper.dart';
 import '../../../../core/utils/currency_helper.dart';
-import '../../../auth/presentation/providers/auth_provider.dart';
-import '../providers/dashboard_provider.dart';
-import '../providers/notification_provider.dart';
+import '../../../auth/presentation/bloc/auth_bloc.dart';
+import '../bloc/dashboard_bloc.dart';
+import '../bloc/dashboard_event.dart';
+import '../bloc/dashboard_state.dart';
+import '../bloc/notification_bloc.dart';
+import '../bloc/notification_state.dart';
 import '../widgets/category_icon.dart';
 import '../widgets/dashboard_skeleton.dart';
 import '../../domain/entities/wallet.dart';
@@ -22,9 +26,10 @@ class DashboardScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final provider = Provider.of<DashboardProvider>(context);
-    final authProvider = Provider.of<AuthProvider>(context);
-    final user = authProvider.currentUser;
+    final bloc = context.read<DashboardBloc>();
+    final provider = context.watch<DashboardBloc>().state;
+    final authState = context.watch<AuthBloc>().state;
+    final user = authState.currentUser;
     final responsive = ResponsiveHelper(context);
 
     final currencyCode = provider.activeWallet?.currency ?? 'IDR';
@@ -76,7 +81,7 @@ class DashboardScreen extends StatelessWidget {
             else
               PopupMenuButton<WalletEntity>(
                 onSelected: (WalletEntity wallet) {
-                  provider.selectWallet(wallet);
+                  bloc.add(DashboardSelectWalletRequested(wallet));
                 },
                 offset: const Offset(0, 50),
                 shape: RoundedRectangleBorder(
@@ -242,8 +247,8 @@ class DashboardScreen extends StatelessWidget {
                 MaterialPageRoute(builder: (_) => const NotificationsScreen()),
               );
             },
-            icon: Consumer<NotificationProvider>(
-              builder: (context, notifProvider, _) {
+            icon: BlocBuilder<NotificationBloc, NotificationState>(
+              builder: (context, notifState) {
                 return Stack(
                   clipBehavior: Clip.none,
                   children: [
@@ -252,7 +257,7 @@ class DashboardScreen extends StatelessWidget {
                       size: 28,
                       color: AppTheme.primary,
                     ),
-                    if (notifProvider.hasUnread)
+                    if (notifState.hasUnread)
                       Positioned(
                         right: -4,
                         top: -4,
@@ -267,9 +272,9 @@ class DashboardScreen extends StatelessWidget {
                             minHeight: 18,
                           ),
                           child: Text(
-                            notifProvider.unreadCount > 99
+                            notifState.unreadCount > 99
                                 ? '99+'
-                                : '${notifProvider.unreadCount}',
+                                : '${notifState.unreadCount}',
                             style: GoogleFonts.plusJakartaSans(
                               color: Colors.white,
                               fontSize: 10,
@@ -291,7 +296,7 @@ class DashboardScreen extends StatelessWidget {
       body: SafeArea(
         child: RefreshIndicator(
           onRefresh: () async {
-            await provider.refreshData();
+            bloc.add(const DashboardRefreshRequested());
           },
           child: provider.isInitialLoad
               // Skeleton shimmer while first load is in progress
@@ -413,7 +418,7 @@ class DashboardScreen extends StatelessWidget {
 
   // ─── Daily Summary Card ───────────────────────────────────────────────────
 
-  void _showSetBudgetDialog(BuildContext context, DashboardProvider provider) {
+  void _showSetBudgetDialog(BuildContext context, DashboardState provider) {
     final controller = TextEditingController(
       text: provider.activeWallet?.dailyBudget != null
           ? provider.activeWallet!.dailyBudget!.toStringAsFixed(0)
@@ -556,8 +561,14 @@ class DashboardScreen extends StatelessWidget {
                                 isSaving = true;
                               });
                               try {
-                                final success = await provider
-                                    .updateDailyBudget(newBudget);
+                                final completer = Completer<bool>();
+                                context.read<DashboardBloc>().add(
+                                  DashboardUpdateDailyBudgetRequested(
+                                    newBudget,
+                                    completer,
+                                  ),
+                                );
+                                final success = await completer.future;
                                 if (context.mounted) {
                                   Navigator.of(context).pop();
                                   if (success) {
@@ -636,7 +647,7 @@ class DashboardScreen extends StatelessWidget {
 
   Widget _buildDailySummaryCard(
     BuildContext context,
-    DashboardProvider provider,
+    DashboardState provider,
     ResponsiveHelper responsive,
     NumberFormat formatter,
   ) {
@@ -766,7 +777,7 @@ class DashboardScreen extends StatelessWidget {
 
   Widget _buildBentoGrid(
     BuildContext context,
-    DashboardProvider provider,
+    DashboardState provider,
     ResponsiveHelper responsive,
     NumberFormat formatter,
   ) {
@@ -882,7 +893,7 @@ class DashboardScreen extends StatelessWidget {
     ResponsiveHelper responsive,
     NumberFormat formatter,
     String? currentUserId,
-    DashboardProvider provider,
+    DashboardState provider,
   ) {
     return ListView.builder(
       shrinkWrap: true,
@@ -912,7 +923,7 @@ class DashboardScreen extends StatelessWidget {
               return await _showDeleteConfirmationDialog(context);
             },
             onDismissed: (_) {
-              provider.deleteExpense(expense.id);
+              context.read<DashboardBloc>().add(DashboardDeleteExpenseRequested(expense.id, Completer<bool>()));
               ScaffoldMessenger.of(
                 context,
               ).showSnackBar(const SnackBar(content: Text('Expense deleted')));
@@ -1046,7 +1057,7 @@ class DashboardScreen extends StatelessWidget {
 
 
 
-  Widget _buildEmptyState(DashboardProvider provider) {
+  Widget _buildEmptyState(DashboardState provider) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 16),

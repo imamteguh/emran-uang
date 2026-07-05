@@ -1,12 +1,15 @@
+import 'dart:async';
 import 'package:emran_uang/features/expenses/presentation/widgets/user_avatar.dart';
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/responsive_helper.dart';
 import '../../../../core/utils/currency_helper.dart';
-import '../../../auth/presentation/providers/auth_provider.dart';
-import '../providers/dashboard_provider.dart';
+import '../../../auth/presentation/bloc/auth_bloc.dart';
+import '../bloc/dashboard_bloc.dart';
+import '../bloc/dashboard_event.dart';
+import '../bloc/dashboard_state.dart';
 
 class SharedGroupsScreen extends StatefulWidget {
   const SharedGroupsScreen({super.key});
@@ -26,19 +29,16 @@ class _SharedGroupsScreenState extends State<SharedGroupsScreen> {
   void didChangeDependencies() {
     super.didChangeDependencies();
     if (_isInit) {
-      Provider.of<DashboardProvider>(
-        context,
-        listen: false,
-      ).fetchSharedGroups();
+      context.read<DashboardBloc>().add(const DashboardFetchSharedGroupsRequested());
       _isInit = false;
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final provider = Provider.of<DashboardProvider>(context);
-    final authProvider = Provider.of<AuthProvider>(context);
-    final currentUser = authProvider.currentUser;
+    final provider = context.watch<DashboardBloc>().state;
+    final authState = context.watch<AuthBloc>().state;
+    final currentUser = authState.currentUser;
     final responsive = ResponsiveHelper(context);
 
     return Stack(
@@ -78,7 +78,7 @@ class _SharedGroupsScreenState extends State<SharedGroupsScreen> {
             child: RefreshIndicator(
               key: _refreshIndicatorKey,
               onRefresh: () async {
-                await provider.fetchSharedGroups();
+                context.read<DashboardBloc>().add(const DashboardFetchSharedGroupsRequested());
               },
               child: SingleChildScrollView(
                 physics: const AlwaysScrollableScrollPhysics(),
@@ -134,7 +134,7 @@ class _SharedGroupsScreenState extends State<SharedGroupsScreen> {
 
   Widget _buildCreateGroupCard(
     BuildContext context,
-    DashboardProvider provider,
+    DashboardState provider,
   ) {
     return Container(
       decoration: BoxDecoration(boxShadow: AppTheme.softShadow),
@@ -193,7 +193,7 @@ class _SharedGroupsScreenState extends State<SharedGroupsScreen> {
 
   void _showCreateGroupDialog(
     BuildContext context,
-    DashboardProvider provider,
+    DashboardState provider,
   ) {
     final nameController = TextEditingController();
     final emailController = TextEditingController();
@@ -307,10 +307,15 @@ class _SharedGroupsScreenState extends State<SharedGroupsScreen> {
                               setDialogState(() {
                                 isSubmitting = true;
                               });
-                              final errorMsg = await provider.sendInvite(
-                                emailController.text.trim(),
-                                groupName: nameController.text.trim(),
+                              final completer = Completer<String?>();
+                              context.read<DashboardBloc>().add(
+                                DashboardSendInviteRequested(
+                                  email: emailController.text.trim(),
+                                  groupName: nameController.text.trim(),
+                                  completer: completer,
+                                ),
                               );
+                              final errorMsg = await completer.future;
                               if (context.mounted) {
                                 if (errorMsg == null) {
                                   Navigator.of(context).pop();
@@ -374,7 +379,7 @@ class _SharedGroupsScreenState extends State<SharedGroupsScreen> {
 
   Widget _buildPendingInvitations(
     BuildContext context,
-    DashboardProvider provider,
+    DashboardState provider,
     ResponsiveHelper responsive,
     String? currentUserId,
   ) {
@@ -497,8 +502,11 @@ class _SharedGroupsScreenState extends State<SharedGroupsScreen> {
                                         setState(() {
                                           _processingInviteId = invite['id'];
                                         });
-                                        final success = await provider
-                                            .rejectGroupInvite(invite['id']);
+                                        final completer = Completer<bool>();
+                                        context.read<DashboardBloc>().add(
+                                          DashboardRejectInviteRequested(invite['id'], completer),
+                                        );
+                                        final success = await completer.future;
                                         if (context.mounted) {
                                           setState(() {
                                             _processingInviteId = null;
@@ -534,8 +542,11 @@ class _SharedGroupsScreenState extends State<SharedGroupsScreen> {
                                         setState(() {
                                           _processingInviteId = invite['id'];
                                         });
-                                        final success = await provider
-                                            .acceptGroupInvite(invite['id']);
+                                        final completer = Completer<bool>();
+                                        context.read<DashboardBloc>().add(
+                                          DashboardAcceptInviteRequested(invite['id'], completer),
+                                        );
+                                        final success = await completer.future;
                                         if (context.mounted) {
                                           setState(() {
                                             _processingInviteId = null;
@@ -599,7 +610,7 @@ class _SharedGroupsScreenState extends State<SharedGroupsScreen> {
 
   Widget _buildActiveGroups(
     BuildContext context,
-    DashboardProvider provider,
+    DashboardState provider,
     ResponsiveHelper responsive,
     String? currentUserId,
   ) {
@@ -775,8 +786,11 @@ class _SharedGroupsScreenState extends State<SharedGroupsScreen> {
                                         setState(() {
                                           _isActionLoading = true;
                                         });
-                                        final success = await provider
-                                            .leaveGroup(group['id']);
+                                        final completer = Completer<bool>();
+                                        context.read<DashboardBloc>().add(
+                                          DashboardLeaveGroupRequested(group['id'], completer),
+                                        );
+                                        final success = await completer.future;
                                         if (mounted) {
                                           setState(() {
                                             _isActionLoading = false;
@@ -804,8 +818,11 @@ class _SharedGroupsScreenState extends State<SharedGroupsScreen> {
                                         setState(() {
                                           _isActionLoading = true;
                                         });
-                                        final success = await provider
-                                            .deleteGroup(group['id']);
+                                        final completer = Completer<bool>();
+                                        context.read<DashboardBloc>().add(
+                                          DashboardDeleteGroupRequested(group['id'], completer),
+                                        );
+                                        final success = await completer.future;
                                         if (mounted) {
                                           setState(() {
                                             _isActionLoading = false;

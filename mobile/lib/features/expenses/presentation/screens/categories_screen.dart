@@ -1,11 +1,13 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shimmer/shimmer.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/responsive_helper.dart';
 import '../../domain/entities/expense.dart';
-import '../providers/dashboard_provider.dart';
+import '../bloc/dashboard_bloc.dart';
+import '../bloc/dashboard_event.dart';
 import '../widgets/category_icon.dart';
 
 class CategoriesScreen extends StatefulWidget {
@@ -59,7 +61,7 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      Provider.of<DashboardProvider>(context, listen: false).fetchCategories();
+      context.read<DashboardBloc>().add(const DashboardFetchCategoriesRequested());
     });
   }
 
@@ -293,26 +295,28 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
                       return;
                     }
 
-                    final provider = Provider.of<DashboardProvider>(
-                      context,
-                      listen: false,
-                    );
+                    final dashboardBloc = context.read<DashboardBloc>();
                     bool success = false;
+                    final completer = Completer<bool>();
 
                     if (isEditing) {
-                      success = await provider.updateCategory(
-                        category.id,
-                        name,
-                        selectedIcon,
-                        selectedColor,
-                      );
+                      dashboardBloc.add(DashboardUpdateCategoryRequested(
+                        id: category.id,
+                        name: name,
+                        icon: selectedIcon,
+                        color: selectedColor,
+                        completer: completer,
+                      ));
                     } else {
-                      success = await provider.addCategory(
-                        name,
-                        selectedIcon,
-                        selectedColor,
-                      );
+                      dashboardBloc.add(DashboardAddCategoryRequested(
+                        name: name,
+                        icon: selectedIcon,
+                        color: selectedColor,
+                        completer: completer,
+                      ));
                     }
+
+                    success = await completer.future;
 
                     if (context.mounted) {
                       Navigator.of(context).pop();
@@ -394,8 +398,10 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
     );
 
     if (confirm == true && mounted) {
-      final provider = Provider.of<DashboardProvider>(context, listen: false);
-      final success = await provider.deleteCategory(category.id);
+      final dashboardBloc = context.read<DashboardBloc>();
+      final completer = Completer<bool>();
+      dashboardBloc.add(DashboardDeleteCategoryRequested(category.id, completer));
+      final success = await completer.future;
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -414,8 +420,8 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
   @override
   Widget build(BuildContext context) {
     final responsive = ResponsiveHelper(context);
-    final provider = Provider.of<DashboardProvider>(context);
-    final categories = provider.categories;
+    final dashboardState = context.watch<DashboardBloc>().state;
+    final categories = dashboardState.categories;
 
     final double contentWidth = responsive.isTablet || responsive.isDesktop
         ? 480

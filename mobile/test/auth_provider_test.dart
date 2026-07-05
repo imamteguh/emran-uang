@@ -1,26 +1,41 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:emran_uang/features/auth/presentation/providers/auth_provider.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:emran_uang/features/auth/presentation/bloc/auth_bloc.dart';
+import 'package:emran_uang/features/auth/presentation/bloc/auth_event.dart';
+import 'package:emran_uang/features/auth/presentation/bloc/auth_state.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  group('AuthProvider Remember Me & Session Persistence Tests', () {
+  setUpAll(() async {
+    dotenv.loadFromString(envString: 'API_URL=https://dummy.api\n');
+  });
+
+  group('AuthBloc Remember Me & Session Persistence Tests', () {
     setUp(() {
       // Initialize SharedPreferences with empty values before each test
       SharedPreferences.setMockInitialValues({});
     });
 
     test('login with rememberMe = true should persist tokens and user data', () async {
-      final authProvider = AuthProvider();
+      final authBloc = AuthBloc();
+      final completer = Completer<bool>();
 
-      // We will perform a login which triggers the mock fallback
-      final success = await authProvider.login('test@example.com', 'password123', rememberMe: true);
+      authBloc.add(AuthLoginRequested(
+        email: 'test@example.com',
+        password: 'password123',
+        rememberMe: true,
+        completer: completer,
+      ));
+
+      final success = await completer.future;
 
       expect(success, isTrue);
-      expect(authProvider.isAuthenticated, isTrue);
-      expect(authProvider.currentUser?.email, equals('test@example.com'));
+      expect(authBloc.state.status, equals(AuthStatus.authenticated));
+      expect(authBloc.state.currentUser?.email, equals('test@example.com'));
 
       // Check SharedPreferences values
       final prefs = await SharedPreferences.getInstance();
@@ -36,12 +51,20 @@ void main() {
     });
 
     test('login with rememberMe = false should not persist session', () async {
-      final authProvider = AuthProvider();
+      final authBloc = AuthBloc();
+      final completer = Completer<bool>();
 
-      final success = await authProvider.login('test@example.com', 'password123', rememberMe: false);
+      authBloc.add(AuthLoginRequested(
+        email: 'test@example.com',
+        password: 'password123',
+        rememberMe: false,
+        completer: completer,
+      ));
+
+      final success = await completer.future;
 
       expect(success, isTrue);
-      expect(authProvider.isAuthenticated, isTrue);
+      expect(authBloc.state.status, equals(AuthStatus.authenticated));
 
       // Check SharedPreferences values (should be null or empty)
       final prefs = await SharedPreferences.getInstance();
@@ -64,17 +87,19 @@ void main() {
         }),
       });
 
-      final authProvider = AuthProvider();
-      await authProvider.tryAutoLogin();
+      final authBloc = AuthBloc();
+      authBloc.add(const AuthAutoLoginRequested());
+      await Future.delayed(const Duration(milliseconds: 50));
 
-      expect(authProvider.isAuthenticated, isTrue);
-      expect(authProvider.currentUser?.email, equals('active@example.com'));
+      expect(authBloc.state.status, equals(AuthStatus.authenticated));
+      expect(authBloc.state.currentUser?.email, equals('active@example.com'));
 
       // Perform logout
-      await authProvider.logout();
+      authBloc.add(const AuthLogoutRequested());
+      await Future.delayed(const Duration(milliseconds: 50));
 
-      expect(authProvider.isAuthenticated, isFalse);
-      expect(authProvider.currentUser, isNull);
+      expect(authBloc.state.status, equals(AuthStatus.unauthenticated));
+      expect(authBloc.state.currentUser, isNull);
 
       // Verify SharedPreferences is cleared
       final prefs = await SharedPreferences.getInstance();
@@ -98,20 +123,21 @@ void main() {
         }),
       });
 
-      final authProvider = AuthProvider();
+      final authBloc = AuthBloc();
       
       // Initially not authenticated
-      expect(authProvider.isAuthenticated, isFalse);
+      expect(authBloc.state.status, equals(AuthStatus.initial));
 
       // Perform auto login
-      await authProvider.tryAutoLogin();
+      authBloc.add(const AuthAutoLoginRequested());
+      await Future.delayed(const Duration(milliseconds: 50));
 
       // Should be authenticated immediately
-      expect(authProvider.isAuthenticated, isTrue);
-      expect(authProvider.currentUser?.id, equals('user_123'));
-      expect(authProvider.currentUser?.email, equals('persisted@example.com'));
-      expect(authProvider.currentUser?.displayName, equals('Persisted User'));
-      expect(authProvider.currentUser?.avatarUrl, equals('https://example.com/avatar.png'));
+      expect(authBloc.state.status, equals(AuthStatus.authenticated));
+      expect(authBloc.state.currentUser?.id, equals('user_123'));
+      expect(authBloc.state.currentUser?.email, equals('persisted@example.com'));
+      expect(authBloc.state.currentUser?.displayName, equals('Persisted User'));
+      expect(authBloc.state.currentUser?.avatarUrl, equals('https://example.com/avatar.png'));
     });
   });
 }

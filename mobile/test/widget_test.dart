@@ -1,7 +1,9 @@
 import 'dart:io';
 import 'dart:async';
+import 'dart:typed_data';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:emran_uang/main.dart';
 
 class MockHttpOverrides extends HttpOverrides {
@@ -38,10 +40,31 @@ class _MockHttpClientRequest implements HttpClientRequest {
   Future<HttpClientResponse> close() async => _MockHttpClientResponse();
 
   @override
+  HttpHeaders get headers => _MockHttpHeaders();
+
+  @override
+  bool persistentConnection = true;
+
+  @override
+  bool followRedirects = true;
+
+  @override
+  int maxRedirects = 5;
+
+  @override
   dynamic noSuchMethod(Invocation invocation) => null;
 }
 
-class _MockHttpClientResponse implements HttpClientResponse {
+class _MockHttpHeaders implements HttpHeaders {
+  @override
+  dynamic noSuchMethod(Invocation invocation) => null;
+}
+
+class _MockHttpClientResponse extends StreamView<List<int>> implements HttpClientResponse {
+  _MockHttpClientResponse() : super(Stream.value(Uint8List.fromList([
+    137, 80, 78, 71, 13, 10, 26, 10, 0, 0, 0, 13, 73, 72, 68, 82, 0, 0, 0, 1, 0, 0, 0, 1, 8, 6, 0, 0, 0, 31, 21, 196, 137, 0, 0, 0, 11, 73, 68, 65, 84, 120, 156, 99, 96, 0, 0, 0, 2, 0, 1, 228, 130, 225, 117, 0, 0, 0, 0, 73, 69, 78, 68, 174, 66, 96, 130
+  ])));
+
   @override
   int get statusCode => 200;
 
@@ -53,89 +76,22 @@ class _MockHttpClientResponse implements HttpClientResponse {
   int get contentLength => 67;
 
   @override
-  StreamSubscription<List<int>> listen(
-    void Function(List<int> event)? onData, {
-    Function? onError,
-    void Function()? onDone,
-    bool? cancelOnError,
-  }) {
-    // Valid 1x1 transparent PNG bytes
-    final bytes = [
-      137,
-      80,
-      78,
-      71,
-      13,
-      10,
-      26,
-      10,
-      0,
-      0,
-      0,
-      13,
-      73,
-      72,
-      68,
-      82,
-      0,
-      0,
-      0,
-      1,
-      0,
-      0,
-      0,
-      1,
-      8,
-      6,
-      0,
-      0,
-      0,
-      31,
-      21,
-      196,
-      137,
-      0,
-      0,
-      0,
-      11,
-      73,
-      68,
-      65,
-      84,
-      120,
-      156,
-      99,
-      96,
-      0,
-      0,
-      0,
-      2,
-      0,
-      1,
-      228,
-      130,
-      225,
-      117,
-      0,
-      0,
-      0,
-      0,
-      73,
-      69,
-      78,
-      68,
-      174,
-      66,
-      96,
-      130,
-    ];
-    return Stream<List<int>>.fromIterable([bytes]).listen(
-      onData,
-      onError: onError,
-      onDone: onDone,
-      cancelOnError: cancelOnError,
-    );
-  }
+  HttpHeaders get headers => _MockHttpHeaders();
+
+  @override
+  List<Cookie> get cookies => [];
+
+  @override
+  bool get persistentConnection => true;
+
+  @override
+  bool get isRedirect => false;
+
+  @override
+  String get reasonPhrase => 'OK';
+
+  @override
+  List<RedirectInfo> get redirects => [];
 
   @override
   dynamic noSuchMethod(Invocation invocation) => null;
@@ -144,6 +100,10 @@ class _MockHttpClientResponse implements HttpClientResponse {
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   HttpOverrides.global = MockHttpOverrides();
+
+  setUpAll(() async {
+    dotenv.loadFromString(envString: 'API_URL=https://dummy.api\n');
+  });
 
   testWidgets('App starts up and shows dashboard title smoke test', (
     WidgetTester tester,

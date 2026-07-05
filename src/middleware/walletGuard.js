@@ -9,6 +9,20 @@
 const prisma = require('../config/prisma');
 const { error } = require('../utils/apiResponse');
 
+// In-memory cache for wallet lookup to optimize parallel requests
+const walletCache = new Map();
+const CACHE_TTL = 30 * 1000; // 30 seconds
+
+// Cleanup expired entries periodically
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, value] of walletCache.entries()) {
+    if (now > value.expiresAt) {
+      walletCache.delete(key);
+    }
+  }
+}, 60000).unref(); // Use unref so it doesn't keep the process alive
+
 /**
  * Extracts `walletId` from req.body, req.query, or req.params and verifies
  * the authenticated user has access.
@@ -27,18 +41,37 @@ async function walletGuard(req, res, next) {
       return error(res, 'walletId is required', 400);
     }
 
-    const wallet = await prisma.wallet.findUnique({
-      where: { id: walletId },
-      include: {
-        group: {
-          include: {
-            members: {
-              select: { userId: true },
+    const now = Date.now();
+    let wallet;
+
+    if (walletCache.has(walletId)) {
+      const cached = walletCache.get(walletId);
+      if (now <= cached.expiresAt) {
+        wallet = cached.wallet;
+      }
+    }
+
+    if (!wallet) {
+      wallet = await prisma.wallet.findUnique({
+        where: { id: walletId },
+        include: {
+          group: {
+            include: {
+              members: {
+                select: { userId: true },
+              },
             },
           },
         },
-      },
-    });
+      });
+
+      if (wallet) {
+        walletCache.set(walletId, {
+          wallet,
+          expiresAt: now + CACHE_TTL,
+        });
+      }
+    }
 
     if (!wallet) {
       return error(res, 'Wallet not found', 404);

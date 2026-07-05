@@ -1,10 +1,12 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/responsive_helper.dart';
 import '../../domain/entities/bill_reminder.dart';
-import '../providers/dashboard_provider.dart';
+import '../bloc/dashboard_bloc.dart';
+import '../bloc/dashboard_event.dart';
 import 'category_icon.dart';
 
 class AddEditBillDialog extends StatefulWidget {
@@ -44,15 +46,15 @@ class _AddEditBillDialogState extends State<AddEditBillDialog> {
     _autoLogExpense = r?.autoLogExpense ?? false;
 
     // Fetch categories if not already available
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      final provider = Provider.of<DashboardProvider>(context, listen: false);
-      if (provider.categories.isEmpty) {
-        await provider.fetchCategories();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final dashboardBloc = context.read<DashboardBloc>();
+      if (dashboardBloc.state.categories.isEmpty) {
+        dashboardBloc.add(const DashboardFetchCategoriesRequested());
       }
       if (mounted) {
         setState(() {
-          if (_selectedCategoryId == null && provider.categories.isNotEmpty) {
-            _selectedCategoryId = provider.categories.first.id;
+          if (_selectedCategoryId == null && dashboardBloc.state.categories.isNotEmpty) {
+            _selectedCategoryId = dashboardBloc.state.categories.first.id;
           }
         });
       }
@@ -113,7 +115,7 @@ class _AddEditBillDialogState extends State<AddEditBillDialog> {
       _isSaving = true;
     });
 
-    final provider = Provider.of<DashboardProvider>(context, listen: false);
+    final dashboardBloc = context.read<DashboardBloc>();
     bool success;
 
     final periodicityStr = _periodicity
@@ -122,9 +124,10 @@ class _AddEditBillDialogState extends State<AddEditBillDialog> {
         .last
         .toUpperCase();
 
+    final completer = Completer<bool>();
     if (widget.reminder == null) {
       // Create new
-      success = await provider.addReminder(
+      dashboardBloc.add(DashboardAddReminderRequested(
         title: _titleController.text.trim(),
         amount: amount,
         dueDate: _selectedDate,
@@ -132,10 +135,11 @@ class _AddEditBillDialogState extends State<AddEditBillDialog> {
         categoryId: _selectedCategoryId,
         notifyDaysBefore: _notifyDaysBefore,
         autoLogExpense: _autoLogExpense,
-      );
+        completer: completer,
+      ));
     } else {
       // Update existing
-      success = await provider.updateReminder(
+      dashboardBloc.add(DashboardUpdateReminderRequested(
         id: widget.reminder!.id,
         title: _titleController.text.trim(),
         amount: amount,
@@ -144,8 +148,10 @@ class _AddEditBillDialogState extends State<AddEditBillDialog> {
         categoryId: _selectedCategoryId,
         notifyDaysBefore: _notifyDaysBefore,
         autoLogExpense: _autoLogExpense,
-      );
+        completer: completer,
+      ));
     }
+    success = await completer.future;
 
     if (mounted) {
       setState(() {
@@ -183,7 +189,10 @@ class _AddEditBillDialogState extends State<AddEditBillDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final provider = Provider.of<DashboardProvider>(context);
+    final provider = context.watch<DashboardBloc>().state;
+    if (_selectedCategoryId == null && provider.categories.isNotEmpty) {
+      _selectedCategoryId = provider.categories.first.id;
+    }
     final isEdit = widget.reminder != null;
     final responsive = ResponsiveHelper(context);
 

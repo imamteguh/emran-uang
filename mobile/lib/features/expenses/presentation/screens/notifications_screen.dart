@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/theme/app_theme.dart';
-import '../providers/notification_provider.dart';
+import '../bloc/notification_bloc.dart';
+import '../bloc/notification_event.dart';
+import '../bloc/notification_state.dart';
+import '../bloc/notification_item.dart';
 
 class NotificationsScreen extends StatefulWidget {
   const NotificationsScreen({super.key});
@@ -17,14 +20,13 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      Provider.of<NotificationProvider>(context, listen: false)
-          .fetchNotifications();
+      context.read<NotificationBloc>().add(const NotificationFetchNotificationsRequested());
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    final provider = Provider.of<NotificationProvider>(context);
+    final provider = context.watch<NotificationBloc>().state;
 
     return Scaffold(
       backgroundColor: AppTheme.background,
@@ -84,7 +86,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                   ),
                 );
                 if (confirm == true) {
-                  await provider.clearAllNotifications();
+                  context.read<NotificationBloc>().add(const NotificationClearAllRequested());
                 }
               },
               icon: const Icon(
@@ -95,7 +97,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             ),
           if (provider.hasUnread)
             TextButton.icon(
-              onPressed: () => provider.markAllAsRead(),
+              onPressed: () => context.read<NotificationBloc>().add(const NotificationMarkAllAsReadRequested()),
               icon: const Icon(
                 Icons.done_all_rounded,
                 size: 18,
@@ -115,15 +117,15 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       ),
       body: RefreshIndicator(
         onRefresh: () async {
-          await provider.fetchNotifications();
-          await provider.fetchUnreadCount();
+          context.read<NotificationBloc>().add(const NotificationFetchNotificationsRequested());
+          context.read<NotificationBloc>().add(const NotificationFetchUnreadCountRequested());
         },
         child: _buildBody(provider),
       ),
     );
   }
 
-  Widget _buildBody(NotificationProvider provider) {
+  Widget _buildBody(NotificationState provider) {
     if (provider.isLoading && provider.notifications.isEmpty) {
       return const Center(
         child: CircularProgressIndicator(color: AppTheme.primary),
@@ -157,7 +159,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             ),
           ),
           onDismissed: (direction) {
-            provider.deleteNotification(notification.id);
+            context.read<NotificationBloc>().add(NotificationDeleteRequested(notification.id));
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
                 content: Text('Notification deleted'),
@@ -218,7 +220,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   }
 
   Widget _buildNotificationCard(
-      NotificationItem notification, NotificationProvider provider) {
+      NotificationItem notification, NotificationState provider) {
     final icon = _getNotificationIcon(notification.type);
     final iconColor = _getNotificationColor(notification.type);
     final iconBgColor = iconColor.withAlpha(25);
@@ -227,7 +229,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     return GestureDetector(
       onTap: () {
         if (!notification.isRead) {
-          provider.markAsRead(notification.id);
+          context.read<NotificationBloc>().add(NotificationMarkAsReadRequested(notification.id));
         }
       },
       child: Container(

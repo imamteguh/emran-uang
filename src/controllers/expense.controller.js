@@ -78,9 +78,10 @@ async function getExpenses(req, res) {
     walletId: req.wallet.id,
   };
 
-  // Timeframe filter (daily / monthly / yearly)
-  if (timeframe) {
-    const range = getDateRange(timeframe, date);
+  // Timeframe filter (daily / monthly / yearly) - default to monthly if not specified
+  const targetTimeframe = timeframe || (date ? null : 'monthly');
+  if (targetTimeframe) {
+    const range = getDateRange(targetTimeframe, date);
     where.date = {
       gte: range.start,
       lte: range.end,

@@ -1,9 +1,11 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/responsive_helper.dart';
-import '../providers/auth_provider.dart';
+import '../bloc/auth_bloc.dart';
+import '../bloc/auth_event.dart';
 
 class ChangePasswordScreen extends StatefulWidget {
   const ChangePasswordScreen({super.key});
@@ -33,13 +35,17 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
   Future<void> _handleSubmit() async {
     if (!_formKey.currentState!.validate()) return;
 
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final authBloc = context.read<AuthBloc>();
+    final completer = Completer<bool>();
 
-    // Call provider to change password
-    final success = await authProvider.changePassword(
+    // Call bloc to change password
+    authBloc.add(AuthPasswordChanged(
       currentPassword: _currentPasswordController.text,
       newPassword: _newPasswordController.text,
-    );
+      completer: completer,
+    ));
+
+    final success = await completer.future;
 
     if (mounted) {
       if (success) {
@@ -54,7 +60,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              authProvider.errorMessage ?? 'Failed to change password.',
+              authBloc.state.errorMessage ?? 'Failed to change password.',
             ),
             backgroundColor: AppTheme.error,
           ),
@@ -66,8 +72,8 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
   @override
   Widget build(BuildContext context) {
     final responsive = ResponsiveHelper(context);
-    final authProvider = Provider.of<AuthProvider>(context);
-    final user = authProvider.currentUser;
+    final authState = context.watch<AuthBloc>().state;
+    final user = authState.currentUser;
 
     final double formWidth = responsive.isTablet || responsive.isDesktop
         ? 480
@@ -278,7 +284,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                             const SizedBox(height: 24),
 
                             // Submit Button
-                            authProvider.isLoading
+                             authState.isLoading
                                 ? const Center(
                                     child: CircularProgressIndicator(
                                       color: AppTheme.primary,

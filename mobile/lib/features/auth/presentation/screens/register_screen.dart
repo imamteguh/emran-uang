@@ -1,10 +1,12 @@
 import 'dart:ui';
+import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/responsive_helper.dart';
-import '../providers/auth_provider.dart';
+import '../bloc/auth_bloc.dart';
+import '../bloc/auth_event.dart';
 import '../../../expenses/presentation/screens/main_shell.dart';
 
 class RegisterScreen extends StatefulWidget {
@@ -35,12 +37,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   void _handleRegister() async {
     if (_formKey.currentState!.validate()) {
-      final authProvider = Provider.of<AuthProvider>(context, listen: false);
-      final success = await authProvider.register(
-        _emailController.text.trim(),
-        _passwordController.text,
-        _nameController.text.trim(),
-      );
+      final authBloc = context.read<AuthBloc>();
+      final completer = Completer<bool>();
+      authBloc.add(AuthRegisterRequested(
+        email: _emailController.text.trim(),
+        password: _passwordController.text,
+        displayName: _nameController.text.trim(),
+        completer: completer,
+      ));
+
+      final success = await completer.future;
 
       if (success && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -56,7 +62,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       } else if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(authProvider.errorMessage ?? 'Registration failed'),
+            content: Text(authBloc.state.errorMessage ?? 'Registration failed'),
             backgroundColor: AppTheme.error,
           ),
         );
@@ -67,7 +73,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   @override
   Widget build(BuildContext context) {
     final responsive = ResponsiveHelper(context);
-    final authProvider = Provider.of<AuthProvider>(context);
+    final authState = context.watch<AuthBloc>().state;
 
     // Responsive width for content card
     final double cardWidth = responsive.isTablet || responsive.isDesktop
@@ -328,10 +334,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                   boxShadow: AppTheme.interactiveShadow,
                                 ),
                                 child: ElevatedButton(
-                                  onPressed: authProvider.isLoading
+                                  onPressed: authState.isLoading
                                       ? null
                                       : _handleRegister,
-                                  child: authProvider.isLoading
+                                  child: authState.isLoading
                                       ? const SizedBox(
                                           height: 20,
                                           width: 20,

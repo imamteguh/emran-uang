@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/responsive_helper.dart';
 import '../../../../core/utils/currency_helper.dart';
-import '../../../auth/presentation/providers/auth_provider.dart';
-import '../providers/dashboard_provider.dart';
+import '../../../auth/presentation/bloc/auth_bloc.dart';
+import '../../../auth/presentation/bloc/auth_state.dart';
+import '../bloc/dashboard_bloc.dart';
+import '../bloc/dashboard_event.dart';
+import '../bloc/dashboard_state.dart';
 import '../../domain/entities/wallet.dart';
 import '../widgets/analytics_skeleton.dart';
 
@@ -23,11 +26,10 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
   @override
   void initState() {
     super.initState();
-    // Fetch analytics on init if not already loaded
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final provider = Provider.of<DashboardProvider>(context, listen: false);
-      if (provider.compareData == null) {
-        provider.fetchAnalytics();
+      final dashboardBloc = context.read<DashboardBloc>();
+      if (dashboardBloc.state.compareData == null) {
+        dashboardBloc.add(const DashboardFetchAnalyticsRequested());
       }
     });
   }
@@ -124,8 +126,8 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
   }
 
   Widget _buildAppBarTitle(
-    DashboardProvider provider,
-    AuthProvider authProvider,
+    DashboardState provider,
+    AuthState authState,
     ResponsiveHelper responsive,
   ) {
     return Row(
@@ -168,7 +170,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
         else
           PopupMenuButton<WalletEntity>(
             onSelected: (WalletEntity wallet) {
-              provider.selectWallet(wallet);
+              context.read<DashboardBloc>().add(DashboardSelectWalletRequested(wallet));
             },
             offset: const Offset(0, 50),
             shape: RoundedRectangleBorder(
@@ -316,21 +318,21 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final provider = Provider.of<DashboardProvider>(context);
-    final authProvider = Provider.of<AuthProvider>(context);
+    final provider = context.watch<DashboardBloc>().state;
+    final authState = context.watch<AuthBloc>().state;
     final responsive = ResponsiveHelper(context);
 
     final currencyCode = provider.activeWallet?.currency ?? 'IDR';
     final currencyFormatter = CurrencyHelper.getFormatter(currencyCode);
 
-    if (provider.isLoading && provider.compareData == null) {
+    if ((provider.isLoading || provider.isLoadingAnalytics) && provider.compareData == null) {
       return Scaffold(
         appBar: AppBar(
           automaticallyImplyLeading: false,
           backgroundColor: AppTheme.background,
           elevation: 0,
           scrolledUnderElevation: 0,
-          title: _buildAppBarTitle(provider, authProvider, responsive),
+          title: _buildAppBarTitle(provider, authState, responsive),
         ),
         body: const SingleChildScrollView(
           physics: NeverScrollableScrollPhysics(),
@@ -352,10 +354,12 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
           backgroundColor: AppTheme.background,
           elevation: 0,
           scrolledUnderElevation: 0,
-          title: _buildAppBarTitle(provider, authProvider, responsive),
+          title: _buildAppBarTitle(provider, authState, responsive),
         ),
         body: RefreshIndicator(
-          onRefresh: provider.refreshData,
+          onRefresh: () async {
+            context.read<DashboardBloc>().add(const DashboardRefreshRequested());
+          },
           child: ListView(
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 48),
             children: [
@@ -469,7 +473,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
         backgroundColor: AppTheme.background,
         elevation: 0,
         scrolledUnderElevation: 0,
-        title: _buildAppBarTitle(provider, authProvider, responsive),
+        title: _buildAppBarTitle(provider, authState, responsive),
         actions: [
           IconButton(
             icon: const Icon(Icons.group, color: AppTheme.primary, size: 28),
@@ -479,7 +483,9 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
       ),
       body: SafeArea(
         child: RefreshIndicator(
-          onRefresh: provider.refreshData,
+          onRefresh: () async {
+            context.read<DashboardBloc>().add(const DashboardRefreshRequested());
+          },
           child: SingleChildScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
             padding: responsive.screenPadding,

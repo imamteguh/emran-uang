@@ -1,14 +1,17 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'shared_groups_screen.dart';
-import 'package:provider/provider.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/responsive_helper.dart';
 import '../../../../core/utils/currency_helper.dart';
 import '../../domain/entities/bill_reminder.dart';
 import '../../domain/entities/wallet.dart';
-import '../providers/dashboard_provider.dart';
+import '../bloc/dashboard_bloc.dart';
+import '../bloc/dashboard_event.dart';
+import '../bloc/dashboard_state.dart';
 import '../widgets/add_edit_bill_dialog.dart';
 import '../widgets/category_icon.dart';
 import '../widgets/bills_skeleton.dart';
@@ -88,7 +91,7 @@ class _BillsScreenState extends State<BillsScreen>
     BuildContext context,
     BillReminderEntity reminder,
     NumberFormat formatter,
-    DashboardProvider provider,
+    DashboardState provider,
   ) async {
     if (reminder.isPaidForCurrentPeriod) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -142,7 +145,9 @@ class _BillsScreenState extends State<BillsScreen>
           child: CircularProgressIndicator(color: AppTheme.primary),
         ),
       );
-      final success = await provider.payBill(reminder);
+      final completer = Completer<bool>();
+      context.read<DashboardBloc>().add(DashboardPayBillRequested(reminder, completer));
+      final success = await completer.future;
       if (context.mounted) {
         Navigator.of(context).pop(); // dismiss loading dialog
         if (success) {
@@ -166,7 +171,7 @@ class _BillsScreenState extends State<BillsScreen>
   void _showReminderOptions(
     BuildContext context,
     BillReminderEntity reminder,
-    DashboardProvider provider,
+    DashboardState provider,
   ) {
     showModalBottomSheet(
       context: context,
@@ -261,7 +266,9 @@ class _BillsScreenState extends State<BillsScreen>
                       child: CircularProgressIndicator(color: AppTheme.primary),
                     ),
                   );
-                  final success = await provider.deleteReminder(reminder.id);
+                  final completer = Completer<bool>();
+                  context.read<DashboardBloc>().add(DashboardDeleteReminderRequested(reminder.id, completer));
+                  final success = await completer.future;
                   if (context.mounted) {
                     Navigator.of(context).pop(); // dismiss loading dialog
                     if (success) {
@@ -306,7 +313,7 @@ class _BillsScreenState extends State<BillsScreen>
   @override
   Widget build(BuildContext context) {
     final responsive = ResponsiveHelper(context);
-    final dashboardProvider = Provider.of<DashboardProvider>(context);
+    final dashboardProvider = context.watch<DashboardBloc>().state;
     final currencyCode = dashboardProvider.activeWallet?.currency ?? 'IDR';
     final currencyFormatter = CurrencyHelper.getFormatter(currencyCode);
 
@@ -401,7 +408,7 @@ class _BillsScreenState extends State<BillsScreen>
             else
               PopupMenuButton<WalletEntity>(
                 onSelected: (WalletEntity wallet) {
-                  dashboardProvider.selectWallet(wallet);
+                  context.read<DashboardBloc>().add(DashboardSelectWalletRequested(wallet));
                 },
                 offset: const Offset(0, 50),
                 shape: RoundedRectangleBorder(
@@ -591,7 +598,7 @@ class _BillsScreenState extends State<BillsScreen>
             Expanded(
               child: RefreshIndicator(
                 onRefresh: () async {
-                  await dashboardProvider.fetchReminders();
+                  context.read<DashboardBloc>().add(const DashboardFetchRemindersRequested());
                 },
                 color: AppTheme.primary,
                 child: dashboardProvider.isLoading && activeReminders.isEmpty
@@ -1172,7 +1179,7 @@ class _BillsScreenState extends State<BillsScreen>
   Widget _buildBillItem(
     BillReminderEntity reminder,
     NumberFormat formatter,
-    DashboardProvider provider,
+    DashboardState provider,
   ) {
     final categoryColorStr = reminder.category?.color ?? '#4F46E5';
     final categoryColor = Color(
