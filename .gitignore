@@ -30,3 +30,6 @@ npm-debug.log*
 firebase-service-account.json
 mobile/android/app/google-services.json
 mobile/ios/Runner/GoogleService-Info.plist
+
+.vercel
+.env*

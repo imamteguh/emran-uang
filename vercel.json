@@ -11,11 +11,5 @@
       "memory": 512,
       "maxDuration": 15
     }
-  },
-  "crons": [
-    {
-      "path": "/api/notifications/cron/bill-reminders",
-      "schedule": "0 * * * *"
-    }
-  ]
+  }
 }

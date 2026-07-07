@@ -97,12 +97,6 @@ if (process.env.NODE_ENV !== 'production') {
   const PORT = process.env.PORT || 3000;
   app.listen(PORT, () => {
     console.log(`\nWalletShare API running at http://localhost:${PORT}/api\n`);
-
-    // Start bill reminder cron job (dev only)
-    if (process.env.NODE_ENV !== 'production') {
-      const { startBillReminderCron } = require('../src/utils/bill-reminder-cron');
-      startBillReminderCron();
-    }
   });
 }
 
