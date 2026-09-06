@@ -6,25 +6,28 @@ services:
     container_name: emran-uang-api
     restart: unless-stopped
     ports:
-      - "${PORT:-3000}:3000"
+      - "${PORT:-3390}:3390"
     env_file:
       - .env
     environment:
       - NODE_ENV=production
-      - PORT=3000
+      - PORT=3390
       - HOST=0.0.0.0
       - RUN_DB_PUSH=${RUN_DB_PUSH:-true}
       - RUN_DB_SEED=${RUN_DB_SEED:-false}
     healthcheck:
-      test: ["CMD-SHELL", "node -e \"require('http').get('http://localhost:3000/api', (r) => { process.exit(r.statusCode === 200 ? 0 : 1); }).on('error', () => process.exit(1));\""]
+      test:
+        [
+          "CMD-SHELL",
+          'node -e "require(''http'').get(''http://localhost:3390/api'', (r) => { process.exit(r.statusCode === 200 ? 0 : 1); }).on(''error'', () => process.exit(1));"',
+        ]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 15s
-    # Uncomment 'depends_on' jika Anda menggunakan PostgreSQL lokal dari service 'postgres' di bawah
-    # depends_on:
-    #   postgres:
-    #     condition: service_healthy
+    depends_on:
+      postgres:
+        condition: service_healthy
     networks:
       - emran-network
 
@@ -46,7 +49,11 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER:-postgres} -d $${POSTGRES_DB:-emran_uang}"]
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U $${POSTGRES_USER:-postgres} -d $${POSTGRES_DB:-emran_uang}",
+        ]
       interval: 10s
       timeout: 5s
       retries: 5
