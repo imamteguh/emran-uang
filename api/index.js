@@ -92,11 +92,16 @@ app.use('/api/*', (req, res) => {
 // ── Global Error Handler (must be last) ──────────────────────────────────────
 app.use(globalErrorHandler);
 
-// ── Local Development Server ─────────────────────────────────────────────────
-if (process.env.NODE_ENV !== 'production') {
+// ── Server Listener (Standalone / Docker / Local) ───────────────────────────
+// When running directly (e.g. node api/index.js, Docker, PM2), start the HTTP server.
+// When deployed on Vercel serverless, require.main !== module and Vercel wraps the exported app.
+const isStandalone = require.main === module || process.env.RUN_STANDALONE === 'true';
+
+if (isStandalone || process.env.NODE_ENV !== 'production') {
   const PORT = process.env.PORT || 3000;
-  app.listen(PORT, () => {
-    console.log(`\nWalletShare API running at http://localhost:${PORT}/api\n`);
+  const HOST = process.env.HOST || '0.0.0.0';
+  app.listen(PORT, HOST, () => {
+    console.log(`\nWalletShare API running at http://${HOST}:${PORT}/api\n`);
   });
 }
 

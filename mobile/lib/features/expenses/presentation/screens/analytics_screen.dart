@@ -11,7 +11,10 @@ import '../bloc/dashboard_bloc.dart';
 import '../bloc/dashboard_event.dart';
 import '../bloc/dashboard_state.dart';
 import '../../domain/entities/wallet.dart';
+import '../../domain/entities/expense.dart';
+import 'category_monthly_expenses_screen.dart';
 import '../widgets/analytics_skeleton.dart';
+import '../widgets/category_icon.dart';
 
 class AnalyticsScreen extends StatefulWidget {
   const AnalyticsScreen({super.key});
@@ -22,6 +25,28 @@ class AnalyticsScreen extends StatefulWidget {
 
 class _AnalyticsScreenState extends State<AnalyticsScreen> {
   int _activeFilterIndex = 0; // 0: This Month, 1: Last Month
+  String? _selectedCategoryId;
+
+  void _navigateToCategoryDetails(
+    ExpenseCategory category,
+    String monthStr,
+    String currencyCode,
+  ) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => CategoryMonthlyExpensesScreen(
+          category: category,
+          monthStr: monthStr,
+          walletId: context.read<DashboardBloc>().state.activeWallet?.id ?? '',
+          walletName: context.read<DashboardBloc>().state.activeWallet?.name ?? '',
+          currencyCode: currencyCode,
+        ),
+      ),
+    ).then((_) {
+      if (!mounted) return;
+      context.read<DashboardBloc>().add(const DashboardRefreshRequested());
+    });
+  }
 
   @override
   void initState() {
@@ -170,6 +195,9 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
         else
           PopupMenuButton<WalletEntity>(
             onSelected: (WalletEntity wallet) {
+              setState(() {
+                _selectedCategoryId = null;
+              });
               context.read<DashboardBloc>().add(DashboardSelectWalletRequested(wallet));
             },
             offset: const Offset(0, 50),
@@ -422,19 +450,77 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
       }
     }
 
-    // Category calculation
+    // Category calculation - only show categories with data
     final activeCategories = activeMonthData['byCategory'] as List? ?? [];
-    String topCatName = 'None';
-    double topCatTotal = 0.0;
-    double topCatPercentage = 0.0;
-    if (activeCategories.isNotEmpty) {
-      final topCat = activeCategories[0];
-      topCatName = topCat['category']['name'] ?? 'Other';
-      topCatTotal = _parseDouble(topCat['total']);
-      if (activeMonthTotal > 0) {
-        topCatPercentage = topCatTotal / activeMonthTotal;
+    final allSystemCategories = provider.categories;
+
+    // Construct the list of categories to display (only active ones)
+    final List<Map<String, dynamic>> displayedCategories = [];
+
+    for (var c in activeCategories) {
+      displayedCategories.add({
+        'category': c['category'],
+        'total': _parseDouble(c['total']),
+        'count': c['count'] ?? 0,
+        'isActive': true,
+      });
+    }
+
+    // Ensure we have a valid selection from the active categories
+    String? currentSelectedId = _selectedCategoryId;
+    final existsInActive = activeCategories.any((c) => c['category']['id'] == currentSelectedId);
+    if (!existsInActive || currentSelectedId == null) {
+      if (activeCategories.isNotEmpty) {
+        currentSelectedId = activeCategories[0]['category']['id'];
+      } else {
+        currentSelectedId = null;
+      }
+      _selectedCategoryId = currentSelectedId;
+    }
+
+    ExpenseCategory? selectedCategory;
+    double selectedCategoryTotal = 0.0;
+    double selectedCategoryPercentage = 0.0;
+
+    if (currentSelectedId != null) {
+      // Find in activeCategories first to get its total
+      Map<String, dynamic>? activeMatch;
+      for (var c in activeCategories) {
+        if (c is Map && c['category'] != null && c['category']['id'] == currentSelectedId) {
+          activeMatch = Map<String, dynamic>.from(c);
+          break;
+        }
+      }
+
+      // Find in system categories to get its details
+      ExpenseCategory? sysMatch;
+      for (var cat in allSystemCategories) {
+        if (cat.id == currentSelectedId) {
+          sysMatch = cat;
+          break;
+        }
+      }
+      if (sysMatch == null && allSystemCategories.isNotEmpty) {
+        sysMatch = allSystemCategories.first;
+      }
+
+      if (sysMatch != null) {
+        selectedCategory = sysMatch;
+        if (activeMatch != null) {
+          selectedCategoryTotal = _parseDouble(activeMatch['total']);
+        } else {
+          selectedCategoryTotal = 0.0;
+        }
+
+        if (activeMonthTotal > 0) {
+          selectedCategoryPercentage = selectedCategoryTotal / activeMonthTotal;
+        }
       }
     }
+
+    final String selectedCatName = selectedCategory?.name ?? 'None';
+    final String selectedCatIcon = selectedCategory?.icon ?? 'category';
+    final String selectedCatColor = selectedCategory?.color ?? '#BDC3C7';
 
     // Routine vs Non-routine
     double routineSpend = 0.0;
@@ -474,27 +560,30 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
         elevation: 0,
         scrolledUnderElevation: 0,
         title: _buildAppBarTitle(provider, authState, responsive),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.group, color: AppTheme.primary, size: 28),
-            onPressed: () {},
-          ),
-        ],
       ),
       body: SafeArea(
-        child: RefreshIndicator(
-          onRefresh: () async {
-            context.read<DashboardBloc>().add(const DashboardRefreshRequested());
-          },
-          child: SingleChildScrollView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            padding: responsive.screenPadding,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Header title
-                Text(
-                  'MONTHLY INSIGHTS',
+        child: Column(
+          children: [
+            if (provider.isLoading || provider.isLoadingAnalytics)
+              const LinearProgressIndicator(
+                color: AppTheme.primary,
+                backgroundColor: Color(0xFFF1F5F9),
+                minHeight: 2,
+              ),
+            Expanded(
+              child: RefreshIndicator(
+                onRefresh: () async {
+                  context.read<DashboardBloc>().add(const DashboardRefreshRequested());
+                },
+                child: SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: responsive.screenPadding,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Header title
+                      Text(
+                        'MONTHLY INSIGHTS',
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: responsive.scaleFont(11),
                     fontWeight: FontWeight.bold,
@@ -732,63 +821,72 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                       ),
                       const SizedBox(height: 20),
                       Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // Custom Pie chart simulation (Progress Ring)
-                          Stack(
-                            alignment: Alignment.center,
-                            children: [
-                              SizedBox(
-                                width: 110,
-                                height: 110,
-                                child: CircularProgressIndicator(
-                                  value: topCatPercentage,
-                                  strokeWidth: 12,
-                                  backgroundColor: const Color(0xFFF1F5F9),
-                                  color: AppTheme.primary,
-                                ),
-                              ),
-                              Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Text(
-                                    'Top Cat',
-                                    style: GoogleFonts.plusJakartaSans(
-                                      fontSize: 10,
-                                      color: AppTheme.darkSlateVariant,
+                          // Custom Donut Chart CustomPaint
+                          GestureDetector(
+                            onTap: () {
+                              if (selectedCategoryTotal > 0 && selectedCategory != null) {
+                                final monthStr = activeMonthData['month'] as String;
+                                _navigateToCategoryDetails(selectedCategory, monthStr, currencyCode);
+                              }
+                            },
+                            child: Stack(
+                              alignment: Alignment.center,
+                              children: [
+                                SizedBox(
+                                  width: 110,
+                                  height: 110,
+                                  child: CustomPaint(
+                                    painter: DonutChartPainter(
+                                      categories: activeCategories,
+                                      totalSpend: activeMonthTotal,
+                                      selectedCategoryId: currentSelectedId,
                                     ),
                                   ),
-                                  const SizedBox(height: 2),
-                                  Container(
-                                    constraints: const BoxConstraints(
-                                      maxWidth: 80,
+                                ),
+                                Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    CategoryIcon(
+                                      icon: selectedCatIcon,
+                                      color: _parseHexColor(selectedCatColor),
+                                      size: 24,
                                     ),
-                                    child: Text(
-                                      topCatName,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
+                                    const SizedBox(height: 2),
+                                    Container(
+                                      constraints: const BoxConstraints(
+                                        maxWidth: 75,
+                                      ),
+                                      child: Text(
+                                        selectedCatName,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        textAlign: TextAlign.center,
+                                        style: GoogleFonts.plusJakartaSans(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.bold,
+                                          color: _parseHexColor(selectedCatColor),
+                                        ),
+                                      ),
+                                    ),
+                                    Text(
+                                      '${(selectedCategoryPercentage * 100).round()}%',
                                       style: GoogleFonts.plusJakartaSans(
                                         fontSize: 12,
                                         fontWeight: FontWeight.bold,
-                                        color: AppTheme.primary,
+                                        color: AppTheme.darkSlate,
                                       ),
                                     ),
-                                  ),
-                                  Text(
-                                    '${(topCatPercentage * 100).round()}%',
-                                    style: GoogleFonts.plusJakartaSans(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.bold,
-                                      color: AppTheme.darkSlate,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
+                                  ],
+                                ),
+                              ],
+                            ),
                           ),
-                          const SizedBox(width: 24),
-                          // Legend List
+                          const SizedBox(width: 20),
+                          // Legend List (Displaying All Categories)
                           Expanded(
-                            child: activeCategories.isEmpty
+                            child: displayedCategories.isEmpty
                                 ? Center(
                                     child: Text(
                                       'No categories',
@@ -799,23 +897,98 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                                     ),
                                   )
                                 : Column(
-                                    children: activeCategories.map((c) {
-                                      final name =
-                                          c['category']['name'] ?? 'Other';
-                                      final total = _parseDouble(c['total']);
-                                      final colorStr =
-                                          c['category']['color'] as String? ??
-                                          '#BDC3C7';
+                                    children: displayedCategories.map((item) {
+                                      final categoryMap = item['category'] as Map;
+                                      final category = ExpenseCategory.fromJson(categoryMap);
+                                      final name = category.name;
+                                      final total = item['total'] as double;
+                                      final colorStr = category.color;
                                       final color = _parseHexColor(colorStr);
+                                      final isSelected = currentSelectedId == category.id;
+                                      final monthStr = activeMonthData['month'] as String;
+
                                       return Padding(
-                                        padding: const EdgeInsets.only(
-                                          bottom: 8.0,
-                                        ),
-                                        child: _buildLegendItem(
-                                          name,
-                                          total,
-                                          color,
-                                          currencyFormatter,
+                                        padding: const EdgeInsets.only(bottom: 6.0),
+                                        child: InkWell(
+                                          onTap: () {
+                                            if (isSelected) {
+                                              if (total > 0) {
+                                                _navigateToCategoryDetails(category, monthStr, currencyCode);
+                                              }
+                                            } else {
+                                              setState(() {
+                                                _selectedCategoryId = category.id;
+                                              });
+                                            }
+                                          },
+                                          borderRadius: BorderRadius.circular(10),
+                                          child: Container(
+                                            padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
+                                            decoration: BoxDecoration(
+                                              color: isSelected
+                                                  ? color.withValues(alpha: 0.12)
+                                                  : Colors.transparent,
+                                              borderRadius: BorderRadius.circular(10),
+                                              border: Border.all(
+                                                color: isSelected
+                                                    ? color.withValues(alpha: 0.4)
+                                                    : Colors.transparent,
+                                                width: 1,
+                                              ),
+                                            ),
+                                            child: Row(
+                                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                              children: [
+                                                Expanded(
+                                                  child: Row(
+                                                    children: [
+                                                      Container(
+                                                        width: 8,
+                                                        height: 8,
+                                                        decoration: BoxDecoration(
+                                                          color: color,
+                                                          shape: BoxShape.circle,
+                                                        ),
+                                                      ),
+                                                      const SizedBox(width: 8),
+                                                      Expanded(
+                                                        child: Text(
+                                                          name,
+                                                          maxLines: 1,
+                                                          overflow: TextOverflow.ellipsis,
+                                                          style: GoogleFonts.beVietnamPro(
+                                                            fontSize: 11,
+                                                            fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                                                            color: isSelected ? AppTheme.darkSlate : AppTheme.darkSlate.withValues(alpha: 0.8),
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ),
+                                                Row(
+                                                  children: [
+                                                    Text(
+                                                      currencyFormatter.format(total),
+                                                      style: GoogleFonts.plusJakartaSans(
+                                                        fontSize: 11,
+                                                        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                                                        color: isSelected ? AppTheme.darkSlate : AppTheme.darkSlate.withValues(alpha: 0.8),
+                                                      ),
+                                                    ),
+                                                    if (isSelected && total > 0) ...[
+                                                      const SizedBox(width: 2),
+                                                      Icon(
+                                                        Icons.chevron_right_rounded,
+                                                        size: 14,
+                                                        color: color,
+                                                      ),
+                                                    ],
+                                                  ],
+                                                ),
+                                              ],
+                                            ),
+                                          ),
                                         ),
                                       );
                                     }).toList(),
@@ -926,7 +1099,10 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
           ),
         ),
       ),
-    );
+      ],
+    ),
+  ),
+);
   }
 
   // ─── Chart Bar Painter helper ──────────────────────────────────────────────
@@ -974,41 +1150,6 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     );
   }
 
-  // ─── Legend Item Helper ────────────────────────────────────────────────────
-
-  Widget _buildLegendItem(
-    String name,
-    double amount,
-    Color color,
-    NumberFormat formatter,
-  ) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Row(
-          children: [
-            Container(
-              width: 8,
-              height: 8,
-              decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-            ),
-            const SizedBox(width: 8),
-            Text(
-              name,
-              style: GoogleFonts.beVietnamPro(
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ],
-        ),
-        Text(
-          formatter.format(amount),
-          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-        ),
-      ],
-    );
-  }
 
   // ─── Routine vs Variable card helper ───────────────────────────────────────
 
@@ -1078,5 +1219,82 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
         ],
       ),
     );
+  }
+}
+
+// ─── Donut Chart Custom Painter ──────────────────────────────────────────────
+class DonutChartPainter extends CustomPainter {
+  final List<dynamic> categories;
+  final double totalSpend;
+  final String? selectedCategoryId;
+
+  DonutChartPainter({
+    required this.categories,
+    required this.totalSpend,
+    required this.selectedCategoryId,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (totalSpend <= 0 || categories.isEmpty) {
+      final paint = Paint()
+        ..color = const Color(0xFFF1F5F9)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 10;
+      canvas.drawCircle(size.center(Offset.zero), size.width / 2 - 5, paint);
+      return;
+    }
+
+    final double radius = size.width / 2;
+    final Rect rect = Rect.fromCircle(center: size.center(Offset.zero), radius: radius - 8);
+    double startAngle = -3.141592653589793 / 2; // -pi/2
+
+    for (var cat in categories) {
+      final double amount = _parseDouble(cat['total']);
+      if (amount <= 0) continue;
+      final double sweepAngle = (amount / totalSpend) * 2 * 3.141592653589793;
+
+      final category = cat['category'] as Map;
+      final colorStr = category['color'] as String? ?? '#BDC3C7';
+      Color color = _parseHexColor(colorStr);
+
+      final isSelected = selectedCategoryId == category['id'];
+
+      final paint = Paint()
+        ..color = color
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = isSelected ? 16.0 : 10.0
+        ..strokeCap = StrokeCap.butt;
+
+      canvas.drawArc(rect, startAngle, sweepAngle, false, paint);
+      startAngle += sweepAngle;
+    }
+  }
+
+  double _parseDouble(dynamic value) {
+    if (value == null) return 0.0;
+    if (value is num) return value.toDouble();
+    if (value is String) {
+      return double.tryParse(value) ?? 0.0;
+    }
+    return 0.0;
+  }
+
+  Color _parseHexColor(String hexString) {
+    try {
+      final buffer = StringBuffer();
+      if (hexString.length == 6 || hexString.length == 7) buffer.write('ff');
+      buffer.write(hexString.replaceFirst('#', ''));
+      return Color(int.parse(buffer.toString(), radix: 16));
+    } catch (_) {
+      return Colors.blueGrey;
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant DonutChartPainter oldDelegate) {
+    return oldDelegate.categories != categories ||
+        oldDelegate.totalSpend != totalSpend ||
+        oldDelegate.selectedCategoryId != selectedCategoryId;
   }
 }

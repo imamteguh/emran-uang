@@ -68,6 +68,7 @@ dependencies:
   dio_smart_retry: ^7.0.1
   shimmer: ^3.0.0
   flutter_bloc: ^9.1.1
+  package_info_plus: ^10.2.0
 
 dev_dependencies:
   flutter_test:

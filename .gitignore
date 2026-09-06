@@ -33,3 +33,5 @@ mobile/ios/Runner/GoogleService-Info.plist
 
 .vercel
 .env*
+!.env.example
+!.env.docker.example

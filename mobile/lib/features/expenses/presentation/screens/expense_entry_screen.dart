@@ -17,7 +17,8 @@ import 'categories_screen.dart';
 
 class ExpenseEntryScreen extends StatefulWidget {
   final DateTime? initialDate;
-  const ExpenseEntryScreen({super.key, this.initialDate});
+  final ExpenseCategory? initialCategory;
+  const ExpenseEntryScreen({super.key, this.initialDate, this.initialCategory});
 
   @override
   State<ExpenseEntryScreen> createState() => _ExpenseEntryScreenState();
@@ -37,6 +38,7 @@ class _ExpenseEntryScreenState extends State<ExpenseEntryScreen> {
   void initState() {
     super.initState();
     _selectedDate = widget.initialDate ?? DateTime.now();
+    _selectedCategory = widget.initialCategory;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<DashboardBloc>().add(const DashboardFetchCategoriesRequested());
     });
@@ -399,6 +401,12 @@ class _ExpenseEntryScreenState extends State<ExpenseEntryScreen> {
     final displayCategories = provider.categories;
     if (_selectedCategory == null && displayCategories.isNotEmpty) {
       _selectedCategory = displayCategories.first;
+    } else if (_selectedCategory != null && displayCategories.isNotEmpty) {
+      final match = displayCategories.firstWhere(
+        (c) => c.id == _selectedCategory!.id,
+        orElse: () => _selectedCategory!,
+      );
+      _selectedCategory = match;
     }
 
     final List<ExpenseCategory> gridCategories = [];

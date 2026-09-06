@@ -1,0 +1,63 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: emran-uang-api
+    restart: unless-stopped
+    ports:
+      - "${PORT:-3000}:3000"
+    env_file:
+      - .env
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - HOST=0.0.0.0
+      - RUN_DB_PUSH=${RUN_DB_PUSH:-true}
+      - RUN_DB_SEED=${RUN_DB_SEED:-false}
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"require('http').get('http://localhost:3000/api', (r) => { process.exit(r.statusCode === 200 ? 0 : 1); }).on('error', () => process.exit(1));\""]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    # Uncomment 'depends_on' jika Anda menggunakan PostgreSQL lokal dari service 'postgres' di bawah
+    # depends_on:
+    #   postgres:
+    #     condition: service_healthy
+    networks:
+      - emran-network
+
+  # Service PostgreSQL lokal di VPS.
+  # Jika Anda menggunakan database cloud (misal Neon), Anda bisa menonaktifkan service ini
+  # atau hanya menjalankan API dengan: docker compose up -d api
+  postgres:
+    image: postgres:16-alpine
+    container_name: emran-uang-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres_secure_password}
+      POSTGRES_DB: ${POSTGRES_DB:-emran_uang}
+    ports:
+      # Port diekspos ke host VPS jika ingin diakses via pgAdmin / DBeaver.
+      # Jika tidak ingin diekspos keluar VPS, ganti dengan "127.0.0.1:5432:5432"
+      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER:-postgres} -d $${POSTGRES_DB:-emran_uang}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - emran-network
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  emran-network:
+    driver: bridge

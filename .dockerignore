@@ -1,0 +1,31 @@
+# Dependencies
+node_modules
+npm-debug.log*
+
+# Git
+.git
+.gitignore
+
+# Environment files
+.env
+.env.local
+.env.*
+!.env.example
+!.env.docker.example
+
+# Large subproject - Flutter Mobile App
+mobile/
+
+# Documentation & design assets
+stitch/
+*.md
+LICENSE
+
+# IDE & OS files
+.vscode
+.idea
+.DS_Store
+Thumbs.db
+
+# Vercel cache
+.vercel

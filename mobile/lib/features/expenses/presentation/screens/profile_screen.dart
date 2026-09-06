@@ -14,6 +14,7 @@ import '../bloc/dashboard_bloc.dart';
 import '../bloc/dashboard_event.dart';
 import '../widgets/user_avatar.dart';
 import 'categories_screen.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -23,7 +24,33 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  bool _notificationsEnabled = true;
+  // Notification states
+  bool _pushNotifications = true;
+  bool _emailNotifications = false;
+  bool _monthlyReports = true;
+  
+  // Theme state
+  String _currentTheme = 'Light';
+
+  // Version state
+  String _appVersion = 'WalletShare v2.4.1 (Build 829)';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadVersionInfo();
+  }
+
+  Future<void> _loadVersionInfo() async {
+    try {
+      final packageInfo = await PackageInfo.fromPlatform();
+      setState(() {
+        _appVersion = 'WalletShare v${packageInfo.version} (Build ${packageInfo.buildNumber})';
+      });
+    } catch (e) {
+      // Keep default fallback
+    }
+  }
 
   void _handleLogout() {
     context.read<AuthBloc>().add(const AuthLogoutRequested());
@@ -172,50 +199,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     clipBehavior: Clip.antiAlias,
                     child: Column(
                       children: [
-                        // Notification Toggle Item
-                        Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16.0,
-                            vertical: 12.0,
-                          ),
-                          child: Row(
-                            children: [
-                              Container(
-                                width: 40,
-                                height: 40,
-                                decoration: BoxDecoration(
-                                  color: AppTheme.tertiaryFixed,
-                                  shape: BoxShape.circle,
-                                ),
-                                alignment: Alignment.center,
-                                child: const Icon(
-                                  Icons.notifications_active_outlined,
-                                  color: AppTheme.tertiary,
-                                  size: 20,
-                                ),
-                              ),
-                              const SizedBox(width: 16),
-                              Expanded(
-                                child: Text(
-                                  'Notifications',
-                                  style: GoogleFonts.beVietnamPro(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 14,
-                                    color: AppTheme.darkSlate,
-                                  ),
-                                ),
-                              ),
-                              Switch(
-                                value: _notificationsEnabled,
-                                onChanged: (val) {
-                                  setState(() {
-                                    _notificationsEnabled = val;
-                                  });
-                                },
-                                activeThumbColor: AppTheme.primary,
-                              ),
-                            ],
-                          ),
+                        // Notification Settings Item
+                        _buildSettingsItem(
+                          icon: Icons.notifications_active_outlined,
+                          title: 'Notifications',
+                          trailingText: _pushNotifications ? 'On' : 'Off',
+                          iconColor: AppTheme.tertiary,
+                          bgIconColor: AppTheme.tertiary.withAlpha(25),
+                          onTap: () => _showNotificationPicker(context),
                         ),
                         const Divider(height: 1, color: Color(0xFFF1F5F9)),
                         // Currency Selector Item
@@ -234,9 +225,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         _buildSettingsItem(
                           icon: Icons.dark_mode_outlined,
                           title: 'Theme',
-                          trailingText: 'Light',
+                          trailingText: _currentTheme,
                           iconColor: AppTheme.darkSlateVariant,
                           bgIconColor: AppTheme.darkSlateVariant.withAlpha(25),
+                          onTap: () => _showThemePicker(context),
                         ),
                       ],
                     ),
@@ -303,7 +295,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     child: Padding(
                       padding: const EdgeInsets.only(bottom: 24.0),
                       child: Text(
-                        'WalletShare v2.4.1 (Build 829)',
+                        _appVersion,
                         style: GoogleFonts.beVietnamPro(
                           fontSize: 12,
                           color: AppTheme.outline,
@@ -705,6 +697,251 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
         );
       },
+    );
+  }
+
+  void _showThemePicker(BuildContext context) {
+    final List<Map<String, dynamic>> themes = [
+      {'id': 'Light', 'name': 'Light', 'icon': Icons.light_mode},
+      {'id': 'Dark', 'name': 'Dark', 'icon': Icons.dark_mode},
+      {'id': 'System', 'name': 'System Default', 'icon': Icons.brightness_auto},
+    ];
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+          ),
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: AppTheme.outlineVariant,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+              Text(
+                'Choose Theme',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: AppTheme.darkSlate,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                'Select your preferred app theme.',
+                style: GoogleFonts.beVietnamPro(
+                  fontSize: 13,
+                  color: AppTheme.darkSlateVariant,
+                ),
+              ),
+              const SizedBox(height: 20),
+              ListView.separated(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: themes.length,
+                separatorBuilder: (_, _) =>
+                    const Divider(height: 1, color: Color(0xFFF1F5F9)),
+                itemBuilder: (context, index) {
+                  final theme = themes[index];
+                  final isSelected = theme['id'] == _currentTheme;
+
+                  return ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: Text(
+                      theme['name'],
+                      style: GoogleFonts.beVietnamPro(
+                        fontWeight: isSelected
+                            ? FontWeight.bold
+                            : FontWeight.normal,
+                        color: isSelected
+                            ? AppTheme.primary
+                            : AppTheme.darkSlate,
+                      ),
+                    ),
+                    leading: Container(
+                      width: 36,
+                      height: 36,
+                      decoration: BoxDecoration(
+                        color: isSelected
+                            ? AppTheme.primary.withAlpha(25)
+                            : const Color(0xFFF1F5F9),
+                        shape: BoxShape.circle,
+                      ),
+                      alignment: Alignment.center,
+                      child: Icon(
+                        theme['icon'],
+                        size: 18,
+                        color: isSelected
+                            ? AppTheme.primary
+                            : AppTheme.darkSlateVariant,
+                      ),
+                    ),
+                    trailing: isSelected
+                        ? const Icon(
+                            Icons.check_circle,
+                            color: AppTheme.primary,
+                          )
+                        : null,
+                    onTap: () {
+                      Navigator.of(context).pop();
+                      setState(() {
+                        _currentTheme = theme['id'];
+                      });
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Theme changed to ${theme['name']}'),
+                          backgroundColor: Colors.green,
+                        ),
+                      );
+                    },
+                  );
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _showNotificationPicker(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return Container(
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+              ),
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: AppTheme.outlineVariant,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  Text(
+                    'Notifications',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: AppTheme.darkSlate,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Manage your notification preferences.',
+                    style: GoogleFonts.beVietnamPro(
+                      fontSize: 13,
+                      color: AppTheme.darkSlateVariant,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  _buildNotificationSwitch(
+                    title: 'Push Notifications',
+                    subtitle: 'Receive alerts on your device',
+                    value: _pushNotifications,
+                    onChanged: (val) {
+                      setModalState(() => _pushNotifications = val);
+                      setState(() => _pushNotifications = val);
+                    },
+                  ),
+                  const Divider(height: 1, color: Color(0xFFF1F5F9)),
+                  _buildNotificationSwitch(
+                    title: 'Email Notifications',
+                    subtitle: 'Receive updates via email',
+                    value: _emailNotifications,
+                    onChanged: (val) {
+                      setModalState(() => _emailNotifications = val);
+                      setState(() => _emailNotifications = val);
+                    },
+                  ),
+                  const Divider(height: 1, color: Color(0xFFF1F5F9)),
+                  _buildNotificationSwitch(
+                    title: 'Monthly Reports',
+                    subtitle: 'Receive monthly financial summaries',
+                    value: _monthlyReports,
+                    onChanged: (val) {
+                      setModalState(() => _monthlyReports = val);
+                      setState(() => _monthlyReports = val);
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildNotificationSwitch({
+    required String title,
+    required String subtitle,
+    required bool value,
+    required ValueChanged<bool> onChanged,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: GoogleFonts.beVietnamPro(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                    color: AppTheme.darkSlate,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  subtitle,
+                  style: GoogleFonts.beVietnamPro(
+                    fontSize: 12,
+                    color: AppTheme.darkSlateVariant,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Switch(
+            value: value,
+            onChanged: onChanged,
+            activeThumbColor: AppTheme.primary,
+          ),
+        ],
+      ),
     );
   }
 }
