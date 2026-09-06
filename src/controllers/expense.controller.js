@@ -78,21 +78,25 @@ async function getExpenses(req, res) {
     walletId: req.wallet.id,
   };
 
-  // Timeframe filter (daily / monthly / yearly) - default to monthly if not specified
-  const targetTimeframe = timeframe || (date ? null : 'monthly');
-  if (targetTimeframe) {
-    const range = getDateRange(targetTimeframe, date);
-    where.date = {
-      gte: range.start,
-      lte: range.end,
-    };
-  } else if (date) {
-    // Specific date without timeframe defaults to that day
-    const range = getDateRange('daily', date);
-    where.date = {
-      gte: range.start,
-      lte: range.end,
-    };
+  // Timeframe filter (daily / monthly / yearly / all) - default to monthly if not specified
+  if (timeframe === 'all') {
+    // Return all transactions for this wallet without date constraints
+  } else {
+    const targetTimeframe = timeframe || (date ? null : 'monthly');
+    if (targetTimeframe) {
+      const range = getDateRange(targetTimeframe, date);
+      where.date = {
+        gte: range.start,
+        lte: range.end,
+      };
+    } else if (date) {
+      // Specific date without timeframe defaults to that day
+      const range = getDateRange('daily', date);
+      where.date = {
+        gte: range.start,
+        lte: range.end,
+      };
+    }
   }
 
   // Expense type filter (ROUTINE / NON_ROUTINE)

@@ -919,10 +919,10 @@ class _ExpenseEntryScreenState extends State<ExpenseEntryScreen> {
                               _selectedDate,
                               DateTime.now().subtract(const Duration(days: 1)),
                             ),
-                            onTap: () {
-                              setState(() {
-                                _selectedDate = DateTime.now().subtract(const Duration(days: 1));
-                              });
+                            onTap: () async {
+                              final now = DateTime.now();
+                              final yesterday = now.subtract(const Duration(days: 1));
+                              await _selectTime(context, targetDate: yesterday);
                             },
                           ),
                         ),
@@ -933,50 +933,112 @@ class _ExpenseEntryScreenState extends State<ExpenseEntryScreen> {
                         ),
                       ],
                     ),
+                    if (!_isSameDay(_selectedDate, DateTime.now())) ...[
+                      const SizedBox(height: 10),
+                      _buildTimeSelectorCard(context),
+                    ],
                     const SizedBox(height: 32),
 
-                    // Input Form Fields (Notes / Description)
-                    TextFormField(
-                      controller: _descController,
-                      style: GoogleFonts.beVietnamPro(
-                        fontSize: 14,
-                        color: AppTheme.darkSlate,
+                    // Transaction Note Section Header
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          children: [
+                            Text(
+                              'Transaction Note',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13,
+                                color: AppTheme.darkSlateVariant,
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFE2E8F0),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text(
+                                'Optional',
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppTheme.darkSlateVariant,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+
+                    // Input Form Fields (Notes / Description) - Redesigned to High-Visibility Card
+                    Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: AppTheme.softShadow,
                       ),
-                      decoration: InputDecoration(
-                        labelText: 'Transaction Note',
-                        labelStyle: GoogleFonts.plusJakartaSans(
-                          fontWeight: FontWeight.bold,
-                          color: AppTheme.primary,
-                        ),
-                        hintText: 'What was this expense for?',
-                        hintStyle: GoogleFonts.beVietnamPro(
-                          color: Colors.grey[400],
+                      child: TextFormField(
+                        controller: _descController,
+                        minLines: 3,
+                        maxLines: 5,
+                        keyboardType: TextInputType.multiline,
+                        style: GoogleFonts.beVietnamPro(
                           fontSize: 14,
+                          color: AppTheme.darkSlate,
                         ),
-                        prefixIcon: const Icon(
-                          Icons.notes_rounded,
-                          color: AppTheme.primary,
-                          size: 20,
-                        ),
-                        filled: true,
-                        fillColor: const Color(0xFFF1F5F9),
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 20,
-                          vertical: 16,
-                        ),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(16),
-                          borderSide: const BorderSide(color: Color(0xFFE2E8F0), width: 1.5),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(16),
-                          borderSide: const BorderSide(color: Color(0xFFE2E8F0), width: 1.5),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(16),
-                          borderSide: const BorderSide(
-                            color: AppTheme.primary,
-                            width: 2.0,
+                        decoration: InputDecoration(
+                          alignLabelWithHint: true,
+                          hintText: 'What was this expense for? (e.g. Lunch with team, monthly groceries)',
+                          hintStyle: GoogleFonts.beVietnamPro(
+                            color: Colors.grey[400],
+                            fontSize: 13,
+                          ),
+                          prefixIcon: const Padding(
+                            padding: EdgeInsets.only(left: 14, right: 10, bottom: 44),
+                            child: Icon(
+                              Icons.edit_note_rounded,
+                              color: AppTheme.primary,
+                              size: 24,
+                            ),
+                          ),
+                          prefixIconConstraints: const BoxConstraints(
+                            minWidth: 48,
+                            minHeight: 48,
+                          ),
+                          filled: true,
+                          fillColor: Colors.white,
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 16,
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(16),
+                            borderSide: const BorderSide(
+                              color: Color(0xFFCBD5E1),
+                              width: 1.5,
+                            ),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(16),
+                            borderSide: const BorderSide(
+                              color: Color(0xFFCBD5E1),
+                              width: 1.5,
+                            ),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(16),
+                            borderSide: const BorderSide(
+                              color: AppTheme.primary,
+                              width: 2.0,
+                            ),
                           ),
                         ),
                       ),
@@ -1189,6 +1251,175 @@ class _ExpenseEntryScreenState extends State<ExpenseEntryScreen> {
     );
   }
 
+  Future<void> _selectTime(BuildContext context, {DateTime? targetDate}) async {
+    final baseDate = targetDate ?? _selectedDate;
+    final TimeOfDay initialTime = TimeOfDay.fromDateTime(_selectedDate);
+
+    final TimeOfDay? picked = await showTimePicker(
+      context: context,
+      initialTime: initialTime,
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: AppTheme.primary,
+              onPrimary: Colors.white,
+              surface: Colors.white,
+              onSurface: AppTheme.darkSlate,
+            ),
+            timePickerTheme: TimePickerThemeData(
+              backgroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(24),
+              ),
+              hourMinuteColor: WidgetStateColor.resolveWith(
+                (states) => states.contains(WidgetState.selected)
+                    ? AppTheme.primary.withAlpha(35)
+                    : const Color(0xFFF1F5F9),
+              ),
+              hourMinuteTextColor: WidgetStateColor.resolveWith(
+                (states) => states.contains(WidgetState.selected)
+                    ? AppTheme.primary
+                    : AppTheme.darkSlate,
+              ),
+              dialHandColor: AppTheme.primary,
+              dialBackgroundColor: const Color(0xFFF1F5F9),
+              dialTextColor: WidgetStateColor.resolveWith(
+                (states) => states.contains(WidgetState.selected)
+                    ? Colors.white
+                    : AppTheme.darkSlate,
+              ),
+              entryModeIconColor: AppTheme.primary,
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+
+    if (picked != null) {
+      setState(() {
+        _selectedDate = DateTime(
+          baseDate.year,
+          baseDate.month,
+          baseDate.day,
+          picked.hour,
+          picked.minute,
+        );
+      });
+    } else if (targetDate != null) {
+      // If user selected yesterday or custom date but cancelled the time picker dialog,
+      // still apply the chosen date with existing/current time.
+      setState(() {
+        _selectedDate = DateTime(
+          baseDate.year,
+          baseDate.month,
+          baseDate.day,
+          _selectedDate.hour,
+          _selectedDate.minute,
+        );
+      });
+    }
+  }
+
+  Widget _buildTimeSelectorCard(BuildContext context) {
+    final isYesterday = _isSameDay(
+      _selectedDate,
+      DateTime.now().subtract(const Duration(days: 1)),
+    );
+    final dateLabel = isYesterday
+        ? 'Yesterday'
+        : DateFormat('EEE, d MMM').format(_selectedDate);
+    final timeFormatted = DateFormat('hh:mm a').format(_selectedDate);
+
+    return InkWell(
+      onTap: () => _selectTime(context),
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: AppTheme.primary.withAlpha(50),
+            width: 1.5,
+          ),
+          boxShadow: AppTheme.softShadow,
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 38,
+              height: 38,
+              decoration: BoxDecoration(
+                color: AppTheme.primary.withAlpha(20),
+                shape: BoxShape.circle,
+              ),
+              alignment: Alignment.center,
+              child: const Icon(
+                Icons.access_time_filled_rounded,
+                color: AppTheme.primary,
+                size: 20,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Transaction Time ($dateLabel)',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: AppTheme.darkSlateVariant,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    timeFormatted,
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w800,
+                      color: AppTheme.primary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: AppTheme.primary.withAlpha(15),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: AppTheme.primary.withAlpha(40)),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(
+                    Icons.edit_rounded,
+                    size: 13,
+                    color: AppTheme.primary,
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    'Change',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: AppTheme.primary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildCustomDateButton(BuildContext context) {
     final isToday = _isSameDay(_selectedDate, DateTime.now());
     final isYesterday = _isSameDay(_selectedDate, DateTime.now().subtract(const Duration(days: 1)));
@@ -1209,6 +1440,7 @@ class _ExpenseEntryScreenState extends State<ExpenseEntryScreen> {
                 colorScheme: const ColorScheme.light(
                   primary: AppTheme.primary,
                   onPrimary: Colors.white,
+                  surface: Colors.white,
                   onSurface: AppTheme.darkSlate,
                 ),
               ),
@@ -1216,10 +1448,9 @@ class _ExpenseEntryScreenState extends State<ExpenseEntryScreen> {
             );
           },
         );
-        if (picked != null && picked != _selectedDate) {
-          setState(() {
-            _selectedDate = picked;
-          });
+        if (picked != null) {
+          if (!context.mounted) return;
+          await _selectTime(context, targetDate: picked);
         }
       },
       borderRadius: BorderRadius.circular(16),

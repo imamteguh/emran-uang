@@ -1,15 +1,17 @@
-import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'dart:async';
+import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/currency_helper.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
+import '../../domain/entities/expense.dart';
+import '../../domain/entities/wallet.dart';
 import '../bloc/dashboard_bloc.dart';
 import '../bloc/dashboard_event.dart';
+import '../bloc/dashboard_state.dart';
 import '../widgets/category_icon.dart';
-import '../../domain/entities/expense.dart';
 import 'expense_entry_screen.dart';
 
 class ActivityListScreen extends StatefulWidget {
@@ -28,6 +30,19 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
     super.initState();
     _selectedDate = DateTime.now();
     _weekDates = _generateWeekDates(_selectedDate);
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _refreshData();
+    });
+  }
+
+  void _refreshData() {
+    final activeWallet = context.read<DashboardBloc>().state.activeWallet;
+    if (activeWallet != null) {
+      context.read<DashboardBloc>().add(DashboardSelectWalletRequested(activeWallet));
+    } else {
+      context.read<DashboardBloc>().add(const DashboardRefreshRequested());
+    }
   }
 
   List<DateTime> _generateWeekDates(DateTime referenceDate) {
@@ -178,6 +193,114 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
     );
   }
 
+  List<PopupMenuEntry<WalletEntity>> _buildWalletMenuItems(DashboardState provider) {
+    return [
+      if (provider.personalWallets.isNotEmpty) ...[
+        const PopupMenuItem<WalletEntity>(
+          enabled: false,
+          height: 24,
+          child: Padding(
+            padding: EdgeInsets.symmetric(horizontal: 8.0),
+            child: Text(
+              'PERSONAL WALLETS',
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.bold,
+                color: Colors.grey,
+              ),
+            ),
+          ),
+        ),
+        ...provider.personalWallets.map(
+          (wallet) => PopupMenuItem<WalletEntity>(
+            value: wallet,
+            child: Row(
+              children: [
+                Icon(
+                  Icons.person_outline_rounded,
+                  color: provider.activeWallet?.id == wallet.id
+                      ? AppTheme.primary
+                      : AppTheme.darkSlateVariant,
+                  size: 20,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    wallet.name,
+                    style: GoogleFonts.plusJakartaSans(
+                      fontWeight: provider.activeWallet?.id == wallet.id
+                          ? FontWeight.bold
+                          : FontWeight.normal,
+                      color: AppTheme.darkSlate,
+                    ),
+                  ),
+                ),
+                if (provider.activeWallet?.id == wallet.id)
+                  const Icon(
+                    Icons.check_rounded,
+                    color: AppTheme.primary,
+                    size: 18,
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ],
+      if (provider.sharedWallets.isNotEmpty) ...[
+        if (provider.personalWallets.isNotEmpty) const PopupMenuDivider(),
+        const PopupMenuItem<WalletEntity>(
+          enabled: false,
+          height: 24,
+          child: Padding(
+            padding: EdgeInsets.symmetric(horizontal: 8.0),
+            child: Text(
+              'GROUP WALLETS',
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.bold,
+                color: Colors.grey,
+              ),
+            ),
+          ),
+        ),
+        ...provider.sharedWallets.map(
+          (wallet) => PopupMenuItem<WalletEntity>(
+            value: wallet,
+            child: Row(
+              children: [
+                Icon(
+                  Icons.groups_outlined,
+                  color: provider.activeWallet?.id == wallet.id
+                      ? AppTheme.primary
+                      : AppTheme.darkSlateVariant,
+                  size: 20,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    wallet.name,
+                    style: GoogleFonts.plusJakartaSans(
+                      fontWeight: provider.activeWallet?.id == wallet.id
+                          ? FontWeight.bold
+                          : FontWeight.normal,
+                      color: AppTheme.darkSlate,
+                    ),
+                  ),
+                ),
+                if (provider.activeWallet?.id == wallet.id)
+                  const Icon(
+                    Icons.check_rounded,
+                    color: AppTheme.primary,
+                    size: 18,
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    ];
+  }
+
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<DashboardBloc>().state;
@@ -209,13 +332,60 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
             color: AppTheme.onBackground,
           ),
         ),
-        title: Text(
-          'Activity List',
-          style: GoogleFonts.plusJakartaSans(
-            color: AppTheme.onBackground,
-            fontWeight: FontWeight.bold,
-            fontSize: 20,
-          ),
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Activity List',
+              style: GoogleFonts.plusJakartaSans(
+                color: AppTheme.onBackground,
+                fontWeight: FontWeight.bold,
+                fontSize: 18,
+              ),
+            ),
+            if (provider.activeWallet != null)
+              PopupMenuButton<WalletEntity>(
+                onSelected: (WalletEntity wallet) {
+                  context.read<DashboardBloc>().add(DashboardSelectWalletRequested(wallet));
+                },
+                offset: const Offset(0, 30),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                color: Colors.white,
+                elevation: 4,
+                shadowColor: Colors.black.withAlpha(25),
+                itemBuilder: (context) => _buildWalletMenuItems(provider),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      provider.isSharedMode ? Icons.groups_outlined : Icons.person_outline_rounded,
+                      size: 13,
+                      color: AppTheme.primary,
+                    ),
+                    const SizedBox(width: 4),
+                    Flexible(
+                      child: Text(
+                        provider.activeWallet!.name,
+                        style: GoogleFonts.plusJakartaSans(
+                          color: AppTheme.primary,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 12,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    const Icon(
+                      Icons.arrow_drop_down_rounded,
+                      color: AppTheme.primary,
+                      size: 16,
+                    ),
+                  ],
+                ),
+              ),
+          ],
         ),
         actions: [
           IconButton(
@@ -227,6 +397,26 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
             tooltip: 'Choose date',
           ),
         ],
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () async {
+          await Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (context) => ExpenseEntryScreen(initialDate: _selectedDate),
+            ),
+          );
+          _refreshData();
+        },
+        backgroundColor: AppTheme.primary,
+        foregroundColor: Colors.white,
+        icon: const Icon(Icons.add_rounded),
+        label: Text(
+          'Add Expense',
+          style: GoogleFonts.plusJakartaSans(
+            fontWeight: FontWeight.bold,
+            fontSize: 14,
+          ),
+        ),
       ),
       body: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16.0),
@@ -404,200 +594,303 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
             const SizedBox(height: 24),
 
             // Section Title
-            Text(
-              'Transactions',
-              style: GoogleFonts.plusJakartaSans(
-                fontWeight: FontWeight.bold,
-                fontSize: 18,
-                color: AppTheme.darkSlate,
-              ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Transactions',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18,
+                    color: AppTheme.darkSlate,
+                  ),
+                ),
+                if (provider.isSharedMode)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: AppTheme.primary.withAlpha(15),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(
+                          Icons.groups_rounded,
+                          size: 14,
+                          color: AppTheme.primary,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          'Shared Wallet',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: AppTheme.primary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+              ],
             ),
             const SizedBox(height: 12),
 
-            // Transaction List or Empty State
+            // Transaction List with Pull-to-Refresh
             Expanded(
-              child: dayExpenses.isEmpty
-                  ? _buildEmptyState(context, _selectedDate)
-                  : ListView.builder(
-                      physics: const BouncingScrollPhysics(),
-                      itemCount: dayExpenses.length,
-                      itemBuilder: (context, index) {
-                        final expense = dayExpenses[index];
-                        final catColor = Color(
-                          int.parse(
-                            expense.category.color.replaceFirst(
-                              '#',
-                              '0xFF',
+              child: RefreshIndicator(
+                color: AppTheme.primary,
+                onRefresh: () async {
+                  _refreshData();
+                },
+                child: dayExpenses.isEmpty
+                    ? _buildEmptyState(context, _selectedDate)
+                    : ListView.builder(
+                        physics: const AlwaysScrollableScrollPhysics(
+                          parent: BouncingScrollPhysics(),
+                        ),
+                        itemCount: dayExpenses.length,
+                        itemBuilder: (context, index) {
+                          final expense = dayExpenses[index];
+                          final isMe = expense.userId == user?.id;
+                          final catColor = Color(
+                            int.parse(
+                              expense.category.color.replaceFirst(
+                                '#',
+                                '0xFF',
+                              ),
                             ),
-                          ),
-                        );
+                          );
 
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: 12),
-                          child: Dismissible(
-                            key: Key('activity_${expense.id}'),
-                            direction: DismissDirection.endToStart,
-                            background: Container(
-                              padding: const EdgeInsets.only(right: 20),
-                              alignment: Alignment.centerRight,
-                              decoration: BoxDecoration(
-                                color: AppTheme.error,
-                                borderRadius: BorderRadius.circular(16),
-                              ),
-                              child: const Icon(
-                                Icons.delete,
-                                color: Colors.white,
-                              ),
-                            ),
-                            confirmDismiss: (direction) async {
-                              return await _showDeleteConfirmationDialog(context);
-                            },
-                            onDismissed: (_) {
-                              context.read<DashboardBloc>().add(DashboardDeleteExpenseRequested(expense.id, Completer<bool>()));
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('Expense deleted'),
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 12),
+                            child: Dismissible(
+                              key: Key('activity_${expense.id}'),
+                              direction: isMe
+                                  ? DismissDirection.endToStart
+                                  : DismissDirection.none,
+                              background: Container(
+                                padding: const EdgeInsets.only(right: 20),
+                                alignment: Alignment.centerRight,
+                                decoration: BoxDecoration(
+                                  color: AppTheme.error,
+                                  borderRadius: BorderRadius.circular(16),
                                 ),
-                              );
-                            },
-                            child: Container(
-                              padding: const EdgeInsets.all(16),
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(16),
-                                boxShadow: AppTheme.softShadow,
+                                child: const Icon(
+                                  Icons.delete,
+                                  color: Colors.white,
+                                ),
                               ),
-                              child: Row(
-                                children: [
-                                  CircleAvatar(
-                                    backgroundColor: catColor.withAlpha(30),
-                                    child: CategoryIcon(
-                                      icon: expense.category.icon,
-                                      color: catColor,
-                                      size: 20,
+                              confirmDismiss: (direction) async {
+                                if (!isMe) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('Hanya pembuat transaksi yang dapat menghapus transaksi ini'),
+                                      backgroundColor: AppTheme.error,
                                     ),
+                                  );
+                                  return false;
+                                }
+                                return await _showDeleteConfirmationDialog(context);
+                              },
+                              onDismissed: (_) {
+                                context.read<DashboardBloc>().add(
+                                      DashboardDeleteExpenseRequested(
+                                        expense.id,
+                                        Completer<bool>(),
+                                      ),
+                                    );
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Expense deleted'),
                                   ),
-                                  const SizedBox(width: 16),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          expense.description ??
-                                              expense.category.name,
-                                          style: GoogleFonts.plusJakartaSans(
-                                            fontWeight: FontWeight.bold,
-                                            color: AppTheme.darkSlate,
-                                            fontSize: 14,
+                                );
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.all(16),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(16),
+                                  boxShadow: AppTheme.softShadow,
+                                ),
+                                child: Row(
+                                  children: [
+                                    CircleAvatar(
+                                      backgroundColor: catColor.withAlpha(30),
+                                      child: CategoryIcon(
+                                        icon: expense.category.icon,
+                                        color: catColor,
+                                        size: 20,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 16),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            expense.description ??
+                                                expense.category.name,
+                                            style: GoogleFonts.plusJakartaSans(
+                                              fontWeight: FontWeight.bold,
+                                              color: AppTheme.darkSlate,
+                                              fontSize: 14,
+                                            ),
                                           ),
-                                        ),
-                                        const SizedBox(height: 4),
-                                        Row(
-                                          children: [
-                                            Text(
-                                              DateFormat(
-                                                'hh:mm a',
-                                              ).format(expense.date),
-                                              style: GoogleFonts.beVietnamPro(
-                                                fontSize: 11,
-                                                color: AppTheme
-                                                    .darkSlateVariant,
+                                          const SizedBox(height: 4),
+                                          Wrap(
+                                            crossAxisAlignment: WrapCrossAlignment.center,
+                                            spacing: 6,
+                                            runSpacing: 4,
+                                            children: [
+                                              Text(
+                                                DateFormat(
+                                                  'hh:mm a',
+                                                ).format(expense.date),
+                                                style: GoogleFonts.beVietnamPro(
+                                                  fontSize: 11,
+                                                  color: AppTheme
+                                                      .darkSlateVariant,
+                                                ),
                                               ),
-                                            ),
-                                            const SizedBox(width: 6),
-                                            const Text(
-                                              '•',
-                                              style: TextStyle(
-                                                color: Colors.grey,
-                                                fontSize: 10,
+                                              const Text(
+                                                '•',
+                                                style: TextStyle(
+                                                  color: Colors.grey,
+                                                  fontSize: 10,
+                                                ),
                                               ),
-                                            ),
-                                            const SizedBox(width: 6),
-                                            Container(
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                    horizontal: 8,
+                                              Container(
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                  horizontal: 8,
+                                                  vertical: 2,
+                                                ),
+                                                decoration: BoxDecoration(
+                                                  color: const Color(
+                                                    0xFFF1F5F9,
+                                                  ),
+                                                  borderRadius:
+                                                      BorderRadius.circular(
+                                                    12,
+                                                  ),
+                                                ),
+                                                child: Text(
+                                                  expense.category.name,
+                                                  style: const TextStyle(
+                                                    fontSize: 9,
+                                                    fontWeight:
+                                                        FontWeight.bold,
+                                                  ),
+                                                ),
+                                              ),
+                                              if (provider.isSharedMode)
+                                                Container(
+                                                  padding: const EdgeInsets.symmetric(
+                                                    horizontal: 7,
                                                     vertical: 2,
                                                   ),
-                                              decoration: BoxDecoration(
-                                                color: const Color(
-                                                  0xFFF1F5F9,
+                                                  decoration: BoxDecoration(
+                                                    color: isMe
+                                                        ? const Color(0xFFE0E7FF)
+                                                        : const Color(0xFFFCE7F3),
+                                                    borderRadius: BorderRadius.circular(10),
+                                                  ),
+                                                  child: Row(
+                                                    mainAxisSize: MainAxisSize.min,
+                                                    children: [
+                                                      Icon(
+                                                        isMe
+                                                            ? Icons.person_rounded
+                                                            : Icons.person_outline_rounded,
+                                                        size: 11,
+                                                        color: isMe
+                                                            ? const Color(0xFF4338CA)
+                                                            : const Color(0xFFBE185D),
+                                                      ),
+                                                      const SizedBox(width: 3),
+                                                      Text(
+                                                        isMe
+                                                            ? 'You'
+                                                            : (expense.creatorName.isNotEmpty
+                                                                ? expense.creatorName
+                                                                : 'Partner'),
+                                                        style: TextStyle(
+                                                          fontSize: 9,
+                                                          fontWeight: FontWeight.w600,
+                                                          color: isMe
+                                                              ? const Color(0xFF4338CA)
+                                                              : const Color(0xFFBE185D),
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
                                                 ),
-                                                borderRadius:
-                                                    BorderRadius.circular(
-                                                      12,
-                                                    ),
-                                              ),
-                                              child: Text(
-                                                expense.category.name,
-                                                style: const TextStyle(
-                                                  fontSize: 9,
-                                                  fontWeight:
-                                                      FontWeight.bold,
-                                                ),
+                                            ],
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.end,
+                                      children: [
+                                        Text(
+                                          '-${currencyFormatter.format(expense.amount)}',
+                                          style: GoogleFonts.plusJakartaSans(
+                                            fontWeight: FontWeight.w800,
+                                            color: AppTheme.darkSlate,
+                                            fontSize: 15,
+                                          ),
+                                        ),
+                                        if (provider.isSharedMode) ...[
+                                          const SizedBox(height: 4),
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 6,
+                                              vertical: 2,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color: isMe
+                                                  ? Colors.blue.withAlpha(20)
+                                                  : Colors.pink.withAlpha(20),
+                                              borderRadius: BorderRadius.circular(8),
+                                              border: Border.all(
+                                                color: isMe
+                                                    ? Colors.blue.withAlpha(60)
+                                                    : Colors.pink.withAlpha(60),
+                                                width: 0.8,
                                               ),
                                             ),
-                                          ],
-                                        ),
+                                            child: Text(
+                                              isMe
+                                                  ? 'ME'
+                                                  : (expense.creatorName.length >= 2
+                                                      ? expense.creatorName.substring(0, 2).toUpperCase()
+                                                      : (expense.creatorName.isNotEmpty
+                                                          ? expense.creatorName.toUpperCase()
+                                                          : 'SO')),
+                                              style: TextStyle(
+                                                fontSize: 8,
+                                                fontWeight: FontWeight.bold,
+                                                color: isMe
+                                                    ? Colors.blue[800]
+                                                    : Colors.pink[800],
+                                              ),
+                                            ),
+                                          ),
+                                        ],
                                       ],
                                     ),
-                                  ),
-                                  Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.end,
-                                    children: [
-                                      Text(
-                                        '-${currencyFormatter.format(expense.amount)}',
-                                        style: GoogleFonts.plusJakartaSans(
-                                          fontWeight: FontWeight.w800,
-                                          color: AppTheme.darkSlate,
-                                          fontSize: 15,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 4),
-                                      Container(
-                                        width: 20,
-                                        height: 20,
-                                        decoration: BoxDecoration(
-                                          color: expense.userId == user?.id
-                                              ? Colors.blue[100]
-                                              : Colors.pink[100],
-                                          shape: BoxShape.circle,
-                                          border: Border.all(
-                                            color: Colors.white,
-                                            width: 1,
-                                          ),
-                                        ),
-                                        alignment: Alignment.center,
-                                        child: Text(
-                                          expense.userId == user?.id
-                                              ? 'ME'
-                                              : (expense.creatorName.length >= 2
-                                                  ? expense.creatorName
-                                                      .substring(0, 2)
-                                                      .toUpperCase()
-                                                  : (expense
-                                                          .creatorName
-                                                          .isNotEmpty
-                                                      ? expense.creatorName
-                                                          .toUpperCase()
-                                                      : 'SO')),
-                                          style: const TextStyle(
-                                            fontSize: 7,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ],
+                                  ],
+                                ),
                               ),
                             ),
-                          ),
-                        );
-                      },
-                    ),
+                          );
+                        },
+                      ),
+              ),
             ),
           ],
         ),
@@ -611,63 +904,69 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
         selectedDate.day == DateTime.now().day;
     final dateStr = isToday ? 'today' : DateFormat('dd MMM').format(selectedDate);
 
-    return Center(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(vertical: 40),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Text(
-              '📅',
-              style: TextStyle(fontSize: 48),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'No activity recorded on $dateStr',
-              style: GoogleFonts.plusJakartaSans(
-                fontWeight: FontWeight.bold,
-                fontSize: 16,
-                color: AppTheme.darkSlate,
+    return ListView(
+      physics: const AlwaysScrollableScrollPhysics(
+        parent: BouncingScrollPhysics(),
+      ),
+      padding: const EdgeInsets.symmetric(vertical: 40),
+      children: [
+        Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Text(
+                '📅',
+                style: TextStyle(fontSize: 48),
               ),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              'All clear! No expenses noted for this day.',
-              style: GoogleFonts.beVietnamPro(
-                fontSize: 13,
-                color: Colors.grey[500],
-              ),
-            ),
-            const SizedBox(height: 24),
-            ElevatedButton.icon(
-              onPressed: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => ExpenseEntryScreen(initialDate: selectedDate),
-                  ),
-                );
-              },
-              icon: const Icon(Icons.add, size: 18, color: Colors.white),
-              label: Text(
-                'Add Expense',
+              const SizedBox(height: 16),
+              Text(
+                'No activity recorded on $dateStr',
                 style: GoogleFonts.plusJakartaSans(
                   fontWeight: FontWeight.bold,
-                  fontSize: 14,
+                  fontSize: 16,
+                  color: AppTheme.darkSlate,
                 ),
               ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.primary,
-                foregroundColor: Colors.white,
-                elevation: 0,
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+              const SizedBox(height: 6),
+              Text(
+                'All clear! No expenses noted for this day.',
+                style: GoogleFonts.beVietnamPro(
+                  fontSize: 13,
+                  color: Colors.grey[500],
                 ),
               ),
-            ),
-          ],
+              const SizedBox(height: 24),
+              ElevatedButton.icon(
+                onPressed: () async {
+                  await Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => ExpenseEntryScreen(initialDate: selectedDate),
+                    ),
+                  );
+                  _refreshData();
+                },
+                icon: const Icon(Icons.add, size: 18, color: Colors.white),
+                label: Text(
+                  'Add Expense',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  ),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.primary,
+                  foregroundColor: Colors.white,
+                  elevation: 0,
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
-      ),
+      ],
     );
   }
 }

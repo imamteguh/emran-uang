@@ -1161,7 +1161,11 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
   }
 
   Future<List<ExpenseEntity>> _fetchExpensesDataHelper(String walletId) async {
-    final response = await _client.dio.get('/expenses', queryParameters: {'walletId': walletId});
+    final response = await _client.dio.get('/expenses', queryParameters: {
+      'walletId': walletId,
+      'timeframe': 'all',
+      'limit': 500,
+    });
     if (response.data != null && response.data['success'] == true) {
       final list = response.data['data'] as List;
       return list.map((item) => ExpenseEntity.fromJson(item as Map)).toList();
