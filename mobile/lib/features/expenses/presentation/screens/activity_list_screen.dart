@@ -39,7 +39,9 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
   void _refreshData() {
     final activeWallet = context.read<DashboardBloc>().state.activeWallet;
     if (activeWallet != null) {
-      context.read<DashboardBloc>().add(DashboardSelectWalletRequested(activeWallet));
+      context.read<DashboardBloc>().add(
+        DashboardSelectWalletRequested(activeWallet),
+      );
     } else {
       context.read<DashboardBloc>().add(const DashboardRefreshRequested());
     }
@@ -48,7 +50,9 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
   List<DateTime> _generateWeekDates(DateTime referenceDate) {
     // Generate the Monday to Sunday week containing the reference date
     final int currentWeekday = referenceDate.weekday; // 1 = Monday, 7 = Sunday
-    final DateTime monday = referenceDate.subtract(Duration(days: currentWeekday - 1));
+    final DateTime monday = referenceDate.subtract(
+      Duration(days: currentWeekday - 1),
+    );
     return List.generate(7, (index) => monday.add(Duration(days: index)));
   }
 
@@ -87,9 +91,7 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
               onSurface: AppTheme.darkSlate,
             ),
             textButtonTheme: TextButtonThemeData(
-              style: TextButton.styleFrom(
-                foregroundColor: AppTheme.primary,
-              ),
+              style: TextButton.styleFrom(foregroundColor: AppTheme.primary),
             ),
           ),
           child: child!,
@@ -105,19 +107,19 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
   }
 
   bool _hasTransaction(DateTime date, List<ExpenseEntity> allExpenses) {
-    return allExpenses.any((expense) =>
-        expense.date.year == date.year &&
-        expense.date.month == date.month &&
-        expense.date.day == date.day);
+    return allExpenses.any(
+      (expense) =>
+          expense.date.year == date.year &&
+          expense.date.month == date.month &&
+          expense.date.day == date.day,
+    );
   }
 
   Future<bool?> _showDeleteConfirmationDialog(BuildContext context) {
     return showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(24),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
         backgroundColor: Colors.white,
         title: Row(
           children: [
@@ -152,7 +154,10 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
             height: 1.4,
           ),
         ),
-        actionsPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+        actionsPadding: const EdgeInsets.symmetric(
+          horizontal: 24,
+          vertical: 16,
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
@@ -183,9 +188,7 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
             ),
             child: Text(
               'Delete',
-              style: GoogleFonts.plusJakartaSans(
-                fontWeight: FontWeight.bold,
-              ),
+              style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.bold),
             ),
           ),
         ],
@@ -193,7 +196,9 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
     );
   }
 
-  List<PopupMenuEntry<WalletEntity>> _buildWalletMenuItems(DashboardState provider) {
+  List<PopupMenuEntry<WalletEntity>> _buildWalletMenuItems(
+    DashboardState provider,
+  ) {
     return [
       if (provider.personalWallets.isNotEmpty) ...[
         const PopupMenuItem<WalletEntity>(
@@ -317,7 +322,10 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
           expense.date.day == _selectedDate.day;
     }).toList();
 
-    final double dailyTotal = dayExpenses.fold(0.0, (sum, expense) => sum + expense.amount);
+    final double dailyTotal = dayExpenses.fold(
+      0.0,
+      (sum, expense) => sum + expense.amount,
+    );
 
     return Scaffold(
       backgroundColor: AppTheme.background,
@@ -347,7 +355,9 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
             if (provider.activeWallet != null)
               PopupMenuButton<WalletEntity>(
                 onSelected: (WalletEntity wallet) {
-                  context.read<DashboardBloc>().add(DashboardSelectWalletRequested(wallet));
+                  context.read<DashboardBloc>().add(
+                    DashboardSelectWalletRequested(wallet),
+                  );
                 },
                 offset: const Offset(0, 30),
                 shape: RoundedRectangleBorder(
@@ -361,7 +371,9 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Icon(
-                      provider.isSharedMode ? Icons.groups_outlined : Icons.person_outline_rounded,
+                      provider.isSharedMode
+                          ? Icons.groups_outlined
+                          : Icons.person_outline_rounded,
                       size: 13,
                       color: AppTheme.primary,
                     ),
@@ -402,7 +414,8 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
         onPressed: () async {
           await Navigator.of(context).push(
             MaterialPageRoute(
-              builder: (context) => ExpenseEntryScreen(initialDate: _selectedDate),
+              builder: (context) =>
+                  ExpenseEntryScreen(initialDate: _selectedDate),
             ),
           );
           _refreshData();
@@ -457,10 +470,12 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: _weekDates.map((date) {
-                final isSelected = date.year == _selectedDate.year &&
+                final isSelected =
+                    date.year == _selectedDate.year &&
                     date.month == _selectedDate.month &&
                     date.day == _selectedDate.day;
-                final isToday = date.year == DateTime.now().year &&
+                final isToday =
+                    date.year == DateTime.now().year &&
                     date.month == DateTime.now().month &&
                     date.day == DateTime.now().day;
                 final hasTx = _hasTransaction(date, provider.expenses);
@@ -478,15 +493,15 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
                           color: isSelected
                               ? AppTheme.primary
                               : (isToday
-                                  ? AppTheme.primary.withAlpha(20)
-                                  : Colors.white),
+                                    ? AppTheme.primary.withAlpha(20)
+                                    : Colors.white),
                           borderRadius: BorderRadius.circular(16),
                           border: Border.all(
                             color: isSelected
                                 ? AppTheme.primary
                                 : (isToday
-                                    ? AppTheme.primary.withAlpha(80)
-                                    : Colors.grey[200]!),
+                                      ? AppTheme.primary.withAlpha(80)
+                                      : Colors.grey[200]!),
                             width: 1.5,
                           ),
                           boxShadow: isSelected ? AppTheme.cardShadow : null,
@@ -523,8 +538,8 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
                                 shape: BoxShape.circle,
                                 color: hasTx
                                     ? (isSelected
-                                        ? Colors.white
-                                        : AppTheme.primary)
+                                          ? Colors.white
+                                          : AppTheme.primary)
                                     : Colors.transparent,
                               ),
                             ),
@@ -607,7 +622,10 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
                 ),
                 if (provider.isSharedMode)
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 3,
+                    ),
                     decoration: BoxDecoration(
                       color: AppTheme.primary.withAlpha(15),
                       borderRadius: BorderRadius.circular(12),
@@ -655,10 +673,7 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
                           final isMe = expense.userId == user?.id;
                           final catColor = Color(
                             int.parse(
-                              expense.category.color.replaceFirst(
-                                '#',
-                                '0xFF',
-                              ),
+                              expense.category.color.replaceFirst('#', '0xFF'),
                             ),
                           );
 
@@ -685,21 +700,25 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
                                 if (!isMe) {
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     const SnackBar(
-                                      content: Text('Hanya pembuat transaksi yang dapat menghapus transaksi ini'),
+                                      content: Text(
+                                        'Hanya pembuat transaksi yang dapat menghapus transaksi ini',
+                                      ),
                                       backgroundColor: AppTheme.error,
                                     ),
                                   );
                                   return false;
                                 }
-                                return await _showDeleteConfirmationDialog(context);
+                                return await _showDeleteConfirmationDialog(
+                                  context,
+                                );
                               },
                               onDismissed: (_) {
                                 context.read<DashboardBloc>().add(
-                                      DashboardDeleteExpenseRequested(
-                                        expense.id,
-                                        Completer<bool>(),
-                                      ),
-                                    );
+                                  DashboardDeleteExpenseRequested(
+                                    expense.id,
+                                    Completer<bool>(),
+                                  ),
+                                );
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   const SnackBar(
                                     content: Text('Expense deleted'),
@@ -740,7 +759,8 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
                                           ),
                                           const SizedBox(height: 4),
                                           Wrap(
-                                            crossAxisAlignment: WrapCrossAlignment.center,
+                                            crossAxisAlignment:
+                                                WrapCrossAlignment.center,
                                             spacing: 6,
                                             runSpacing: 4,
                                             children: [
@@ -750,8 +770,8 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
                                                 ).format(expense.date),
                                                 style: GoogleFonts.beVietnamPro(
                                                   fontSize: 11,
-                                                  color: AppTheme
-                                                      .darkSlateVariant,
+                                                  color:
+                                                      AppTheme.darkSlateVariant,
                                                 ),
                                               ),
                                               const Text(
@@ -764,64 +784,84 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
                                               Container(
                                                 padding:
                                                     const EdgeInsets.symmetric(
-                                                  horizontal: 8,
-                                                  vertical: 2,
-                                                ),
+                                                      horizontal: 8,
+                                                      vertical: 2,
+                                                    ),
                                                 decoration: BoxDecoration(
                                                   color: const Color(
                                                     0xFFF1F5F9,
                                                   ),
                                                   borderRadius:
-                                                      BorderRadius.circular(
-                                                    12,
-                                                  ),
+                                                      BorderRadius.circular(12),
                                                 ),
                                                 child: Text(
                                                   expense.category.name,
                                                   style: const TextStyle(
                                                     fontSize: 9,
-                                                    fontWeight:
-                                                        FontWeight.bold,
+                                                    fontWeight: FontWeight.bold,
                                                   ),
                                                 ),
                                               ),
                                               if (provider.isSharedMode)
                                                 Container(
-                                                  padding: const EdgeInsets.symmetric(
-                                                    horizontal: 7,
-                                                    vertical: 2,
-                                                  ),
+                                                  padding:
+                                                      const EdgeInsets.symmetric(
+                                                        horizontal: 7,
+                                                        vertical: 2,
+                                                      ),
                                                   decoration: BoxDecoration(
                                                     color: isMe
-                                                        ? const Color(0xFFE0E7FF)
-                                                        : const Color(0xFFFCE7F3),
-                                                    borderRadius: BorderRadius.circular(10),
+                                                        ? const Color(
+                                                            0xFFE0E7FF,
+                                                          )
+                                                        : const Color(
+                                                            0xFFFCE7F3,
+                                                          ),
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                          10,
+                                                        ),
                                                   ),
                                                   child: Row(
-                                                    mainAxisSize: MainAxisSize.min,
+                                                    mainAxisSize:
+                                                        MainAxisSize.min,
                                                     children: [
                                                       Icon(
                                                         isMe
-                                                            ? Icons.person_rounded
-                                                            : Icons.person_outline_rounded,
+                                                            ? Icons
+                                                                  .person_rounded
+                                                            : Icons
+                                                                  .person_outline_rounded,
                                                         size: 11,
                                                         color: isMe
-                                                            ? const Color(0xFF4338CA)
-                                                            : const Color(0xFFBE185D),
+                                                            ? const Color(
+                                                                0xFF4338CA,
+                                                              )
+                                                            : const Color(
+                                                                0xFFBE185D,
+                                                              ),
                                                       ),
                                                       const SizedBox(width: 3),
                                                       Text(
                                                         isMe
                                                             ? 'You'
-                                                            : (expense.creatorName.isNotEmpty
-                                                                ? expense.creatorName
-                                                                : 'Partner'),
+                                                            : (expense
+                                                                      .creatorName
+                                                                      .isNotEmpty
+                                                                  ? expense
+                                                                        .creatorName
+                                                                  : 'Partner'),
                                                         style: TextStyle(
                                                           fontSize: 9,
-                                                          fontWeight: FontWeight.w600,
+                                                          fontWeight:
+                                                              FontWeight.w600,
                                                           color: isMe
-                                                              ? const Color(0xFF4338CA)
-                                                              : const Color(0xFFBE185D),
+                                                              ? const Color(
+                                                                  0xFF4338CA,
+                                                                )
+                                                              : const Color(
+                                                                  0xFFBE185D,
+                                                                ),
                                                         ),
                                                       ),
                                                     ],
@@ -855,7 +895,8 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
                                               color: isMe
                                                   ? Colors.blue.withAlpha(20)
                                                   : Colors.pink.withAlpha(20),
-                                              borderRadius: BorderRadius.circular(8),
+                                              borderRadius:
+                                                  BorderRadius.circular(8),
                                               border: Border.all(
                                                 color: isMe
                                                     ? Colors.blue.withAlpha(60)
@@ -866,11 +907,20 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
                                             child: Text(
                                               isMe
                                                   ? 'ME'
-                                                  : (expense.creatorName.length >= 2
-                                                      ? expense.creatorName.substring(0, 2).toUpperCase()
-                                                      : (expense.creatorName.isNotEmpty
-                                                          ? expense.creatorName.toUpperCase()
-                                                          : 'SO')),
+                                                  : (expense
+                                                                .creatorName
+                                                                .length >=
+                                                            2
+                                                        ? expense.creatorName
+                                                              .substring(0, 2)
+                                                              .toUpperCase()
+                                                        : (expense
+                                                                  .creatorName
+                                                                  .isNotEmpty
+                                                              ? expense
+                                                                    .creatorName
+                                                                    .toUpperCase()
+                                                              : 'SO')),
                                               style: TextStyle(
                                                 fontSize: 8,
                                                 fontWeight: FontWeight.bold,
@@ -899,10 +949,13 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
   }
 
   Widget _buildEmptyState(BuildContext context, DateTime selectedDate) {
-    final isToday = selectedDate.year == DateTime.now().year &&
+    final isToday =
+        selectedDate.year == DateTime.now().year &&
         selectedDate.month == DateTime.now().month &&
         selectedDate.day == DateTime.now().day;
-    final dateStr = isToday ? 'today' : DateFormat('dd MMM').format(selectedDate);
+    final dateStr = isToday
+        ? 'today'
+        : DateFormat('dd MMM').format(selectedDate);
 
     return ListView(
       physics: const AlwaysScrollableScrollPhysics(
@@ -914,10 +967,7 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Text(
-                '📅',
-                style: TextStyle(fontSize: 48),
-              ),
+              const Text('📅', style: TextStyle(fontSize: 48)),
               const SizedBox(height: 16),
               Text(
                 'No activity recorded on $dateStr',
@@ -933,34 +983,6 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
                 style: GoogleFonts.beVietnamPro(
                   fontSize: 13,
                   color: Colors.grey[500],
-                ),
-              ),
-              const SizedBox(height: 24),
-              ElevatedButton.icon(
-                onPressed: () async {
-                  await Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => ExpenseEntryScreen(initialDate: selectedDate),
-                    ),
-                  );
-                  _refreshData();
-                },
-                icon: const Icon(Icons.add, size: 18, color: Colors.white),
-                label: Text(
-                  'Add Expense',
-                  style: GoogleFonts.plusJakartaSans(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
-                  ),
-                ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.primary,
-                  foregroundColor: Colors.white,
-                  elevation: 0,
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
                 ),
               ),
             ],

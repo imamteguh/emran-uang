@@ -24,27 +24,49 @@ class AnalyticsScreen extends StatefulWidget {
 }
 
 class _AnalyticsScreenState extends State<AnalyticsScreen> {
+  final ScrollController _tabScrollController = ScrollController();
   int _activeFilterIndex = 0; // 0: This Month, 1: Last Month
   String? _selectedCategoryId;
+
+  @override
+  void dispose() {
+    _tabScrollController.dispose();
+    super.dispose();
+  }
 
   void _navigateToCategoryDetails(
     ExpenseCategory category,
     String monthStr,
     String currencyCode,
   ) {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => CategoryMonthlyExpensesScreen(
-          category: category,
-          monthStr: monthStr,
-          walletId: context.read<DashboardBloc>().state.activeWallet?.id ?? '',
-          walletName: context.read<DashboardBloc>().state.activeWallet?.name ?? '',
-          currencyCode: currencyCode,
-        ),
-      ),
-    ).then((_) {
-      if (!mounted) return;
-      context.read<DashboardBloc>().add(const DashboardRefreshRequested());
+    Navigator.of(context)
+        .push(
+          MaterialPageRoute(
+            builder: (_) => CategoryMonthlyExpensesScreen(
+              category: category,
+              monthStr: monthStr,
+              walletId:
+                  context.read<DashboardBloc>().state.activeWallet?.id ?? '',
+              walletName:
+                  context.read<DashboardBloc>().state.activeWallet?.name ?? '',
+              currencyCode: currencyCode,
+            ),
+          ),
+        )
+        .then((_) {
+          if (!mounted) return;
+          context.read<DashboardBloc>().add(const DashboardRefreshRequested());
+        });
+  }
+
+  void _scrollToNewestTab() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_tabScrollController.hasClients &&
+          _tabScrollController.position.maxScrollExtent > 0) {
+        _tabScrollController.jumpTo(
+          _tabScrollController.position.maxScrollExtent,
+        );
+      }
     });
   }
 
@@ -56,6 +78,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
       if (dashboardBloc.state.compareData == null) {
         dashboardBloc.add(const DashboardFetchAnalyticsRequested());
       }
+      _scrollToNewestTab();
     });
   }
 
@@ -198,7 +221,9 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
               setState(() {
                 _selectedCategoryId = null;
               });
-              context.read<DashboardBloc>().add(DashboardSelectWalletRequested(wallet));
+              context.read<DashboardBloc>().add(
+                DashboardSelectWalletRequested(wallet),
+              );
             },
             offset: const Offset(0, 50),
             shape: RoundedRectangleBorder(
@@ -353,7 +378,8 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     final currencyCode = provider.activeWallet?.currency ?? 'IDR';
     final currencyFormatter = CurrencyHelper.getFormatter(currencyCode);
 
-    if ((provider.isLoading || provider.isLoadingAnalytics) && provider.compareData == null) {
+    if ((provider.isLoading || provider.isLoadingAnalytics) &&
+        provider.compareData == null) {
       return Scaffold(
         appBar: AppBar(
           automaticallyImplyLeading: false,
@@ -386,7 +412,9 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
         ),
         body: RefreshIndicator(
           onRefresh: () async {
-            context.read<DashboardBloc>().add(const DashboardRefreshRequested());
+            context.read<DashboardBloc>().add(
+              const DashboardRefreshRequested(),
+            );
           },
           child: ListView(
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 48),
@@ -468,7 +496,9 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
 
     // Ensure we have a valid selection from the active categories
     String? currentSelectedId = _selectedCategoryId;
-    final existsInActive = activeCategories.any((c) => c['category']['id'] == currentSelectedId);
+    final existsInActive = activeCategories.any(
+      (c) => c['category']['id'] == currentSelectedId,
+    );
     if (!existsInActive || currentSelectedId == null) {
       if (activeCategories.isNotEmpty) {
         currentSelectedId = activeCategories[0]['category']['id'];
@@ -486,7 +516,9 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
       // Find in activeCategories first to get its total
       Map<String, dynamic>? activeMatch;
       for (var c in activeCategories) {
-        if (c is Map && c['category'] != null && c['category']['id'] == currentSelectedId) {
+        if (c is Map &&
+            c['category'] != null &&
+            c['category']['id'] == currentSelectedId) {
           activeMatch = Map<String, dynamic>.from(c);
           break;
         }
@@ -534,8 +566,12 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
       }
     }
     final totalSplitSpend = routineSpend + nonRoutineSpend;
-    final routinePercent = totalSplitSpend > 0 ? routineSpend / totalSplitSpend : 0.0;
-    final nonRoutinePercent = totalSplitSpend > 0 ? nonRoutineSpend / totalSplitSpend : 0.0;
+    final routinePercent = totalSplitSpend > 0
+        ? routineSpend / totalSplitSpend
+        : 0.0;
+    final nonRoutinePercent = totalSplitSpend > 0
+        ? nonRoutineSpend / totalSplitSpend
+        : 0.0;
 
     // Insight
     final prevMonthData = (filterIndex + 1 < monthsList.length)
@@ -573,7 +609,9 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
             Expanded(
               child: RefreshIndicator(
                 onRefresh: () async {
-                  context.read<DashboardBloc>().add(const DashboardRefreshRequested());
+                  context.read<DashboardBloc>().add(
+                    const DashboardRefreshRequested(),
+                  );
                 },
                 child: SingleChildScrollView(
                   physics: const AlwaysScrollableScrollPhysics(),
@@ -584,508 +622,595 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                       // Header title
                       Text(
                         'MONTHLY INSIGHTS',
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: responsive.scaleFont(11),
-                    fontWeight: FontWeight.bold,
-                    color: AppTheme.darkSlateVariant,
-                    letterSpacing: 1.2,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Analysis',
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: responsive.scaleFont(28),
-                        fontWeight: FontWeight.bold,
-                        color: AppTheme.darkSlate,
-                      ),
-                    ),
-                    // Date Filter Row (Scrollable Tabs for All Available Months)
-                    SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: Container(
-                        padding: const EdgeInsets.all(4),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFF1F5F9),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Row(
-                          children: List.generate(monthsList.length, (index) {
-                            final monthData =
-                                monthsList[index] as Map<String, dynamic>;
-                            final label = _formatMonthYear(
-                              monthData['month'] as String,
-                            );
-                            final isSelected = filterIndex == index;
-                            return GestureDetector(
-                              onTap: () {
-                                setState(() {
-                                  _activeFilterIndex = index;
-                                });
-                              },
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                  vertical: 6,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: isSelected
-                                      ? AppTheme.primary
-                                      : Colors.transparent,
-                                  borderRadius: BorderRadius.circular(16),
-                                ),
-                                child: Text(
-                                  label,
-                                  style: TextStyle(
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.bold,
-                                    color: isSelected
-                                        ? Colors.white
-                                        : AppTheme.darkSlateVariant,
-                                  ),
-                                ),
-                              ),
-                            );
-                          }),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 20),
-
-                // Total Spending Hero Box
-                Container(
-                  width: double.infinity,
-                  clipBehavior: Clip.antiAlias,
-                  decoration: BoxDecoration(
-                    color: AppTheme.primary,
-                    borderRadius: AppTheme.roundedBorder,
-                    boxShadow: AppTheme.softShadow,
-                  ),
-                  child: Stack(
-                    children: [
-                      Positioned(
-                        right: -10,
-                        bottom: -10,
-                        child: Icon(
-                          Icons.analytics,
-                          size: 130,
-                          color: Colors.white.withAlpha(25),
-                        ),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.all(24),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Total Spending',
-                              style: GoogleFonts.plusJakartaSans(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.white.withAlpha(200),
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              currencyFormatter.format(activeMonthTotal),
-                              style: GoogleFonts.plusJakartaSans(
-                                fontSize: responsive.scaleFont(30),
-                                fontWeight: FontWeight.w800,
-                                color: Colors.white,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            if (hasComparison)
-                              Row(
-                                children: [
-                                  Icon(
-                                    direction == 'decreased'
-                                        ? Icons.trending_down
-                                        : Icons.trending_up,
-                                    color: Colors.white,
-                                    size: 16,
-                                  ),
-                                  const SizedBox(width: 6),
-                                  Text(
-                                    '${changePercent.abs().toStringAsFixed(1)}% ${direction == 'decreased' ? 'less' : 'more'} than $prevMonthLabel',
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
-                                ],
-                              )
-                            else
-                              const Row(
-                                children: [
-                                  Icon(
-                                    Icons.trending_flat,
-                                    color: Colors.white,
-                                    size: 16,
-                                  ),
-                                  SizedBox(width: 6),
-                                  Text(
-                                    'No comparison data available',
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 20),
-
-                // Spending Comparison Bar Chart
-                Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: AppTheme.roundedBorder,
-                    boxShadow: AppTheme.softShadow,
-                    border: const Border(
-                      top: BorderSide(color: AppTheme.primary, width: 3.0),
-                    ),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Spending Comparison',
                         style: GoogleFonts.plusJakartaSans(
-                          fontSize: 16,
+                          fontSize: responsive.scaleFont(11),
                           fontWeight: FontWeight.bold,
-                          color: AppTheme.darkSlate,
+                          color: AppTheme.darkSlateVariant,
+                          letterSpacing: 1.2,
                         ),
                       ),
-                      const SizedBox(height: 24),
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        children: chartMonths.map((m) {
-                          final label = _formatMonthYear(m['month'] as String);
-                          final val = _parseDouble(m['total']);
-                          final isActive = monthsList.indexOf(m) == filterIndex;
-                          return _buildChartBar(
-                            label,
-                            val,
-                            maxMonthTotal,
-                            isActive,
-                            currencyFormatter,
-                          );
-                        }).toList(),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 24),
-
-                // Category Split Card
-                Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: AppTheme.roundedBorder,
-                    boxShadow: AppTheme.softShadow,
-                  ),
-                  child: Column(
-                    children: [
+                      const SizedBox(height: 4),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
-                            'Category Split',
+                            'Analysis',
                             style: GoogleFonts.plusJakartaSans(
-                              fontSize: 16,
+                              fontSize: responsive.scaleFont(28),
                               fontWeight: FontWeight.bold,
                               color: AppTheme.darkSlate,
                             ),
                           ),
-                          const Icon(
-                            Icons.pie_chart_outline,
-                            color: AppTheme.darkSlateVariant,
+                          const SizedBox(width: 8),
+                          // Date Filter Row (Scrollable Tabs for All Available Months, newest on the right)
+                          Flexible(
+                            child: SingleChildScrollView(
+                              controller: _tabScrollController,
+                              scrollDirection: Axis.horizontal,
+                              child: Container(
+                                padding: const EdgeInsets.all(4),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFF1F5F9),
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: Row(
+                                  children: List.generate(monthsList.length, (
+                                    i,
+                                  ) {
+                                    // Reverse index so the oldest month is on the left and the newest is on the right
+                                    final index = monthsList.length - 1 - i;
+                                    final monthData =
+                                        monthsList[index] as Map<String, dynamic>;
+                                    final label = _formatMonthYear(
+                                      monthData['month'] as String,
+                                    );
+                                    final isSelected = filterIndex == index;
+                                    return GestureDetector(
+                                      onTap: () {
+                                        setState(() {
+                                          _activeFilterIndex = index;
+                                        });
+                                      },
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 12,
+                                          vertical: 6,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: isSelected
+                                              ? AppTheme.primary
+                                              : Colors.transparent,
+                                          borderRadius: BorderRadius.circular(16),
+                                        ),
+                                        child: Text(
+                                          label,
+                                          style: TextStyle(
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.bold,
+                                            color: isSelected
+                                                ? Colors.white
+                                                : AppTheme.darkSlateVariant,
+                                          ),
+                                        ),
+                                      ),
+                                    );
+                                  }),
+                                ),
+                              ),
+                            ),
                           ),
                         ],
                       ),
                       const SizedBox(height: 20),
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Custom Donut Chart CustomPaint
-                          GestureDetector(
-                            onTap: () {
-                              if (selectedCategoryTotal > 0 && selectedCategory != null) {
-                                final monthStr = activeMonthData['month'] as String;
-                                _navigateToCategoryDetails(selectedCategory, monthStr, currencyCode);
-                              }
-                            },
-                            child: Stack(
-                              alignment: Alignment.center,
-                              children: [
-                                SizedBox(
-                                  width: 110,
-                                  height: 110,
-                                  child: CustomPaint(
-                                    painter: DonutChartPainter(
-                                      categories: activeCategories,
-                                      totalSpend: activeMonthTotal,
-                                      selectedCategoryId: currentSelectedId,
+
+                      // Total Spending Hero Box
+                      Container(
+                        width: double.infinity,
+                        clipBehavior: Clip.antiAlias,
+                        decoration: BoxDecoration(
+                          color: AppTheme.primary,
+                          borderRadius: AppTheme.roundedBorder,
+                          boxShadow: AppTheme.softShadow,
+                        ),
+                        child: Stack(
+                          children: [
+                            Positioned(
+                              right: -10,
+                              bottom: -10,
+                              child: Icon(
+                                Icons.analytics,
+                                size: 130,
+                                color: Colors.white.withAlpha(25),
+                              ),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.all(24),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Total Spending',
+                                    style: GoogleFonts.plusJakartaSans(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w600,
+                                      color: Colors.white.withAlpha(200),
                                     ),
                                   ),
-                                ),
-                                Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    CategoryIcon(
-                                      icon: selectedCatIcon,
-                                      color: _parseHexColor(selectedCatColor),
-                                      size: 24,
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    currencyFormatter.format(activeMonthTotal),
+                                    style: GoogleFonts.plusJakartaSans(
+                                      fontSize: responsive.scaleFont(30),
+                                      fontWeight: FontWeight.w800,
+                                      color: Colors.white,
                                     ),
-                                    const SizedBox(height: 2),
-                                    Container(
-                                      constraints: const BoxConstraints(
-                                        maxWidth: 75,
-                                      ),
-                                      child: Text(
-                                        selectedCatName,
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                        textAlign: TextAlign.center,
-                                        style: GoogleFonts.plusJakartaSans(
-                                          fontSize: 11,
-                                          fontWeight: FontWeight.bold,
-                                          color: _parseHexColor(selectedCatColor),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  if (hasComparison)
+                                    Row(
+                                      children: [
+                                        Icon(
+                                          direction == 'decreased'
+                                              ? Icons.trending_down
+                                              : Icons.trending_up,
+                                          color: Colors.white,
+                                          size: 16,
                                         ),
-                                      ),
-                                    ),
-                                    Text(
-                                      '${(selectedCategoryPercentage * 100).round()}%',
-                                      style: GoogleFonts.plusJakartaSans(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.bold,
-                                        color: AppTheme.darkSlate,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(width: 20),
-                          // Legend List (Displaying All Categories)
-                          Expanded(
-                            child: displayedCategories.isEmpty
-                                ? Center(
-                                    child: Text(
-                                      'No categories',
-                                      style: GoogleFonts.beVietnamPro(
-                                        fontSize: 12,
-                                        color: AppTheme.darkSlateVariant,
-                                      ),
-                                    ),
-                                  )
-                                : Column(
-                                    children: displayedCategories.map((item) {
-                                      final categoryMap = item['category'] as Map;
-                                      final category = ExpenseCategory.fromJson(categoryMap);
-                                      final name = category.name;
-                                      final total = item['total'] as double;
-                                      final colorStr = category.color;
-                                      final color = _parseHexColor(colorStr);
-                                      final isSelected = currentSelectedId == category.id;
-                                      final monthStr = activeMonthData['month'] as String;
-
-                                      return Padding(
-                                        padding: const EdgeInsets.only(bottom: 6.0),
-                                        child: InkWell(
-                                          onTap: () {
-                                            if (isSelected) {
-                                              if (total > 0) {
-                                                _navigateToCategoryDetails(category, monthStr, currencyCode);
-                                              }
-                                            } else {
-                                              setState(() {
-                                                _selectedCategoryId = category.id;
-                                              });
-                                            }
-                                          },
-                                          borderRadius: BorderRadius.circular(10),
-                                          child: Container(
-                                            padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
-                                            decoration: BoxDecoration(
-                                              color: isSelected
-                                                  ? color.withValues(alpha: 0.12)
-                                                  : Colors.transparent,
-                                              borderRadius: BorderRadius.circular(10),
-                                              border: Border.all(
-                                                color: isSelected
-                                                    ? color.withValues(alpha: 0.4)
-                                                    : Colors.transparent,
-                                                width: 1,
-                                              ),
-                                            ),
-                                            child: Row(
-                                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                              children: [
-                                                Expanded(
-                                                  child: Row(
-                                                    children: [
-                                                      Container(
-                                                        width: 8,
-                                                        height: 8,
-                                                        decoration: BoxDecoration(
-                                                          color: color,
-                                                          shape: BoxShape.circle,
-                                                        ),
-                                                      ),
-                                                      const SizedBox(width: 8),
-                                                      Expanded(
-                                                        child: Text(
-                                                          name,
-                                                          maxLines: 1,
-                                                          overflow: TextOverflow.ellipsis,
-                                                          style: GoogleFonts.beVietnamPro(
-                                                            fontSize: 11,
-                                                            fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                                                            color: isSelected ? AppTheme.darkSlate : AppTheme.darkSlate.withValues(alpha: 0.8),
-                                                          ),
-                                                        ),
-                                                      ),
-                                                    ],
-                                                  ),
-                                                ),
-                                                Row(
-                                                  children: [
-                                                    Text(
-                                                      currencyFormatter.format(total),
-                                                      style: GoogleFonts.plusJakartaSans(
-                                                        fontSize: 11,
-                                                        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                                                        color: isSelected ? AppTheme.darkSlate : AppTheme.darkSlate.withValues(alpha: 0.8),
-                                                      ),
-                                                    ),
-                                                    if (isSelected && total > 0) ...[
-                                                      const SizedBox(width: 2),
-                                                      Icon(
-                                                        Icons.chevron_right_rounded,
-                                                        size: 14,
-                                                        color: color,
-                                                      ),
-                                                    ],
-                                                  ],
-                                                ),
-                                              ],
-                                            ),
+                                        const SizedBox(width: 6),
+                                        Text(
+                                          '${changePercent.abs().toStringAsFixed(1)}% ${direction == 'decreased' ? 'less' : 'more'} than $prevMonthLabel',
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.w500,
                                           ),
                                         ),
-                                      );
-                                    }).toList(),
-                                  ),
-                          ),
-                        ],
+                                      ],
+                                    )
+                                  else
+                                    const Row(
+                                      children: [
+                                        Icon(
+                                          Icons.trending_flat,
+                                          color: Colors.white,
+                                          size: 16,
+                                        ),
+                                        SizedBox(width: 6),
+                                        Text(
+                                          'No comparison data available',
+                                          style: TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 24),
+                      const SizedBox(height: 20),
 
-                // Routine vs Non-Routine Split Row
-                Row(
-                  children: [
-                    Expanded(
-                      child: _buildSplitCard(
-                        'Routine',
-                        routineSpend,
-                        'Fixed subscriptions & bills',
-                        Icons.repeat,
-                        AppTheme.primary,
-                        currencyCode,
-                        routinePercent,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: _buildSplitCard(
-                        'Non-Routine',
-                        nonRoutineSpend,
-                        'Daily dining out & travel',
-                        Icons.rocket_launch,
-                        AppTheme.tertiary,
-                        currencyCode,
-                        nonRoutinePercent,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 24),
-
-                // Insight Card
-                Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: AppTheme.secondaryContainer,
-                    borderRadius: AppTheme.roundedBorder,
-                  ),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
+                      // Spending Comparison Bar Chart
                       Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: const BoxDecoration(
-                          color: AppTheme.secondary,
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(
-                          Icons.lightbulb_outline,
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
                           color: Colors.white,
-                          size: 20,
+                          borderRadius: AppTheme.roundedBorder,
+                          boxShadow: AppTheme.softShadow,
+                          border: const Border(
+                            top: BorderSide(
+                              color: AppTheme.primary,
+                              width: 3.0,
+                            ),
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Budget Insight',
+                              'Spending Comparison',
                               style: GoogleFonts.plusJakartaSans(
+                                fontSize: 16,
                                 fontWeight: FontWeight.bold,
-                                fontSize: 15,
-                                color: AppTheme.secondary,
+                                color: AppTheme.darkSlate,
                               ),
                             ),
-                            const SizedBox(height: 4),
-                            Text(
-                              insightMessage,
-                              style: GoogleFonts.beVietnamPro(
-                                fontSize: 13,
-                                color: AppTheme.secondary.withAlpha(200),
-                              ),
+                            const SizedBox(height: 24),
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                              children: chartMonths.map((m) {
+                                final label = _formatMonthYear(
+                                  m['month'] as String,
+                                );
+                                final val = _parseDouble(m['total']);
+                                final isActive =
+                                    monthsList.indexOf(m) == filterIndex;
+                                return _buildChartBar(
+                                  label,
+                                  val,
+                                  maxMonthTotal,
+                                  isActive,
+                                  currencyFormatter,
+                                );
+                              }).toList(),
                             ),
-                            const SizedBox(height: 8),
-                            InkWell(
-                              onTap: () {},
-                              child: Text(
-                                'Review Budgets',
-                                style: GoogleFonts.plusJakartaSans(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.bold,
-                                  color: AppTheme.secondary,
-                                  decoration: TextDecoration.underline,
-                                  decorationColor: AppTheme.secondary,
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+
+                      // Category Split Card
+                      Container(
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: AppTheme.roundedBorder,
+                          boxShadow: AppTheme.softShadow,
+                        ),
+                        child: Column(
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  'Category Split',
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                    color: AppTheme.darkSlate,
+                                  ),
                                 ),
+                                const Icon(
+                                  Icons.pie_chart_outline,
+                                  color: AppTheme.darkSlateVariant,
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 20),
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                // Custom Donut Chart CustomPaint
+                                GestureDetector(
+                                  onTap: () {
+                                    if (selectedCategoryTotal > 0 &&
+                                        selectedCategory != null) {
+                                      final monthStr =
+                                          activeMonthData['month'] as String;
+                                      _navigateToCategoryDetails(
+                                        selectedCategory,
+                                        monthStr,
+                                        currencyCode,
+                                      );
+                                    }
+                                  },
+                                  child: Stack(
+                                    alignment: Alignment.center,
+                                    children: [
+                                      SizedBox(
+                                        width: 110,
+                                        height: 110,
+                                        child: CustomPaint(
+                                          painter: DonutChartPainter(
+                                            categories: activeCategories,
+                                            totalSpend: activeMonthTotal,
+                                            selectedCategoryId:
+                                                currentSelectedId,
+                                          ),
+                                        ),
+                                      ),
+                                      Column(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          CategoryIcon(
+                                            icon: selectedCatIcon,
+                                            color: _parseHexColor(
+                                              selectedCatColor,
+                                            ),
+                                            size: 24,
+                                          ),
+                                          const SizedBox(height: 2),
+                                          Container(
+                                            constraints: const BoxConstraints(
+                                              maxWidth: 75,
+                                            ),
+                                            child: Text(
+                                              selectedCatName,
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                              textAlign: TextAlign.center,
+                                              style:
+                                                  GoogleFonts.plusJakartaSans(
+                                                    fontSize: 11,
+                                                    fontWeight: FontWeight.bold,
+                                                    color: _parseHexColor(
+                                                      selectedCatColor,
+                                                    ),
+                                                  ),
+                                            ),
+                                          ),
+                                          Text(
+                                            '${(selectedCategoryPercentage * 100).round()}%',
+                                            style: GoogleFonts.plusJakartaSans(
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.bold,
+                                              color: AppTheme.darkSlate,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(width: 20),
+                                // Legend List (Displaying All Categories)
+                                Expanded(
+                                  child: displayedCategories.isEmpty
+                                      ? Center(
+                                          child: Text(
+                                            'No categories',
+                                            style: GoogleFonts.beVietnamPro(
+                                              fontSize: 12,
+                                              color: AppTheme.darkSlateVariant,
+                                            ),
+                                          ),
+                                        )
+                                      : Column(
+                                          children: displayedCategories.map((
+                                            item,
+                                          ) {
+                                            final categoryMap =
+                                                item['category'] as Map;
+                                            final category =
+                                                ExpenseCategory.fromJson(
+                                                  categoryMap,
+                                                );
+                                            final name = category.name;
+                                            final total =
+                                                item['total'] as double;
+                                            final colorStr = category.color;
+                                            final color = _parseHexColor(
+                                              colorStr,
+                                            );
+                                            final isSelected =
+                                                currentSelectedId ==
+                                                category.id;
+                                            final monthStr =
+                                                activeMonthData['month']
+                                                    as String;
+
+                                            return Padding(
+                                              padding: const EdgeInsets.only(
+                                                bottom: 6.0,
+                                              ),
+                                              child: InkWell(
+                                                onTap: () {
+                                                  if (isSelected) {
+                                                    if (total > 0) {
+                                                      _navigateToCategoryDetails(
+                                                        category,
+                                                        monthStr,
+                                                        currencyCode,
+                                                      );
+                                                    }
+                                                  } else {
+                                                    setState(() {
+                                                      _selectedCategoryId =
+                                                          category.id;
+                                                    });
+                                                  }
+                                                },
+                                                borderRadius:
+                                                    BorderRadius.circular(10),
+                                                child: Container(
+                                                  padding:
+                                                      const EdgeInsets.symmetric(
+                                                        vertical: 6,
+                                                        horizontal: 8,
+                                                      ),
+                                                  decoration: BoxDecoration(
+                                                    color: isSelected
+                                                        ? color.withValues(
+                                                            alpha: 0.12,
+                                                          )
+                                                        : Colors.transparent,
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                          10,
+                                                        ),
+                                                    border: Border.all(
+                                                      color: isSelected
+                                                          ? color.withValues(
+                                                              alpha: 0.4,
+                                                            )
+                                                          : Colors.transparent,
+                                                      width: 1,
+                                                    ),
+                                                  ),
+                                                  child: Row(
+                                                    mainAxisAlignment:
+                                                        MainAxisAlignment
+                                                            .spaceBetween,
+                                                    children: [
+                                                      Expanded(
+                                                        child: Row(
+                                                          children: [
+                                                            Container(
+                                                              width: 8,
+                                                              height: 8,
+                                                              decoration:
+                                                                  BoxDecoration(
+                                                                    color:
+                                                                        color,
+                                                                    shape: BoxShape
+                                                                        .circle,
+                                                                  ),
+                                                            ),
+                                                            const SizedBox(
+                                                              width: 8,
+                                                            ),
+                                                            Expanded(
+                                                              child: Text(
+                                                                name,
+                                                                maxLines: 1,
+                                                                overflow:
+                                                                    TextOverflow
+                                                                        .ellipsis,
+                                                                style: GoogleFonts.beVietnamPro(
+                                                                  fontSize: 11,
+                                                                  fontWeight:
+                                                                      isSelected
+                                                                      ? FontWeight
+                                                                            .bold
+                                                                      : FontWeight
+                                                                            .w500,
+                                                                  color:
+                                                                      isSelected
+                                                                      ? AppTheme
+                                                                            .darkSlate
+                                                                      : AppTheme
+                                                                            .darkSlate
+                                                                            .withValues(
+                                                                              alpha: 0.8,
+                                                                            ),
+                                                                ),
+                                                              ),
+                                                            ),
+                                                          ],
+                                                        ),
+                                                      ),
+                                                      Row(
+                                                        children: [
+                                                          Text(
+                                                            currencyFormatter
+                                                                .format(total),
+                                                            style: GoogleFonts.plusJakartaSans(
+                                                              fontSize: 11,
+                                                              fontWeight:
+                                                                  isSelected
+                                                                  ? FontWeight
+                                                                        .bold
+                                                                  : FontWeight
+                                                                        .normal,
+                                                              color: isSelected
+                                                                  ? AppTheme
+                                                                        .darkSlate
+                                                                  : AppTheme
+                                                                        .darkSlate
+                                                                        .withValues(
+                                                                          alpha:
+                                                                              0.8,
+                                                                        ),
+                                                            ),
+                                                          ),
+                                                          if (isSelected &&
+                                                              total > 0) ...[
+                                                            const SizedBox(
+                                                              width: 2,
+                                                            ),
+                                                            Icon(
+                                                              Icons
+                                                                  .chevron_right_rounded,
+                                                              size: 14,
+                                                              color: color,
+                                                            ),
+                                                          ],
+                                                        ],
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ),
+                                              ),
+                                            );
+                                          }).toList(),
+                                        ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+
+                      // Routine vs Non-Routine Split Row
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _buildSplitCard(
+                              'Routine',
+                              routineSpend,
+                              'Fixed subscriptions & bills',
+                              Icons.repeat,
+                              AppTheme.primary,
+                              currencyCode,
+                              routinePercent,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: _buildSplitCard(
+                              'Non-Routine',
+                              nonRoutineSpend,
+                              'Daily dining out & travel',
+                              Icons.rocket_launch,
+                              AppTheme.tertiary,
+                              currencyCode,
+                              nonRoutinePercent,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 24),
+
+                      // Insight Card
+                      Container(
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          color: AppTheme.secondaryContainer,
+                          borderRadius: AppTheme.roundedBorder,
+                        ),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: const BoxDecoration(
+                                color: AppTheme.secondary,
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(
+                                Icons.lightbulb_outline,
+                                color: Colors.white,
+                                size: 20,
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Budget Insight',
+                                    style: GoogleFonts.plusJakartaSans(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 15,
+                                      color: AppTheme.secondary,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    insightMessage,
+                                    style: GoogleFonts.beVietnamPro(
+                                      fontSize: 13,
+                                      color: AppTheme.secondary.withAlpha(200),
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
                           ],
@@ -1094,15 +1219,12 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                     ],
                   ),
                 ),
-              ],
+              ),
             ),
-          ),
+          ],
         ),
       ),
-      ],
-    ),
-  ),
-);
+    );
   }
 
   // ─── Chart Bar Painter helper ──────────────────────────────────────────────
@@ -1149,7 +1271,6 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
       ],
     );
   }
-
 
   // ─── Routine vs Variable card helper ───────────────────────────────────────
 
@@ -1246,7 +1367,10 @@ class DonutChartPainter extends CustomPainter {
     }
 
     final double radius = size.width / 2;
-    final Rect rect = Rect.fromCircle(center: size.center(Offset.zero), radius: radius - 8);
+    final Rect rect = Rect.fromCircle(
+      center: size.center(Offset.zero),
+      radius: radius - 8,
+    );
     double startAngle = -3.141592653589793 / 2; // -pi/2
 
     for (var cat in categories) {

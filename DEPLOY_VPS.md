@@ -5,6 +5,7 @@ Panduan lengkap langkah demi langkah untuk mendistribusikan backend **Emran Uang
 ---
 
 ## Daftar Isi
+
 1. [Prasyarat](#1-prasyarat)
 2. [Instalasi Docker & Docker Compose di VPS](#2-instalasi-docker--docker-compose-di-vps)
 3. [Clone Repository & Konfigurasi .env](#3-clone-repository--konfigurasi-env)
@@ -46,6 +47,7 @@ docker compose version
 ```
 
 Aktifkan firewall dasar untuk keamanan:
+
 ```bash
 sudo ufw allow OpenSSH
 sudo ufw allow 80/tcp
@@ -77,6 +79,7 @@ nano .env
 ### Konfigurasi penting pada `.env`:
 
 #### A. Database (Pilih salah satu):
+
 - **Opsi 1: PostgreSQL Lokal di Docker (Bawaan)**
   Biarkan konfigurasi default:
   ```env
@@ -92,14 +95,19 @@ nano .env
   ```
 
 #### B. JWT Secret:
+
 Buat string acak di terminal dengan:
+
 ```bash
 openssl rand -base64 32
 ```
+
 Lalu tempel hasilnya ke `JWT_SECRET` dan `JWT_REFRESH_SECRET` di `.env`.
 
 #### C. Firebase Service Account (Opsional untuk Push Notifikasi):
+
 Jika Anda memiliki file `firebase-service-account.json`, Anda bisa menyalin isinya menjadi string satu baris di variabel:
+
 ```env
 FIREBASE_SERVICE_ACCOUNT='{"type":"service_account", ...}'
 ```
@@ -118,6 +126,7 @@ docker compose up -d --build
 ```
 
 ### Periksa Status Container:
+
 ```bash
 # Cek apakah container berjalan lancar
 docker compose ps
@@ -129,10 +138,13 @@ docker compose logs -f api
 Saat pertama kali berjalan, container akan otomatis menjalankan `prisma db push` untuk membuat tabel dan skema database secara otomatis.
 
 ### Tes Endpoint API:
+
 ```bash
 curl http://localhost:3000/api
 ```
+
 Output yang diharapkan:
+
 ```json
 {"success":true,"message":"WalletShare API is running!","version":"1.0.0",...}
 ```
@@ -144,11 +156,13 @@ Output yang diharapkan:
 Agar aplikasi dapat diakses melalui HTTPS secara aman (`https://api.domainanda.com`), kita gunakan Nginx sebagai reverse proxy.
 
 ### 1. Install Nginx dan Certbot:
+
 ```bash
 sudo apt install -y nginx certbot python3-certbot-nginx
 ```
 
 ### 2. Buat Konfigurasi Nginx:
+
 ```bash
 sudo nano /etc/nginx/sites-available/emran-api
 ```
@@ -162,7 +176,7 @@ server {
     location / {
         proxy_pass http://127.0.0.1:3000;
         proxy_http_version 1.1;
-        
+
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection 'upgrade';
         proxy_set_header Host $host;
@@ -181,6 +195,7 @@ server {
 ```
 
 ### 3. Aktifkan Konfigurasi & Restart Nginx:
+
 ```bash
 sudo ln -s /etc/nginx/sites-available/emran-api /etc/nginx/sites-enabled/
 sudo nginx -t
@@ -188,9 +203,11 @@ sudo systemctl reload nginx
 ```
 
 ### 4. Pasang Sertifikat SSL (Let's Encrypt / HTTPS):
+
 ```bash
 sudo certbot --nginx -d api.domainanda.com
 ```
+
 Ikuti petunjuk di layar (masukkan email dan setujui ToS). Certbot akan otomatis mengonfigurasi SSL dan mengatur auto-renewal setiap 90 hari.
 
 ---
@@ -200,13 +217,15 @@ Ikuti petunjuk di layar (masukkan email dan setujui ToS). Certbot akan otomatis 
 Di Vercel sebelumnya mungkin menggunakan Vercel Cron. Di VPS, Anda bisa menggunakan `cron` bawaan Linux.
 
 Jalankan perintah:
+
 ```bash
 crontab -e
 ```
 
 Tambahkan baris berikut di bagian paling bawah (contoh berjalan setiap hari pukul 08:00 pagi WIB / 01:00 UTC):
+
 ```bash
-0 1 * * * curl -X POST https://api.domainanda.com/api/notifications/cron/bill-reminders -H "Authorization: Bearer <ISI_CRON_SECRET_ANDA>" >> /var/log/emran_cron.log 2>&1
+0 1 * * * curl -X POST https://wallet.libertysky.icu/api/notifications/cron/bill-reminders -H "Authorization: Bearer b5aacfb3f08290cc81e8f691aa598c48f0535e8795412efdfd29be1d81fa8965" >> /var/log/emran_cron.log 2>&1
 ```
 
 ---
@@ -214,6 +233,7 @@ Tambahkan baris berikut di bagian paling bawah (contoh berjalan setiap hari puku
 ## 7. Menghubungkan Aplikasi Flutter Mobile
 
 Buka project aplikasi Flutter di komputer lokal Anda:
+
 1. Buka file `mobile/.env`
 2. Ubah `API_URL` menjadi URL domain VPS Anda:
    ```env
@@ -246,6 +266,7 @@ docker compose logs -f api
 ```
 
 ### Perintah Penting Docker Compose:
+
 - **Melihat log real-time**: `docker compose logs -f api`
 - **Restart container**: `docker compose restart api`
 - **Menghentikan aplikasi**: `docker compose down`
