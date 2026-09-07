@@ -61,16 +61,32 @@ class ExpenseEntity {
       parsedAmount = double.tryParse(rawAmount) ?? 0.0;
     }
 
+    DateTime parsedDate;
+    try {
+      parsedDate = json['date'] != null
+          ? DateTime.parse(json['date'].toString()).toLocal()
+          : DateTime.now();
+    } catch (_) {
+      parsedDate = DateTime.now();
+    }
+
+    String creator = 'Me';
+    if (json['user'] is Map && json['user']['displayName'] != null) {
+      creator = json['user']['displayName'].toString();
+    }
+
     return ExpenseEntity(
-      id: json['id'] as String,
+      id: json['id']?.toString() ?? '',
       amount: parsedAmount,
-      description: json['description'] as String?,
-      date: DateTime.parse(json['date'] as String).toLocal(),
+      description: json['description']?.toString(),
+      date: parsedDate,
       type: json['type'] == 'ROUTINE' ? ExpenseType.routine : ExpenseType.nonRoutine,
-      userId: json['userId'] as String,
-      walletId: json['walletId'] as String,
-      category: ExpenseCategory.fromJson(json['category'] as Map),
-      creatorName: json['user'] != null ? (json['user']['displayName'] as String) : 'Me',
+      userId: json['userId']?.toString() ?? '',
+      walletId: json['walletId']?.toString() ?? '',
+      category: json['category'] is Map
+          ? ExpenseCategory.fromJson(json['category'] as Map)
+          : ExpenseCategory(id: '', name: 'Uncategorized', icon: 'category', color: '#4F46E5'),
+      creatorName: creator,
     );
   }
 }

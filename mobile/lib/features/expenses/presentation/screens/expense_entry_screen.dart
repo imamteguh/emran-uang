@@ -16,6 +16,7 @@ import '../widgets/category_icon.dart';
 import '../widgets/user_avatar.dart';
 import 'categories_screen.dart';
 import 'ocr_scan_screen.dart';
+import 'ai_chat_screen.dart';
 
 class ExpenseEntryScreen extends StatefulWidget {
   final DateTime? initialDate;
@@ -564,6 +565,39 @@ class _ExpenseEntryScreenState extends State<ExpenseEntryScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         actions: [
+          // AI Chat button
+          Padding(
+            padding: const EdgeInsets.only(right: 4.0),
+            child: IconButton(
+              icon: Container(
+                padding: const EdgeInsets.all(7),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      AppTheme.primary.withAlpha(25),
+                      AppTheme.secondary.withAlpha(15),
+                    ],
+                  ),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: AppTheme.primary.withAlpha(40),
+                    width: 1,
+                  ),
+                ),
+                child: const Icon(
+                  Icons.smart_toy_rounded,
+                  color: AppTheme.primary,
+                  size: 18,
+                ),
+              ),
+              tooltip: 'AI Chat Transaction',
+              onPressed: () {
+                Navigator.of(context).pushReplacement(
+                  MaterialPageRoute(builder: (_) => const AiChatScreen()),
+                );
+              },
+            ),
+          ),
           // Scan Receipt button
           Padding(
             padding: const EdgeInsets.only(right: 4.0),
