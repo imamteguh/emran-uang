@@ -905,11 +905,15 @@ class DashboardScreen extends StatelessWidget {
           int.parse(expense.category.color.replaceFirst('#', '0xFF')),
         );
 
+        final isPersonalWallet = provider.activeWallet?.type == WalletType.personal;
+        final isCreator = currentUserId != null && expense.userId == currentUserId;
+        final isOwner = isPersonalWallet || isCreator || expense.userId.isEmpty;
+
         return Padding(
           padding: const EdgeInsets.only(bottom: 12),
           child: Dismissible(
             key: Key(expense.id),
-            direction: DismissDirection.endToStart,
+            direction: isOwner ? DismissDirection.endToStart : DismissDirection.none,
             background: Container(
               padding: const EdgeInsets.only(right: 20),
               alignment: Alignment.centerRight,
@@ -920,6 +924,17 @@ class DashboardScreen extends StatelessWidget {
               child: const Icon(Icons.delete, color: Colors.white),
             ),
             confirmDismiss: (direction) async {
+              if (!isOwner) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text(
+                      'Hanya pembuat transaksi yang dapat menghapus transaksi ini',
+                    ),
+                    backgroundColor: AppTheme.error,
+                  ),
+                );
+                return false;
+              }
               return await _showDeleteConfirmationDialog(context);
             },
             onDismissed: (_) {
@@ -1131,41 +1146,53 @@ class DashboardScreen extends StatelessWidget {
             height: 1.4,
           ),
         ),
-        actionsPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+        actionsPadding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            style: TextButton.styleFrom(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () => Navigator.of(context).pop(false),
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(color: Color(0xFFE2E8F0)),
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: Text(
+                    'Cancel',
+                    style: GoogleFonts.plusJakartaSans(
+                      color: AppTheme.darkSlateVariant,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
               ),
-            ),
-            child: Text(
-              'Cancel',
-              style: GoogleFonts.plusJakartaSans(
-                color: Colors.grey[600],
-                fontWeight: FontWeight.w600,
+              const SizedBox(width: 12),
+              Expanded(
+                child: ElevatedButton(
+                  onPressed: () => Navigator.of(context).pop(true),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.error,
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: Text(
+                    'Delete',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
               ),
-            ),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.error,
-              foregroundColor: Colors.white,
-              elevation: 0,
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-            child: Text(
-              'Delete',
-              style: GoogleFonts.plusJakartaSans(
-                fontWeight: FontWeight.bold,
-              ),
-            ),
+            ],
           ),
         ],
       ),
