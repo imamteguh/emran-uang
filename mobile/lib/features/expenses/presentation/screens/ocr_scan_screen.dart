@@ -247,6 +247,8 @@ class _OcrScanScreenState extends State<OcrScanScreen>
             toolbarColor: AppTheme.primary,
             toolbarWidgetColor: Colors.white,
             activeControlsWidgetColor: AppTheme.primary,
+            statusBarLight: false,
+            navBarLight: true,
             initAspectRatio: CropAspectRatioPreset.original,
             lockAspectRatio: false,
             aspectRatioPresets: [
@@ -257,6 +259,8 @@ class _OcrScanScreenState extends State<OcrScanScreen>
           ),
           IOSUiSettings(
             title: 'Crop Receipt',
+            doneButtonTitle: 'Done',
+            cancelButtonTitle: 'Cancel',
             aspectRatioPresets: [
               CropAspectRatioPreset.original,
               CropAspectRatioPreset.ratio3x2,

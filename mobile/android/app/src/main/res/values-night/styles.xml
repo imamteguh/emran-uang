@@ -15,4 +15,15 @@
     <style name="NormalTheme" parent="@android:style/Theme.Black.NoTitleBar">
         <item name="android:windowBackground">?android:colorBackground</item>
     </style>
+
+    <!-- Theme applied to UCropActivity in dark mode -->
+    <style name="UcropTheme" parent="Theme.AppCompat.NoActionBar">
+        <item name="android:fitsSystemWindows">true</item>
+        <item name="android:windowDrawsSystemBarBackgrounds">true</item>
+        <item name="android:windowTranslucentStatus">false</item>
+        <item name="android:windowTranslucentNavigation">false</item>
+        <item name="android:statusBarColor">#004BC6</item>
+        <item name="android:navigationBarColor">#1E293B</item>
+        <item name="android:windowLightStatusBar">false</item>
+    </style>
 </resources>
