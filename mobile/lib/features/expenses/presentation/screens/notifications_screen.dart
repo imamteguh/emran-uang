@@ -85,7 +85,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                     ],
                   ),
                 );
-                if (confirm == true) {
+                if (confirm == true && context.mounted) {
                   context.read<NotificationBloc>().add(const NotificationClearAllRequested());
                 }
               },

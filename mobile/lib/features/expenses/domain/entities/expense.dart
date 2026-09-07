@@ -19,12 +19,12 @@ class ExpenseCategory {
 
   factory ExpenseCategory.fromJson(Map<dynamic, dynamic> json) {
     return ExpenseCategory(
-      id: json['id'] as String,
-      name: json['name'] as String,
-      icon: json['icon'] as String? ?? '💰',
-      color: json['color'] as String? ?? '#4F46E5',
+      id: json['id']?.toString() ?? '',
+      name: json['name']?.toString() ?? 'Uncategorized',
+      icon: json['icon']?.toString() ?? 'category',
+      color: json['color']?.toString() ?? '#4F46E5',
       isDefault: json['isDefault'] as bool? ?? (json['userId'] == null),
-      userId: json['userId'] as String?,
+      userId: json['userId']?.toString(),
     );
   }
 }

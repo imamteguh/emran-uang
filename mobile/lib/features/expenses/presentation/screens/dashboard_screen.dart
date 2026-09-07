@@ -20,6 +20,7 @@ import 'expense_entry_screen.dart';
 import 'shared_groups_screen.dart';
 import 'notifications_screen.dart';
 import 'activity_list_screen.dart';
+import 'ocr_scan_screen.dart';
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
@@ -228,6 +229,29 @@ class DashboardScreen extends StatelessWidget {
           ],
         ),
         actions: [
+          IconButton(
+            onPressed: () async {
+              final result = await Navigator.of(context).push<OcrScanResult>(
+                MaterialPageRoute(
+                  builder: (_) => OcrScanScreen(initialWallet: provider.activeWallet),
+                ),
+              );
+              if (result != null && context.mounted) {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => ExpenseEntryScreen(initialOcrResult: result),
+                  ),
+                );
+              }
+            },
+            icon: const Icon(
+              Icons.document_scanner_rounded,
+              size: 24,
+              color: AppTheme.primary,
+            ),
+            tooltip: 'Scan Receipt with AI',
+            splashRadius: 24,
+          ),
           IconButton(
             onPressed: () {
               Navigator.of(context).push(
@@ -901,9 +925,7 @@ class DashboardScreen extends StatelessWidget {
       itemCount: expenses.length,
       itemBuilder: (context, index) {
         final expense = expenses[index];
-        final catColor = Color(
-          int.parse(expense.category.color.replaceFirst('#', '0xFF')),
-        );
+        final catColor = AppTheme.parseHexColor(expense.category.color);
 
         final isPersonalWallet = provider.activeWallet?.type == WalletType.personal;
         final isCreator = currentUserId != null && expense.userId == currentUserId;

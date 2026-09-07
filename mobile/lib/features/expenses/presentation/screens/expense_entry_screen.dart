@@ -11,6 +11,7 @@ import '../../domain/entities/expense.dart';
 import '../../domain/entities/wallet.dart';
 import '../bloc/dashboard_bloc.dart';
 import '../bloc/dashboard_event.dart';
+import '../bloc/dashboard_state.dart';
 import '../widgets/category_icon.dart';
 import '../widgets/user_avatar.dart';
 import 'categories_screen.dart';
@@ -19,7 +20,14 @@ import 'ocr_scan_screen.dart';
 class ExpenseEntryScreen extends StatefulWidget {
   final DateTime? initialDate;
   final ExpenseCategory? initialCategory;
-  const ExpenseEntryScreen({super.key, this.initialDate, this.initialCategory});
+  final OcrScanResult? initialOcrResult;
+
+  const ExpenseEntryScreen({
+    super.key,
+    this.initialDate,
+    this.initialCategory,
+    this.initialOcrResult,
+  });
 
   @override
   State<ExpenseEntryScreen> createState() => _ExpenseEntryScreenState();
@@ -42,6 +50,9 @@ class _ExpenseEntryScreenState extends State<ExpenseEntryScreen> {
     _selectedCategory = widget.initialCategory;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<DashboardBloc>().add(const DashboardFetchCategoriesRequested());
+      if (widget.initialOcrResult != null) {
+        _handleOcrResult(widget.initialOcrResult!);
+      }
     });
   }
 
@@ -53,58 +64,94 @@ class _ExpenseEntryScreenState extends State<ExpenseEntryScreen> {
   }
 
   void _handleOcrResult(OcrScanResult result) {
-    final dashboardState = context.read<DashboardBloc>().state;
-    final currencyCode = dashboardState.activeWallet?.currency ?? 'IDR';
-    final formatter = CurrencyHelper.getFormatter(currencyCode);
+    try {
+      final dashboardBloc = context.read<DashboardBloc>();
+      final dashboardState = dashboardBloc.state;
 
-    // Format the amount for display
-    String formattedAmount;
-    if (formatter.decimalDigits == 0) {
-      formattedAmount = result.amount.toInt().toString();
-      // Apply thousand separators
-      final formatted = formatter.format(result.amount);
-      final symbol = formatter.currencySymbol;
-      formattedAmount = formatted
-          .replaceFirst(symbol.trim(), '')
-          .replaceFirst(symbol, '')
-          .trim();
-    } else {
-      final formatted = formatter.format(result.amount);
-      final symbol = formatter.currencySymbol;
-      formattedAmount = formatted
-          .replaceFirst(symbol.trim(), '')
-          .replaceFirst(symbol, '')
-          .trim();
-    }
+      // If the OCR result targeted a specific wallet, switch to that wallet
+      if (result.wallet != null && result.wallet!.id != dashboardState.activeWallet?.id) {
+        dashboardBloc.add(DashboardSelectWalletRequested(result.wallet!));
+      }
 
-    setState(() {
-      _amountController.text = formattedAmount;
-      if (result.description != null && result.description!.isNotEmpty) {
-        _descController.text = result.description!;
+      final effectiveWallet = result.wallet ?? dashboardState.activeWallet;
+      final currencyCode = effectiveWallet?.currency ?? 'IDR';
+      final formatter = CurrencyHelper.getFormatter(currencyCode);
+
+      // Format the amount for display
+      String formattedAmount;
+      if (formatter.decimalDigits == 0) {
+        final formatted = formatter.format(result.amount);
+        final symbol = formatter.currencySymbol;
+        formattedAmount = formatted
+            .replaceFirst(symbol.trim(), '')
+            .replaceFirst(symbol, '')
+            .trim();
+      } else {
+        final formatted = formatter.format(result.amount);
+        final symbol = formatter.currencySymbol;
+        formattedAmount = formatted
+            .replaceFirst(symbol.trim(), '')
+            .replaceFirst(symbol, '')
+            .trim();
       }
-      if (result.date != null) {
-        _selectedDate = result.date!;
-      }
+
+      // Match category against existing categories if possible
+      ExpenseCategory? matchedCategory;
       if (result.category != null) {
-        _selectedCategory = result.category;
+        matchedCategory = dashboardState.categories.firstWhere(
+          (c) => c.id == result.category!.id,
+          orElse: () => dashboardState.categories.firstWhere(
+            (c) => c.name.toLowerCase() == result.category!.name.toLowerCase(),
+            orElse: () => result.category!,
+          ),
+        );
       }
-    });
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          children: [
-            const Icon(Icons.check_circle_rounded, color: Colors.white, size: 18),
-            const SizedBox(width: 8),
-            const Expanded(child: Text('Receipt data applied! Review and save.')),
-          ],
-        ),
-        backgroundColor: const Color(0xFF246A52),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        duration: const Duration(seconds: 3),
-      ),
-    );
+      setState(() {
+        _amountController.value = TextEditingValue(
+          text: formattedAmount,
+          selection: TextSelection.collapsed(offset: formattedAmount.length),
+        );
+        if (result.description != null && result.description!.trim().isNotEmpty) {
+          _descController.value = TextEditingValue(
+            text: result.description!.trim(),
+            selection: TextSelection.collapsed(offset: result.description!.trim().length),
+          );
+        }
+        if (result.date != null) {
+          _selectedDate = result.date!;
+        }
+        if (matchedCategory != null) {
+          _selectedCategory = matchedCategory;
+        }
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.check_circle_rounded, color: Colors.white, size: 18),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    result.wallet != null
+                        ? 'Receipt data applied for ${result.wallet!.name}!'
+                        : 'Receipt data applied! Review and save.',
+                  ),
+                ),
+              ],
+            ),
+            backgroundColor: const Color(0xFF246A52),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    } catch (e) {
+      debugPrint('Error applying OCR result: $e');
+    }
   }
 
   void _handleSubmit() async {
@@ -341,9 +388,7 @@ class _ExpenseEntryScreenState extends State<ExpenseEntryScreen> {
                                 itemBuilder: (context, index) {
                                   final cat = filteredCategories[index];
                                   final isSelected = _selectedCategory?.id == cat.id;
-                                  final color = Color(
-                                    int.parse(cat.color.replaceFirst('#', '0xFF')),
-                                  );
+                                  final color = AppTheme.parseHexColor(cat.color);
 
                                   return GestureDetector(
                                     onTap: () {
@@ -546,10 +591,11 @@ class _ExpenseEntryScreenState extends State<ExpenseEntryScreen> {
               ),
               tooltip: 'Scan Receipt',
               onPressed: () async {
+                final currentWallet = context.read<DashboardBloc>().state.activeWallet;
                 final result = await Navigator.push<OcrScanResult>(
                   context,
                   MaterialPageRoute(
-                    builder: (_) => const OcrScanScreen(),
+                    builder: (_) => OcrScanScreen(initialWallet: currentWallet),
                   ),
                 );
                 if (result != null && mounted) {
@@ -739,6 +785,10 @@ class _ExpenseEntryScreenState extends State<ExpenseEntryScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
+                    // AI Quick Scan Banner
+                    _buildAiScanBanner(context, provider),
+                    const SizedBox(height: 16),
+
                     // Enter Amount Section - Redesigned to Premium Card
                     Container(
                       padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
@@ -877,9 +927,7 @@ class _ExpenseEntryScreenState extends State<ExpenseEntryScreen> {
                       itemBuilder: (context, index) {
                         final cat = gridCategories[index];
                         final isSelected = _selectedCategory?.id == cat.id;
-                        final color = Color(
-                          int.parse(cat.color.replaceFirst('#', '0xFF')),
-                        );
+                        final color = AppTheme.parseHexColor(cat.color);
 
                         return GestureDetector(
                           onTap: () {
@@ -1309,6 +1357,106 @@ class _ExpenseEntryScreenState extends State<ExpenseEntryScreen> {
     );
   }
 
+  Widget _buildAiScanBanner(BuildContext context, DashboardState provider) {
+    return InkWell(
+      onTap: () async {
+        final result = await Navigator.push<OcrScanResult>(
+          context,
+          MaterialPageRoute(
+            builder: (_) => OcrScanScreen(initialWallet: provider.activeWallet),
+          ),
+        );
+        if (result != null && mounted) {
+          _handleOcrResult(result);
+        }
+      },
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              AppTheme.primary.withAlpha(20),
+              AppTheme.secondary.withAlpha(15),
+            ],
+          ),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: AppTheme.primary.withAlpha(40),
+            width: 1.2,
+          ),
+          boxShadow: AppTheme.softShadow,
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 38,
+              height: 38,
+              decoration: BoxDecoration(
+                color: AppTheme.primary.withAlpha(25),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.auto_awesome_rounded,
+                color: AppTheme.primary,
+                size: 20,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Scan Receipt with AI',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                      color: AppTheme.darkSlate,
+                    ),
+                  ),
+                  Text(
+                    'Auto-fill amount, date & category',
+                    style: GoogleFonts.beVietnamPro(
+                      fontSize: 11,
+                      color: AppTheme.darkSlateVariant,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: AppTheme.primary,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(
+                    Icons.document_scanner_rounded,
+                    color: Colors.white,
+                    size: 14,
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    'Scan',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   bool _isSameDay(DateTime d1, DateTime d2) {
     return d1.year == d2.year && d1.month == d2.month && d1.day == d2.day;
   }
@@ -1612,8 +1760,8 @@ class _ExpenseEntryScreenState extends State<ExpenseEntryScreen> {
             Positioned(
               left: i * overlapOffset,
               child: UserAvatar(
-                avatarUrl: displayMembers[i]['avatarUrl'],
-                displayName: displayMembers[i]['displayName'] ?? '',
+                avatarUrl: displayMembers[i] is Map ? displayMembers[i]['avatarUrl'] as String? : null,
+                displayName: displayMembers[i] is Map ? (displayMembers[i]['displayName'] as String? ?? '') : '',
                 size: avatarSize,
               ),
             ),

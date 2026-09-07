@@ -14,7 +14,10 @@ import '../../../../core/network/dio_client.dart';
 import '../../../../core/utils/responsive_helper.dart';
 import '../../../../core/utils/currency_helper.dart';
 import '../../domain/entities/expense.dart';
+import '../../domain/entities/wallet.dart';
 import '../bloc/dashboard_bloc.dart';
+import '../bloc/dashboard_event.dart';
+import '../bloc/dashboard_state.dart';
 import '../widgets/category_icon.dart';
 
 /// Result data from OCR scanning, passed back to ExpenseEntryScreen.
@@ -23,17 +26,20 @@ class OcrScanResult {
   final String? description;
   final DateTime? date;
   final ExpenseCategory? category;
+  final WalletEntity? wallet;
 
   const OcrScanResult({
     required this.amount,
     this.description,
     this.date,
     this.category,
+    this.wallet,
   });
 }
 
 class OcrScanScreen extends StatefulWidget {
-  const OcrScanScreen({super.key});
+  final WalletEntity? initialWallet;
+  const OcrScanScreen({super.key, this.initialWallet});
 
   @override
   State<OcrScanScreen> createState() => _OcrScanScreenState();
@@ -56,6 +62,7 @@ class _OcrScanScreenState extends State<OcrScanScreen>
   DateTime? _resultDate;
   ExpenseCategory? _resultCategory;
   String? _rawSuggestion;
+  WalletEntity? _activeWallet;
 
   // Animation
   late AnimationController _pulseController;
@@ -64,6 +71,7 @@ class _OcrScanScreenState extends State<OcrScanScreen>
   @override
   void initState() {
     super.initState();
+    _activeWallet = widget.initialWallet;
     _pulseController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1500),
@@ -74,6 +82,11 @@ class _OcrScanScreenState extends State<OcrScanScreen>
 
     // Show source picker on open
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_activeWallet == null && mounted) {
+        setState(() {
+          _activeWallet = context.read<DashboardBloc>().state.activeWallet;
+        });
+      }
       _showImageSourcePicker();
     });
   }
@@ -316,6 +329,7 @@ class _OcrScanScreenState extends State<OcrScanScreen>
         data: {
           'image': base64Image,
           'mimeType': mimeType,
+          if (_activeWallet?.id != null) 'walletId': _activeWallet!.id,
         },
       );
 
@@ -342,8 +356,16 @@ class _OcrScanScreenState extends State<OcrScanScreen>
         // Parse category
         ExpenseCategory? parsedCategory;
         if (data['suggestedCategory'] != null) {
-          parsedCategory = ExpenseCategory.fromJson(
-            data['suggestedCategory'] as Map<dynamic, dynamic>,
+          final rawCat = data['suggestedCategory'] as Map<dynamic, dynamic>;
+          final tempCat = ExpenseCategory.fromJson(rawCat);
+          if (!mounted) return;
+          final dashCategories = context.read<DashboardBloc>().state.categories;
+          parsedCategory = dashCategories.firstWhere(
+            (c) => c.id == tempCat.id,
+            orElse: () => dashCategories.firstWhere(
+              (c) => c.name.toLowerCase() == tempCat.name.toLowerCase(),
+              orElse: () => tempCat,
+            ),
           );
         }
 
@@ -391,11 +413,15 @@ class _OcrScanScreenState extends State<OcrScanScreen>
       return;
     }
 
+    final provider = context.read<DashboardBloc>().state;
+    final effectiveWallet = _activeWallet ?? provider.activeWallet;
+
     final result = OcrScanResult(
       amount: _resultAmount!,
       description: _resultDescription,
       date: _resultDate,
       category: _resultCategory,
+      wallet: effectiveWallet,
     );
 
     Navigator.of(context).pop(result);
@@ -405,7 +431,8 @@ class _OcrScanScreenState extends State<OcrScanScreen>
   Widget build(BuildContext context) {
     final responsive = ResponsiveHelper(context);
     final provider = context.watch<DashboardBloc>().state;
-    final currencyCode = provider.activeWallet?.currency ?? 'IDR';
+    final effectiveWallet = _activeWallet ?? provider.activeWallet;
+    final currencyCode = effectiveWallet?.currency ?? 'IDR';
     final currencySymbol =
         CurrencyHelper.getFormatter(currencyCode).currencySymbol.trim();
     final bool showBottomBar = _hasResult && !_isProcessing;
@@ -488,6 +515,9 @@ class _OcrScanScreenState extends State<OcrScanScreen>
                   : double.infinity,
               child: Column(
                 children: [
+                  // ── Target Wallet Banner ───────────────────────
+                  _buildWalletSelectorCard(effectiveWallet, provider),
+
                   // ── Image Preview ──────────────────────────────
                   if (_selectedImage != null) _buildImagePreview(),
 
@@ -516,6 +546,294 @@ class _OcrScanScreenState extends State<OcrScanScreen>
   }
 
   // ── UI Components ─────────────────────────────────────────────────────
+
+  Widget _buildWalletSelectorCard(WalletEntity? activeWallet, DashboardState provider) {
+    final isGroup = activeWallet?.type == WalletType.shared;
+    final walletName = activeWallet?.name ?? 'Personal Wallet';
+    final currency = activeWallet?.currency ?? 'IDR';
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isGroup
+              ? AppTheme.secondary.withAlpha(70)
+              : AppTheme.primary.withAlpha(50),
+          width: 1.5,
+        ),
+        boxShadow: AppTheme.softShadow,
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 38,
+            height: 38,
+            decoration: BoxDecoration(
+              color: (isGroup ? AppTheme.secondary : AppTheme.primary).withAlpha(20),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              isGroup ? Icons.groups_rounded : Icons.person_rounded,
+              color: isGroup ? AppTheme.secondary : AppTheme.primary,
+              size: 20,
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: (isGroup ? AppTheme.secondary : AppTheme.primary).withAlpha(15),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        isGroup ? 'GROUP WALLET' : 'PERSONAL WALLET',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 9,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 0.5,
+                          color: isGroup ? AppTheme.secondary : AppTheme.primary,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF1F5F9),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        currency,
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 9,
+                          fontWeight: FontWeight.w700,
+                          color: AppTheme.darkSlateVariant,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  walletName,
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: AppTheme.darkSlate,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+          if (provider.allWallets.length > 1)
+            InkWell(
+              onTap: () => _showWalletSwitchSheet(provider),
+              borderRadius: BorderRadius.circular(10),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  color: AppTheme.primary.withAlpha(15),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: AppTheme.primary.withAlpha(40)),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.swap_horiz_rounded, size: 14, color: AppTheme.primary),
+                    const SizedBox(width: 4),
+                    Text(
+                      'Switch',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        color: AppTheme.primary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  void _showWalletSwitchSheet(DashboardState provider) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black12,
+              blurRadius: 20,
+              offset: Offset(0, -4),
+            ),
+          ],
+        ),
+        child: SafeArea(
+          top: false,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 12),
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFCBD5E1),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
+                child: Row(
+                  children: [
+                    const Icon(Icons.account_balance_wallet_rounded, color: AppTheme.primary, size: 22),
+                    const SizedBox(width: 10),
+                    Text(
+                      'Select Target Wallet',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: AppTheme.darkSlate,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Divider(height: 1),
+              Flexible(
+                child: ListView(
+                  shrinkWrap: true,
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  children: [
+                    if (provider.personalWallets.isNotEmpty) ...[
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(8, 8, 8, 4),
+                        child: Text(
+                          'PERSONAL WALLETS',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 0.8,
+                            color: Colors.grey,
+                          ),
+                        ),
+                      ),
+                      ...provider.personalWallets.map((w) {
+                        final isSelected = (_activeWallet?.id ?? provider.activeWallet?.id) == w.id;
+                        return _buildWalletListTile(w, isSelected, ctx);
+                      }),
+                    ],
+                    if (provider.sharedWallets.isNotEmpty) ...[
+                      const SizedBox(height: 10),
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(8, 8, 8, 4),
+                        child: Text(
+                          'GROUP WALLETS',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 0.8,
+                            color: Colors.grey,
+                          ),
+                        ),
+                      ),
+                      ...provider.sharedWallets.map((w) {
+                        final isSelected = (_activeWallet?.id ?? provider.activeWallet?.id) == w.id;
+                        return _buildWalletListTile(w, isSelected, ctx);
+                      }),
+                    ],
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildWalletListTile(WalletEntity wallet, bool isSelected, BuildContext sheetCtx) {
+    final isGroup = wallet.type == WalletType.shared;
+    return InkWell(
+      onTap: () {
+        setState(() {
+          _activeWallet = wallet;
+        });
+        context.read<DashboardBloc>().add(DashboardSelectWalletRequested(wallet));
+        Navigator.pop(sheetCtx);
+      },
+      borderRadius: BorderRadius.circular(14),
+      child: Container(
+        margin: const EdgeInsets.symmetric(vertical: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: isSelected ? (isGroup ? AppTheme.secondary : AppTheme.primary).withAlpha(15) : Colors.transparent,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: isSelected ? (isGroup ? AppTheme.secondary : AppTheme.primary) : const Color(0xFFF1F5F9),
+            width: isSelected ? 1.5 : 1,
+          ),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              isGroup ? Icons.groups_rounded : Icons.person_rounded,
+              color: isSelected ? (isGroup ? AppTheme.secondary : AppTheme.primary) : AppTheme.darkSlateVariant,
+              size: 20,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    wallet.name,
+                    style: GoogleFonts.plusJakartaSans(
+                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                      fontSize: 14,
+                      color: AppTheme.darkSlate,
+                    ),
+                  ),
+                  Text(
+                    '${wallet.currency} • ${isGroup ? "Group Shared" : "Personal"}',
+                    style: GoogleFonts.beVietnamPro(
+                      fontSize: 11,
+                      color: AppTheme.darkSlateVariant,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (isSelected)
+              Icon(
+                Icons.check_circle_rounded,
+                color: isGroup ? AppTheme.secondary : AppTheme.primary,
+                size: 20,
+              ),
+          ],
+        ),
+      ),
+    );
+  }
 
   Widget _buildImagePreview() {
     return Container(
@@ -930,43 +1248,42 @@ class _OcrScanScreenState extends State<OcrScanScreen>
                   width: 32,
                   height: 32,
                   decoration: BoxDecoration(
-                    color: Color(
-                      int.parse(
-                        _resultCategory!.color.replaceFirst('#', '0xFF'),
-                      ),
-                    ).withAlpha(25),
+                    color: AppTheme.parseHexColor(_resultCategory!.color).withAlpha(25),
                     shape: BoxShape.circle,
                   ),
                   child: Center(
                     child: CategoryIcon(
                       icon: _resultCategory!.icon,
-                      color: Color(
-                        int.parse(
-                          _resultCategory!.color.replaceFirst('#', '0xFF'),
-                        ),
-                      ),
+                      color: AppTheme.parseHexColor(_resultCategory!.color),
                       size: 16,
                     ),
                   ),
                 ),
                 const SizedBox(width: 10),
-                Text(
-                  _resultCategory!.name,
-                  style: GoogleFonts.plusJakartaSans(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
-                    color: AppTheme.darkSlate,
+                Expanded(
+                  child: Text(
+                    _resultCategory!.name,
+                    style: GoogleFonts.plusJakartaSans(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                      color: AppTheme.darkSlate,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
-              ] else
-                Text(
-                  _rawSuggestion ?? 'Unknown',
-                  style: GoogleFonts.beVietnamPro(
-                    fontSize: 14,
-                    color: Colors.grey,
-                    fontStyle: FontStyle.italic,
+              ] else ...[
+                Expanded(
+                  child: Text(
+                    _rawSuggestion ?? 'Tap to select category',
+                    style: GoogleFonts.beVietnamPro(
+                      fontSize: 14,
+                      color: Colors.grey,
+                      fontStyle: FontStyle.italic,
+                    ),
                   ),
                 ),
+              ],
             ],
           ),
         ),
@@ -1161,23 +1478,29 @@ class _OcrScanScreenState extends State<OcrScanScreen>
   Widget _buildCategorySelector(List<ExpenseCategory> categories) {
     if (categories.isEmpty) return const SizedBox.shrink();
 
+    final isSelected = _resultCategory != null;
+
     return InkWell(
       onTap: () => _showCategoryPicker(categories),
       borderRadius: BorderRadius.circular(8),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
         decoration: BoxDecoration(
-          color: AppTheme.primary.withAlpha(10),
+          color: AppTheme.primary.withAlpha(isSelected ? 10 : 25),
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: AppTheme.primary.withAlpha(30)),
+          border: Border.all(color: AppTheme.primary.withAlpha(isSelected ? 30 : 60)),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.edit_rounded, size: 12, color: AppTheme.primary),
+            Icon(
+              isSelected ? Icons.edit_rounded : Icons.add_circle_outline_rounded,
+              size: 13,
+              color: AppTheme.primary,
+            ),
             const SizedBox(width: 4),
             Text(
-              'Change',
+              isSelected ? 'Change' : 'Select',
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 11,
                 fontWeight: FontWeight.bold,
@@ -1259,9 +1582,7 @@ class _OcrScanScreenState extends State<OcrScanScreen>
                       itemBuilder: (context, index) {
                         final cat = categories[index];
                         final isSelected = _resultCategory?.id == cat.id;
-                        final color = Color(
-                          int.parse(cat.color.replaceFirst('#', '0xFF')),
-                        );
+                        final color = AppTheme.parseHexColor(cat.color);
 
                         return GestureDetector(
                           onTap: () {

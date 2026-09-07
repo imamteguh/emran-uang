@@ -110,7 +110,7 @@ async function callGeminiVision({ image, mimeType, prompt }) {
 // ── Scan Receipt ────────────────────────────────────────────────────────────
 
 async function scanReceipt(req, res) {
-  const { image, mimeType } = req.body;
+  const { image, mimeType, walletId } = req.body;
 
   // Validate input
   if (!image) {
@@ -120,6 +120,33 @@ async function scanReceipt(req, res) {
   const imageMimeType = mimeType || 'image/jpeg';
 
   try {
+    // Optional wallet context (supports both personal and shared/group wallets)
+    let targetWallet = null;
+    if (walletId) {
+      targetWallet = await prisma.wallet.findUnique({
+        where: { id: walletId },
+        include: {
+          group: {
+            include: {
+              members: {
+                where: { userId: req.user.id },
+              },
+            },
+          },
+        },
+      });
+
+      // Verify user access
+      if (targetWallet) {
+        if (targetWallet.type === 'SHARED') {
+          const isMember = targetWallet.group?.members?.length > 0;
+          if (!isMember) targetWallet = null;
+        } else if (targetWallet.userId !== req.user.id) {
+          targetWallet = null;
+        }
+      }
+    }
+
     // Fetch user's categories for AI matching
     const categories = await prisma.category.findMany({
       where: {
@@ -133,13 +160,19 @@ async function scanReceipt(req, res) {
     });
 
     const categoryNames = categories.map((c) => c.name);
+    const walletCurrency = targetWallet?.currency || 'IDR';
+    const isShared = targetWallet?.type === 'SHARED';
+    const walletContext = targetWallet
+      ? `This receipt is for ${isShared ? `shared group wallet "${targetWallet.name}"` : `personal wallet "${targetWallet.name}"`} in currency ${walletCurrency}.`
+      : `The currency is ${walletCurrency}.`;
 
     // Build the prompt
-    const prompt = `You are an expert receipt/invoice scanner for an Indonesian expense tracker app.
+    const prompt = `You are an expert receipt/invoice scanner for an expense tracker app.
+${walletContext}
 
 Analyze this receipt or invoice image carefully and extract the following information:
 
-1. **amount**: The TOTAL amount paid (final total, after tax/discount). Return as a number only (no currency symbol, no thousands separator). If you see "Rp", "IDR", "$", or any currency prefix, remove it. For Indonesian receipts, amounts are typically whole numbers (no decimals).
+1. **amount**: The TOTAL amount paid (final total, after tax/discount). Return as a number only (no currency symbol, no thousands separator). If currency is IDR, amounts are typically whole numbers without decimals (e.g. 50000). If currency is USD/SGD/EUR, extract decimal values if present (e.g. 24.50).
 2. **description**: A short, meaningful description of the purchase in the SAME LANGUAGE as the receipt (max 60 characters). Summarize what was bought, e.g. "Makan siang di Warteg", "Belanja bulanan Indomaret", "Kopi Starbucks".
 3. **date**: The transaction date from the receipt in ISO 8601 format (YYYY-MM-DDTHH:mm:ss). If only a date is visible (no time), use T00:00:00. If no date is visible, return null.
 4. **suggestedCategory**: Choose the BEST matching category from this list: [${categoryNames.join(', ')}]. If none match well, use "Other".
@@ -147,7 +180,7 @@ Analyze this receipt or invoice image carefully and extract the following inform
 IMPORTANT RULES:
 - Always return ONLY valid JSON, no markdown, no code fences, no explanation.
 - If the image is not a receipt/invoice or is unreadable, return: {"error": "Could not read receipt"}
-- For Indonesian receipts, look for keywords like "TOTAL", "GRAND TOTAL", "JUMLAH", "BAYAR", "TUNAI", "KEMBALIAN" to find the correct total.
+- Look for keywords like "TOTAL", "GRAND TOTAL", "JUMLAH", "BAYAR", "TUNAI", "KEMBALIAN" to find the correct total.
 - Choose the TOTAL PAID amount, not subtotal or individual items.
 
 Return format:
@@ -187,38 +220,51 @@ Return format:
           prompt,
         });
       } catch (geminiErr) {
-        const isGeoBlocked =
-          geminiErr.message?.includes('location is not supported') ||
-          geminiErr.status === 400;
+        console.warn('[OCR] Gemini Vision call failed:', geminiErr.message || geminiErr);
 
-        if (isGeoBlocked && process.env.OPENROUTER_API_KEY) {
-          console.warn('[OCR] Gemini blocked by location, falling back to OpenRouter...');
-          text = await callOpenAICompatibleVision({
-            apiKey: process.env.OPENROUTER_API_KEY,
-            baseURL: process.env.OPENROUTER_BASE_URL || 'https://openrouter.ai/api/v1',
-            model: process.env.OPENROUTER_MODEL || 'google/gemini-2.5-flash',
-            image,
-            mimeType: imageMimeType,
-            prompt,
-          });
-        } else if (isGeoBlocked && process.env.OPENAI_API_KEY) {
-          console.warn('[OCR] Gemini blocked by location, falling back to OpenAI...');
-          text = await callOpenAICompatibleVision({
-            apiKey: process.env.OPENAI_API_KEY,
-            baseURL: process.env.OPENAI_BASE_URL || 'https://api.openai.com/v1',
-            model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
-            image,
-            mimeType: imageMimeType,
-            prompt,
-          });
-        } else if (isGeoBlocked) {
-          console.error('[OCR] Gemini API blocked: Server location is not supported by Google AI.');
-          return error(
-            res,
-            'Google AI tidak mendukung lokasi server ini (User location is not supported). Silakan gunakan GEMINI_BASE_URL (Cloudflare Worker proxy) atau OPENROUTER_API_KEY di file .env server Anda.',
-            422
-          );
+        if (process.env.OPENROUTER_API_KEY) {
+          console.warn('[OCR] Falling back to OpenRouter Vision API...');
+          try {
+            text = await callOpenAICompatibleVision({
+              apiKey: process.env.OPENROUTER_API_KEY,
+              baseURL: process.env.OPENROUTER_BASE_URL || 'https://openrouter.ai/api/v1',
+              model: process.env.OPENROUTER_MODEL || 'google/gemini-2.5-flash',
+              image,
+              mimeType: imageMimeType,
+              prompt,
+            });
+          } catch (openRouterErr) {
+            console.error('[OCR] OpenRouter fallback also failed:', openRouterErr.message || openRouterErr);
+            throw geminiErr;
+          }
+        } else if (process.env.OPENAI_API_KEY) {
+          console.warn('[OCR] Falling back to OpenAI Vision API...');
+          try {
+            text = await callOpenAICompatibleVision({
+              apiKey: process.env.OPENAI_API_KEY,
+              baseURL: process.env.OPENAI_BASE_URL || 'https://api.openai.com/v1',
+              model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
+              image,
+              mimeType: imageMimeType,
+              prompt,
+            });
+          } catch (openAiErr) {
+            console.error('[OCR] OpenAI fallback also failed:', openAiErr.message || openAiErr);
+            throw geminiErr;
+          }
         } else {
+          const isGeoBlocked =
+            geminiErr.message?.includes('location is not supported') ||
+            geminiErr.status === 400;
+
+          if (isGeoBlocked) {
+            console.error('[OCR] Gemini API blocked: Server location is not supported by Google AI.');
+            return error(
+              res,
+              'Google AI tidak mendukung lokasi server ini (User location is not supported). Silakan gunakan GEMINI_BASE_URL (Cloudflare Worker proxy) atau OPENROUTER_API_KEY di file .env server Anda.',
+              422
+            );
+          }
           throw geminiErr;
         }
       }
@@ -281,11 +327,13 @@ Return format:
         ? {
             id: matchedCategory.id,
             name: matchedCategory.name,
-            icon: matchedCategory.icon,
-            color: matchedCategory.color,
+            icon: matchedCategory.icon || 'category',
+            color: matchedCategory.color || '#4F46E5',
           }
         : null,
       rawSuggestion: parsed.suggestedCategory || null,
+      walletId: targetWallet ? targetWallet.id : null,
+      walletCurrency: walletCurrency,
     };
 
     return success(res, ocrResult, 'Receipt scanned successfully');

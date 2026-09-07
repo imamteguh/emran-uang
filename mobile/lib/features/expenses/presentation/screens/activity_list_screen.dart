@@ -685,11 +685,7 @@ class _ActivityListScreenState extends State<ActivityListScreen> {
                           final isCreator = user != null && expense.userId == user.id;
                           final isOwner = isPersonalWallet || isCreator || expense.userId.isEmpty;
                           final isMe = expense.userId == user?.id;
-                          final catColor = Color(
-                            int.parse(
-                              expense.category.color.replaceFirst('#', '0xFF'),
-                            ),
-                          );
+                          final catColor = AppTheme.parseHexColor(expense.category.color);
 
                           return Padding(
                             padding: const EdgeInsets.only(bottom: 12),

@@ -316,4 +316,32 @@ class AppTheme {
       ),
     );
   }
+
+  /// Safely parses any hex color string (e.g. '#FF6B6B', 'FF6B6B', '#FFF', '0xFF6B6B')
+  /// without throwing exceptions or asserting on invalid ranges.
+  static Color parseHexColor(String? colorStr, [Color fallback = primary]) {
+    if (colorStr == null || colorStr.trim().isEmpty) return fallback;
+    try {
+      String clean = colorStr
+          .trim()
+          .replaceAll('#', '')
+          .replaceAll('0x', '')
+          .replaceAll('0X', '');
+      if (clean.length == 6) {
+        clean = 'FF$clean';
+      } else if (clean.length == 3) {
+        clean =
+            'FF${clean[0]}${clean[0]}${clean[1]}${clean[1]}${clean[2]}${clean[2]}';
+      } else if (clean.length == 8) {
+        // Already 8 characters (AARRGGBB)
+      } else {
+        return fallback;
+      }
+      final int? val = int.tryParse(clean, radix: 16);
+      if (val == null) return fallback;
+      return Color(val & 0xFFFFFFFF);
+    } catch (_) {
+      return fallback;
+    }
+  }
 }
