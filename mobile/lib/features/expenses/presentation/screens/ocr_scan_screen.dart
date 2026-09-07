@@ -8,6 +8,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:image_cropper/image_cropper.dart';
 import 'package:intl/intl.dart';
+import 'package:dio/dio.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/network/dio_client.dart';
 import '../../../../core/utils/responsive_helper.dart';
@@ -359,7 +360,12 @@ class _OcrScanScreenState extends State<OcrScanScreen>
       }
     } catch (e) {
       String errorMsg = 'Failed to process receipt';
-      if (e.toString().contains('422')) {
+      if (e is DioException && e.response?.data != null) {
+        final resData = e.response!.data;
+        if (resData is Map && resData['message'] != null) {
+          errorMsg = resData['message'].toString();
+        }
+      } else if (e.toString().contains('422')) {
         errorMsg = 'Could not read the receipt. Please try with a clearer image.';
       } else if (e.toString().contains('500')) {
         errorMsg = 'AI service error. Please try again later.';
