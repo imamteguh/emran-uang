@@ -5,7 +5,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/responsive_helper.dart';
-import '../../../../core/utils/currency_helper.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../bloc/dashboard_bloc.dart';
 import '../bloc/dashboard_event.dart';
@@ -143,7 +142,7 @@ class _SharedGroupsScreenState extends State<SharedGroupsScreen> {
         child: Material(
           color: AppTheme.primaryContainer,
           child: InkWell(
-            onTap: () => _showCreateGroupDialog(context, provider),
+            onTap: () => _showCreateGroupBottomSheet(context),
             child: Padding(
               padding: const EdgeInsets.all(AppTheme.spaceLg),
               child: Row(
@@ -191,183 +190,226 @@ class _SharedGroupsScreenState extends State<SharedGroupsScreen> {
     );
   }
 
-  void _showCreateGroupDialog(
-    BuildContext context,
-    DashboardState provider,
-  ) {
+  void _showCreateGroupBottomSheet(BuildContext context) {
     final nameController = TextEditingController();
     final emailController = TextEditingController();
     final formKey = GlobalKey<FormState>();
 
-    showDialog(
+    showModalBottomSheet(
       context: context,
-      barrierDismissible: false,
-      builder: (context) {
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
         bool isSubmitting = false;
         return StatefulBuilder(
-          builder: (context, setDialogState) {
-            return AlertDialog(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(24),
+          builder: (context, setSheetState) {
+            return Container(
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
               ),
-              backgroundColor: Colors.white,
-              titlePadding: const EdgeInsets.fromLTRB(24, 16, 16, 0),
-              contentPadding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
-              title: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Create New Group',
-                    style: GoogleFonts.plusJakartaSans(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 18,
-                      color: AppTheme.darkSlate,
-                    ),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.close, color: Colors.grey, size: 20),
-                    onPressed: isSubmitting
-                        ? null
-                        : () => Navigator.of(context).pop(),
-                    splashRadius: 20,
-                  ),
-                ],
+              padding: EdgeInsets.only(
+                top: 16,
+                left: 24,
+                right: 24,
+                bottom: MediaQuery.of(context).viewInsets.bottom +
+                    MediaQuery.of(context).padding.bottom +
+                    24,
               ),
-              content: Form(
-                key: formKey,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      'Set up a shared group. We will automatically create a Shared Wallet for you and invite your friend.',
-                      style: GoogleFonts.beVietnamPro(
-                        fontSize: 13,
-                        color: AppTheme.darkSlateVariant,
-                        height: 1.4,
+              child: SingleChildScrollView(
+                child: Form(
+                  key: formKey,
+                  autovalidateMode: AutovalidateMode.onUserInteraction,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Center(
+                        child: Container(
+                          width: 40,
+                          height: 4,
+                          margin: const EdgeInsets.only(bottom: 20),
+                          decoration: BoxDecoration(
+                            color: AppTheme.outlineVariant,
+                            borderRadius: BorderRadius.circular(2),
+                          ),
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 20),
-                    TextFormField(
-                      controller: nameController,
-                      enabled: !isSubmitting,
-                      style: GoogleFonts.plusJakartaSans(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 15,
-                      ),
-                      decoration: const InputDecoration(
-                        prefixIcon: Icon(Icons.group_work_outlined),
-                        hintText: 'Group Name (e.g. Housemates, Trip)',
-                        labelText: 'GROUP NAME',
-                      ),
-                      validator: (value) {
-                        if (value == null || value.trim().isEmpty) {
-                          return 'Please enter a group name';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                    TextFormField(
-                      controller: emailController,
-                      enabled: !isSubmitting,
-                      keyboardType: TextInputType.emailAddress,
-                      style: GoogleFonts.plusJakartaSans(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 15,
-                      ),
-                      decoration: const InputDecoration(
-                        prefixIcon: Icon(Icons.mail_outline),
-                        hintText: 'friend@email.com',
-                        labelText: 'INVITE EMAIL',
-                      ),
-                      validator: (value) {
-                        if (value == null || value.trim().isEmpty) {
-                          return 'Please enter email to invite';
-                        }
-                        if (!RegExp(
-                          r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
-                        ).hasMatch(value.trim())) {
-                          return 'Please enter a valid email';
-                        }
-                        return null;
-                      },
-                    ),
-                  ],
-                ),
-              ),
-              actionsPadding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
-              actions: [
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: isSubmitting
-                        ? null
-                        : () async {
-                            if (formKey.currentState!.validate()) {
-                              setDialogState(() {
-                                isSubmitting = true;
-                              });
-                              final completer = Completer<String?>();
-                              context.read<DashboardBloc>().add(
-                                DashboardSendInviteRequested(
-                                  email: emailController.text.trim(),
-                                  groupName: nameController.text.trim(),
-                                  completer: completer,
-                                ),
-                              );
-                              final errorMsg = await completer.future;
-                              if (context.mounted) {
-                                if (errorMsg == null) {
-                                  Navigator.of(context).pop();
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text(
-                                        'Group created and invitation sent!',
-                                      ),
-                                    ),
-                                  );
-                                } else {
-                                  setDialogState(() {
-                                    isSubmitting = false;
-                                  });
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text(errorMsg),
-                                      backgroundColor: AppTheme.error,
-                                    ),
-                                  );
-                                }
-                              }
-                            }
-                          },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppTheme.primary,
-                      foregroundColor: Colors.white,
-                      elevation: 0,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    child: isSubmitting
-                        ? const SizedBox(
-                            height: 20,
-                            width: 20,
-                            child: CircularProgressIndicator(
-                              color: Colors.white,
-                              strokeWidth: 2,
-                            ),
-                          )
-                        : Text(
-                            'Create Group',
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Create New Group',
                             style: GoogleFonts.plusJakartaSans(
                               fontWeight: FontWeight.bold,
-                              fontSize: 15,
+                              fontSize: 18,
+                              color: AppTheme.darkSlate,
                             ),
                           ),
+                          IconButton(
+                            icon: const Icon(
+                              Icons.close,
+                              color: Colors.grey,
+                              size: 20,
+                            ),
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(),
+                            onPressed: isSubmitting
+                                ? null
+                                : () => Navigator.of(context).pop(),
+                            splashRadius: 20,
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Set up a shared group. We will automatically create a Shared Wallet for you and invite your friend.',
+                        style: GoogleFonts.beVietnamPro(
+                          fontSize: 13,
+                          color: AppTheme.darkSlateVariant,
+                          height: 1.4,
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      TextFormField(
+                        controller: nameController,
+                        enabled: !isSubmitting,
+                        textCapitalization: TextCapitalization.words,
+                        textInputAction: TextInputAction.next,
+                        style: GoogleFonts.plusJakartaSans(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 15,
+                        ),
+                        decoration: const InputDecoration(
+                          prefixIcon: Icon(Icons.group_work_outlined),
+                          hintText: 'Group Name (e.g. Housemates, Trip)',
+                          labelText: 'GROUP NAME',
+                        ),
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return 'Please enter a group name';
+                          }
+                          final trimmed = value.trim();
+                          if (trimmed.length < 3) {
+                            return 'Group name must be at least 3 characters';
+                          }
+                          if (trimmed.length > 50) {
+                            return 'Group name cannot exceed 50 characters';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        controller: emailController,
+                        enabled: !isSubmitting,
+                        keyboardType: TextInputType.emailAddress,
+                        textInputAction: TextInputAction.done,
+                        style: GoogleFonts.plusJakartaSans(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 15,
+                        ),
+                        decoration: const InputDecoration(
+                          prefixIcon: Icon(Icons.mail_outline),
+                          hintText: 'friend@email.com',
+                          labelText: 'INVITE EMAIL',
+                        ),
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return 'Please enter email to invite';
+                          }
+                          final trimmed = value.trim();
+                          final emailRegex = RegExp(
+                            r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$',
+                          );
+                          if (!emailRegex.hasMatch(trimmed)) {
+                            return 'Please enter a valid email address';
+                          }
+                          final currentUser =
+                              context.read<AuthBloc>().state.currentUser;
+                          if (currentUser != null &&
+                              trimmed.toLowerCase() ==
+                                  currentUser.email.toLowerCase().trim()) {
+                            return 'You cannot invite yourself';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 24),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          onPressed: isSubmitting
+                              ? null
+                              : () async {
+                                  if (formKey.currentState!.validate()) {
+                                    setSheetState(() {
+                                      isSubmitting = true;
+                                    });
+                                    final completer = Completer<String?>();
+                                    context.read<DashboardBloc>().add(
+                                      DashboardSendInviteRequested(
+                                        email: emailController.text.trim(),
+                                        groupName: nameController.text.trim(),
+                                        completer: completer,
+                                      ),
+                                    );
+                                    final errorMsg = await completer.future;
+                                    if (context.mounted) {
+                                      if (errorMsg == null) {
+                                        Navigator.of(context).pop();
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          const SnackBar(
+                                            content: Text(
+                                              'Group created and invitation sent!',
+                                            ),
+                                          ),
+                                        );
+                                      } else {
+                                        setSheetState(() {
+                                          isSubmitting = false;
+                                        });
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          SnackBar(
+                                            content: Text(errorMsg),
+                                            backgroundColor: AppTheme.error,
+                                          ),
+                                        );
+                                      }
+                                    }
+                                  }
+                                },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppTheme.primary,
+                            foregroundColor: Colors.white,
+                            elevation: 0,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          child: isSubmitting
+                              ? const SizedBox(
+                                  height: 20,
+                                  width: 20,
+                                  child: CircularProgressIndicator(
+                                    color: Colors.white,
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              : Text(
+                                  'Create Group',
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 15,
+                                  ),
+                                ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-              ],
+              ),
             );
           },
         );
@@ -678,24 +720,7 @@ class _SharedGroupsScreenState extends State<SharedGroupsScreen> {
             final membersList = group['members'] as List? ?? [];
             final stripeColor = topColors[index % topColors.length];
 
-            // Parse statistics computed by the backend
-            final totalSpentRaw = group['totalSpent'];
-            final yourBalanceRaw = group['yourBalance'];
             final activeBillsCount = group['activeBillsCount'] ?? 0;
-
-            final double totalSpent = (totalSpentRaw is num)
-                ? totalSpentRaw.toDouble()
-                : 0.0;
-            final double yourBalance = (yourBalanceRaw is num)
-                ? yourBalanceRaw.toDouble()
-                : 0.0;
-
-            // Resolve currency code
-            final sharedWallets = group['sharedWallets'] as List? ?? [];
-            final String currencyCode = sharedWallets.isNotEmpty
-                ? (sharedWallets[0]['currency'] ?? 'IDR')
-                : 'IDR';
-
             final String subtitleText =
                 '${membersList.length} members • $activeBillsCount active bill${activeBillsCount == 1 ? "" : "s"}';
 
@@ -711,7 +736,10 @@ class _SharedGroupsScreenState extends State<SharedGroupsScreen> {
                     // Navigate to group details in the future
                   },
                   child: Container(
-                    padding: const EdgeInsets.all(24),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 18,
+                    ),
                     decoration: BoxDecoration(
                       color: stripeColor.withAlpha(51), // approx 20% opacity
                       borderRadius: BorderRadius.circular(16),
@@ -719,274 +747,63 @@ class _SharedGroupsScreenState extends State<SharedGroupsScreen> {
                         left: BorderSide(color: stripeColor, width: 4),
                       ),
                     ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                groupName,
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 18,
+                                  color: AppTheme.onSurface,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Row(
                                 children: [
-                                  Text(
-                                    groupName,
-                                    style: GoogleFonts.plusJakartaSans(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 20,
-                                      color: AppTheme.onSurface,
-                                    ),
+                                  const Icon(
+                                    Icons.group,
+                                    size: 14,
+                                    color: AppTheme.onSurfaceVariant,
                                   ),
-                                  const SizedBox(height: 4),
-                                  Row(
-                                    children: [
-                                      const Icon(
-                                        Icons.group,
-                                        size: 14,
-                                        color: AppTheme.onSurfaceVariant,
-                                      ),
-                                      const SizedBox(width: 4),
-                                      Text(
-                                        subtitleText,
-                                        style: GoogleFonts.beVietnamPro(
-                                          fontSize: 12,
-                                          color: AppTheme.onSurfaceVariant,
-                                        ),
-                                      ),
-                                    ],
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    subtitleText,
+                                    style: GoogleFonts.beVietnamPro(
+                                      fontSize: 12,
+                                      color: AppTheme.onSurfaceVariant,
+                                    ),
                                   ),
                                 ],
                               ),
-                            ),
-                            Row(
-                              children: [
-                                _buildOverlappingAvatars(membersList),
-                                const SizedBox(width: 8),
-                                PopupMenuButton<String>(
-                                  icon: const Icon(
-                                    Icons.more_vert,
-                                    color: AppTheme.onSurfaceVariant,
-                                    size: 20,
-                                  ),
-                                  color: Colors.white,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  padding: EdgeInsets.zero,
-                                  constraints: const BoxConstraints(),
-                                  onSelected: (value) async {
-                                    if (value == 'leave') {
-                                      final confirm = await _showConfirmDialog(
-                                        context,
-                                        'Leave Group',
-                                        'Are you sure you want to leave this shared group?',
-                                      );
-                                      if (confirm == true && mounted) {
-                                        setState(() {
-                                          _isActionLoading = true;
-                                        });
-                                        final completer = Completer<bool>();
-                                        context.read<DashboardBloc>().add(
-                                          DashboardLeaveGroupRequested(group['id'], completer),
-                                        );
-                                        final success = await completer.future;
-                                        if (mounted) {
-                                          setState(() {
-                                            _isActionLoading = false;
-                                          });
-                                          if (success) {
-                                            ScaffoldMessenger.of(
-                                              this.context,
-                                            ).showSnackBar(
-                                              const SnackBar(
-                                                content: Text(
-                                                  'Left the group successfully',
-                                                ),
-                                              ),
-                                            );
-                                          }
-                                        }
-                                      }
-                                    } else if (value == 'delete') {
-                                      final confirm = await _showConfirmDialog(
-                                        context,
-                                        'Delete Group',
-                                        'Are you sure you want to delete this shared group and all its associated data? This action is permanent and cannot be undone.',
-                                      );
-                                      if (confirm == true && mounted) {
-                                        setState(() {
-                                          _isActionLoading = true;
-                                        });
-                                        final completer = Completer<bool>();
-                                        context.read<DashboardBloc>().add(
-                                          DashboardDeleteGroupRequested(group['id'], completer),
-                                        );
-                                        final success = await completer.future;
-                                        if (mounted) {
-                                          setState(() {
-                                            _isActionLoading = false;
-                                          });
-                                          if (success) {
-                                            ScaffoldMessenger.of(
-                                              this.context,
-                                            ).showSnackBar(
-                                              const SnackBar(
-                                                content: Text(
-                                                  'Group and all associated data deleted successfully',
-                                                ),
-                                              ),
-                                            );
-                                          }
-                                        }
-                                      }
-                                    }
-                                  },
-                                  itemBuilder: (context) => [
-                                    const PopupMenuItem(
-                                      value: 'leave',
-                                      child: Row(
-                                        children: [
-                                          Icon(
-                                            Icons.exit_to_app,
-                                            color: AppTheme.error,
-                                            size: 20,
-                                          ),
-                                          SizedBox(width: 8),
-                                          Text('Leave Group'),
-                                        ],
-                                      ),
-                                    ),
-                                    if (myRole == 'OWNER')
-                                      const PopupMenuItem(
-                                        value: 'delete',
-                                        child: Row(
-                                          children: [
-                                            Icon(
-                                              Icons.delete_forever,
-                                              color: AppTheme.error,
-                                              size: 20,
-                                            ),
-                                            SizedBox(width: 8),
-                                            Text('Delete Group'),
-                                          ],
-                                        ),
-                                      ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
-                        const SizedBox(height: 16),
                         Row(
                           children: [
-                            Expanded(
-                              child: Container(
-                                padding: const EdgeInsets.all(8),
-                                decoration: BoxDecoration(
-                                  color: Colors.white.withAlpha(153),
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      'TOTAL SHARED',
-                                      style: GoogleFonts.plusJakartaSans(
-                                        fontSize: 10,
-                                        fontWeight: FontWeight.bold,
-                                        color: AppTheme.onSurfaceVariant,
-                                        letterSpacing: 0.8,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 2),
-                                    Text(
-                                      CurrencyHelper.format(
-                                        totalSpent,
-                                        currencyCode,
-                                      ),
-                                      style: GoogleFonts.plusJakartaSans(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.bold,
-                                        color: AppTheme.onSurface,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
+                            _buildOverlappingAvatars(membersList),
                             const SizedBox(width: 8),
-                            Expanded(
-                              child: Container(
-                                padding: const EdgeInsets.all(8),
-                                decoration: BoxDecoration(
-                                  color: yourBalance.abs() < 0.01
-                                      ? AppTheme.secondaryContainer.withAlpha(76)
-                                      : (yourBalance > 0
-                                          ? AppTheme.primaryContainer
-                                              .withAlpha(25)
-                                          : AppTheme.errorContainer
-                                              .withAlpha(76)),
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.end,
-                                  children: [
-                                    Text(
-                                      yourBalance.abs() < 0.01
-                                          ? 'SETTLED'
-                                          : 'YOUR BALANCE',
-                                      style: GoogleFonts.plusJakartaSans(
-                                        fontSize: 10,
-                                        fontWeight: FontWeight.bold,
-                                        color: AppTheme.onSurfaceVariant,
-                                        letterSpacing: 0.8,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 2),
-                                    Row(
-                                      mainAxisAlignment: MainAxisAlignment.end,
-                                      children: [
-                                        if (yourBalance.abs() < 0.01)
-                                          const Icon(
-                                            Icons.check_circle,
-                                            color: AppTheme.secondary,
-                                            size: 14,
-                                          )
-                                        else if (yourBalance > 0)
-                                          const Icon(
-                                            Icons.balance,
-                                            color: AppTheme.primary,
-                                            size: 14,
-                                          )
-                                        else
-                                          const Icon(
-                                            Icons.warning,
-                                            color: AppTheme.error,
-                                            size: 14,
-                                          ),
-                                        const SizedBox(width: 4),
-                                        Text(
-                                          yourBalance.abs() < 0.01
-                                              ? 'Done'
-                                              : (yourBalance > 0
-                                                  ? '+${CurrencyHelper.format(yourBalance, currencyCode)}'
-                                                  : '-${CurrencyHelper.format(yourBalance.abs(), currencyCode)}'),
-                                          style: GoogleFonts.plusJakartaSans(
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.bold,
-                                            color: yourBalance.abs() < 0.01
-                                                ? AppTheme.secondary
-                                                : (yourBalance > 0
-                                                    ? AppTheme.primary
-                                                    : AppTheme.error),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ],
-                                ),
+                            IconButton(
+                              icon: const Icon(
+                                Icons.more_vert,
+                                color: AppTheme.onSurfaceVariant,
+                                size: 20,
+                              ),
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(
+                                minWidth: 32,
+                                minHeight: 32,
+                              ),
+                              splashRadius: 20,
+                              onPressed: () => _showGroupActionsBottomSheet(
+                                context,
+                                group,
+                                myRole,
                               ),
                             ),
                           ],
@@ -1063,6 +880,222 @@ class _SharedGroupsScreenState extends State<SharedGroupsScreen> {
     final avatarUrl = user['avatarUrl'];
 
     return UserAvatar(avatarUrl: avatarUrl, displayName: name, size: size);
+  }
+
+  void _showGroupActionsBottomSheet(
+    BuildContext context,
+    dynamic group,
+    dynamic myRole,
+  ) {
+    final groupName = group['name'] ?? 'Shared Group';
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+          ),
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 20),
+                  decoration: BoxDecoration(
+                    color: AppTheme.outlineVariant,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          groupName,
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: AppTheme.darkSlate,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          myRole == 'OWNER' ? 'Group Owner' : 'Group Member',
+                          style: GoogleFonts.beVietnamPro(
+                            fontSize: 12,
+                            color: AppTheme.darkSlateVariant,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              const Divider(height: 1, color: Color(0xFFF1F5F9)),
+              const SizedBox(height: 8),
+              ListTile(
+                leading: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: AppTheme.errorContainer.withAlpha(50),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(
+                    Icons.exit_to_app,
+                    color: AppTheme.error,
+                    size: 20,
+                  ),
+                ),
+                title: Text(
+                  'Leave Group',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 15,
+                    color: AppTheme.error,
+                  ),
+                ),
+                subtitle: Text(
+                  'Exit from this group and its shared expenses',
+                  style: GoogleFonts.beVietnamPro(
+                    fontSize: 12,
+                    color: AppTheme.onSurfaceVariant,
+                  ),
+                ),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 4,
+                  vertical: 4,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                onTap: () {
+                  Navigator.of(ctx).pop();
+                  _handleLeaveGroup(group);
+                },
+              ),
+              if (myRole == 'OWNER') ...[
+                const SizedBox(height: 4),
+                ListTile(
+                  leading: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: AppTheme.errorContainer.withAlpha(50),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(
+                      Icons.delete_forever,
+                      color: AppTheme.error,
+                      size: 20,
+                    ),
+                  ),
+                  title: Text(
+                    'Delete Group',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 15,
+                      color: AppTheme.error,
+                    ),
+                  ),
+                  subtitle: Text(
+                    'Permanently delete group and all associated records',
+                    style: GoogleFonts.beVietnamPro(
+                      fontSize: 12,
+                      color: AppTheme.onSurfaceVariant,
+                    ),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 4,
+                    vertical: 4,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  onTap: () {
+                    Navigator.of(ctx).pop();
+                    _handleDeleteGroup(group);
+                  },
+                ),
+              ],
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _handleLeaveGroup(dynamic group) async {
+    final confirm = await _showConfirmDialog(
+      context,
+      'Leave Group',
+      'Are you sure you want to leave this shared group?',
+    );
+    if (confirm == true && mounted) {
+      setState(() {
+        _isActionLoading = true;
+      });
+      final completer = Completer<bool>();
+      context.read<DashboardBloc>().add(
+        DashboardLeaveGroupRequested(group['id'], completer),
+      );
+      final success = await completer.future;
+      if (mounted) {
+        setState(() {
+          _isActionLoading = false;
+        });
+        if (success) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Left the group successfully'),
+            ),
+          );
+        }
+      }
+    }
+  }
+
+  Future<void> _handleDeleteGroup(dynamic group) async {
+    final confirm = await _showConfirmDialog(
+      context,
+      'Delete Group',
+      'Are you sure you want to delete this shared group and all its associated data? This action is permanent and cannot be undone.',
+    );
+    if (confirm == true && mounted) {
+      setState(() {
+        _isActionLoading = true;
+      });
+      final completer = Completer<bool>();
+      context.read<DashboardBloc>().add(
+        DashboardDeleteGroupRequested(group['id'], completer),
+      );
+      final success = await completer.future;
+      if (mounted) {
+        setState(() {
+          _isActionLoading = false;
+        });
+        if (success) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                'Group and all associated data deleted successfully',
+              ),
+            ),
+          );
+        }
+      }
+    }
   }
 
   Future<bool?> _showConfirmDialog(
