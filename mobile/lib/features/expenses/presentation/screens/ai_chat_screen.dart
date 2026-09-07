@@ -115,9 +115,10 @@ class _AiChatScreenState extends State<AiChatScreen>
       '👋 Hai! Saya asisten AI untuk mencatat pengeluaran.\n\n'
       'Cukup ketik pesan seperti:\n'
       '• "makan siang 25k"\n'
-      '• "kopi starbucks 45000"\n'
-      '• "bensin 50k"\n'
-      '• "kemarin belanja indomaret 120k"\n\n'
+      '• "kopi 15k jam 10 pagi"\n'
+      '• "bensin 50rb jam 14.30"\n'
+      '• "kemarin martabak 35k jam 8 malam"\n\n'
+      '💡 Jika tidak menyertakan jam, otomatis dicatat pada jam sekarang!\n'
       'Saya akan otomatis memahami dan menyimpan transaksi kamu! 🚀',
     );
   }
@@ -652,7 +653,7 @@ class _AiChatScreenState extends State<AiChatScreen>
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  '${currencyFormatter.format(expense.amount)} · ${expense.category.name}',
+                  '${currencyFormatter.format(expense.amount)} · ${expense.category.name} · ${DateFormat('HH:mm').format(expense.date)}',
                   style: GoogleFonts.beVietnamPro(
                     fontSize: 12,
                     color: AppTheme.onSurfaceVariant,
@@ -768,10 +769,11 @@ class _AiChatScreenState extends State<AiChatScreen>
 
   Widget _buildSuggestionChips(ResponsiveHelper responsive) {
     final suggestions = [
-      '☕ Kopi 15k',
       '🍔 Makan siang 25k',
-      '⛽ Bensin 50k',
-      '🛒 Belanja 120k',
+      '☕ Kopi 15k jam 10',
+      '⛽ Bensin 50rb',
+      '🛒 Belanja 120k jam 14.30',
+      '🍜 Mie ayam 18k kemarin jam 7 malam',
     ];
 
     return Container(

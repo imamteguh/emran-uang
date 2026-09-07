@@ -37,6 +37,24 @@ function extractJsonFromText(rawText) {
   return JSON.parse(text);
 }
 
+// ── Helper: Timezone Offset String (+07:00, etc.) ──────────────────────────
+
+function getTimezoneOffsetString(timeZone) {
+  try {
+    const now = new Date();
+    const tzDate = new Date(now.toLocaleString('en-US', { timeZone }));
+    const diff = tzDate.getTime() - new Date(now.toLocaleString('en-US', { timeZone: 'UTC' })).getTime();
+    const totalMinutes = Math.round(diff / (60 * 1000));
+    const sign = totalMinutes >= 0 ? '+' : '-';
+    const absMinutes = Math.abs(totalMinutes);
+    const hours = String(Math.floor(absMinutes / 60)).padStart(2, '0');
+    const minutes = String(absMinutes % 60).padStart(2, '0');
+    return `${sign}${hours}:${minutes}`;
+  } catch {
+    return '+07:00';
+  }
+}
+
 // ── Helper: OpenAI-Compatible Text Chat ─────────────────────────────────────
 
 async function callOpenAICompatibleChat({ apiKey, baseURL, model, prompt }) {
@@ -207,26 +225,40 @@ async function chatTransaction(req, res) {
     const categoryList = categories.map((c) => `"${c.name}"`).join(', ');
     const walletCurrency = targetWallet.currency || 'IDR';
 
-    // ── Compute timezone-aware dates ────────────────────────────────────
+    // ── Compute timezone-aware dates & current time ─────────────────────
     const userTimezone = timezone || req.headers['x-timezone'] || 'Asia/Jakarta';
+    const tzOffset = getTimezoneOffsetString(userTimezone);
+
     let todayStr;
     let yesterdayStr;
+    let currentTimeStr;
+    const now = new Date();
+
     try {
-      const now = new Date();
       todayStr = new Intl.DateTimeFormat('en-CA', { timeZone: userTimezone }).format(now);
       const yesterdayDate = new Date(now.getTime() - 24 * 60 * 60 * 1000);
       yesterdayStr = new Intl.DateTimeFormat('en-CA', { timeZone: userTimezone }).format(yesterdayDate);
+      currentTimeStr = new Intl.DateTimeFormat('en-GB', {
+        timeZone: userTimezone,
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false,
+      }).format(now);
     } catch {
-      todayStr = new Date().toISOString().split('T')[0];
+      todayStr = now.toISOString().split('T')[0];
       const yDate = new Date();
       yDate.setDate(yDate.getDate() - 1);
       yesterdayStr = yDate.toISOString().split('T')[0];
+      currentTimeStr = now.toTimeString().split(' ')[0];
     }
 
     // ── Build AI prompt ─────────────────────────────────────────────────
     const prompt = `You are a smart expense parsing assistant for an Indonesian expense tracker app.
-The user's currency is ${walletCurrency}. Today's date is ${todayStr}.
-User's timezone: ${userTimezone}.
+The user's currency is ${walletCurrency}.
+Today's date: ${todayStr}
+Current time right now: ${currentTimeStr}
+User's timezone: ${userTimezone}
 
 Parse the following user message and extract expense information.
 
@@ -243,14 +275,34 @@ PARSING RULES:
    - "sepuluh ribu" → 10000, "lima puluh ribu" → 50000
    - If no valid expense amount is found, return {"error": "Tidak bisa menentukan jumlah dari pesan ini. Coba sertakan nominal, misalnya: 'makan siang 25k'"}
 
-2. **Description**: Extract a concise, clear description (max 60 chars) in the same language. Capitalize the first letter. E.g. "Makan siang", "Kopi Kenangan", "Bensin Pertamax", "Beli baju".
+2. **Description**: Extract a concise, clear description (max 60 chars) in the same language. Capitalize the first letter. E.g. "Makan siang", "Kopi Kenangan", "Bensin Pertamax", "Beli baju". Do NOT include the amount in the description.
 
-3. **Date**: Default to today (${todayStr}T00:00:00).
-   - "kemarin" / "yesterday" → ${yesterdayStr}T00:00:00
-   - "tadi pagi" → ${todayStr}T08:00:00
-   - "tadi siang" → ${todayStr}T12:00:00
-   - "tadi malam" → ${todayStr}T20:00:00
-   - Specific date references should be parsed accordingly
+3. **Date & Time (CRITICAL TIME RULES)**:
+   - TIME/JAM EXTRACTION:
+     * Check if the user message specifies an hour or time of day:
+       - Explicit hours:
+         * "jam 10" / "jam 10 pagi" → 10:00:00
+         * "jam 1 siang" / "jam 13" / "jam 13.00" / "13:00" → 13:00:00
+         * "jam 2 siang" / "jam 14" / "14.30" → 14:00:00 / 14:30:00
+         * "jam 8 malam" / "jam 20" / "20:00" → 20:00:00
+         * "pukul 15:45" → 15:45:00
+         * "jam 10.30" → 10:30:00
+       - Contextual approximate times (when no explicit hour given):
+         * "tadi pagi" (without explicit hour) → 08:00:00
+         * "tadi siang" (without explicit hour) → 12:00:00
+         * "tadi sore" (without explicit hour) → 16:00:00
+         * "tadi malam" (without explicit hour) → 20:00:00
+     * CRITICAL: IF NO TIME OR HOUR IS MENTIONED IN THE MESSAGE:
+       YOU MUST USE THE CURRENT TIME RIGHT NOW: ${currentTimeStr}!
+       Do NOT default to 00:00:00! Always set the time to ${currentTimeStr}.
+
+   - DATE DETERMINATION:
+     * Default to today (${todayStr}) unless specified:
+       - "kemarin" / "yesterday" → ${yesterdayStr}
+       - Specific date like "tanggal 5" → YYYY-MM-DD
+     * If "kemarin" is specified with NO hour mentioned, combine ${yesterdayStr} with the CURRENT TIME ${currentTimeStr}.
+
+   - FINAL FORMAT: Return "date" as ISO 8601 string: "YYYY-MM-DDTHH:mm:ss".
 
 4. **Type**: Default to "NON_ROUTINE".
    - If keywords like "rutin", "bulanan", "langganan", "subscription", "cicilan", "tagihan" → "ROUTINE"
@@ -268,15 +320,18 @@ PARSING RULES:
      * spp, kursus, buku, kuliah, sekolah → "Education"
    - If none match well, use "Other"
 
+6. **aiMessage**: Create a friendly confirmation message in Indonesian:
+   - If a specific hour was in the user message:
+     "✅ <Description> Rp <Amount formatted> (jam <HH:mm>) — kategori <Category>"
+   - If no specific hour was mentioned:
+     "✅ <Description> Rp <Amount formatted> — kategori <Category>"
+
 IMPORTANT: Return ONLY valid JSON, no markdown code fences, no extra text.
 If the message is clearly NOT an expense record, return:
 {"error": "Maaf, saya tidak bisa memahami pesan ini sebagai transaksi. Coba format: 'makan siang 25k'"}
 
 Return format:
-{"amount": <number>, "description": "<string>", "date": "<ISO string>", "type": "ROUTINE" or "NON_ROUTINE", "suggestedCategory": "<string>", "aiMessage": "<friendly confirmation message in Indonesian>"}
-
-For aiMessage, format as:
-"✅ <Description> Rp <Amount formatted> — kategori <Category>"`;
+{"amount": <number>, "description": "<string>", "date": "<ISO string YYYY-MM-DDTHH:mm:ss>", "type": "ROUTINE" or "NON_ROUTINE", "suggestedCategory": "<string>", "aiMessage": "<string>"}`;
 
     // ── Call AI ──────────────────────────────────────────────────────────
     let text;
@@ -410,12 +465,25 @@ For aiMessage, format as:
       return error(res, 'No categories available. Please create a category first.', 404);
     }
 
+    // ── Resolve exact transaction date with timezone offset ────────────
+    let expenseDate = new Date();
+    if (parsed.date) {
+      let dateString = String(parsed.date).trim();
+      if (!dateString.endsWith('Z') && !/[+-]\d{2}:\d{2}$/.test(dateString)) {
+        dateString += tzOffset;
+      }
+      const parsedD = new Date(dateString);
+      if (!isNaN(parsedD.getTime())) {
+        expenseDate = parsedD;
+      }
+    }
+
     // ── Save expense to database ────────────────────────────────────────
     const expense = await prisma.expense.create({
       data: {
         amount: amountNum,
         description: parsed.description || trimmedMessage,
-        date: parsed.date ? new Date(parsed.date) : new Date(),
+        date: expenseDate,
         type: parsed.type === 'ROUTINE' ? 'ROUTINE' : 'NON_ROUTINE',
         userId: req.user.id,
         walletId: targetWallet.id,
