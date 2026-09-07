@@ -70,6 +70,10 @@ dependencies:
   flutter_bloc: ^9.1.1
   package_info_plus: ^10.2.0
 
+  # OCR Receipt Scanning
+  image_picker: ^1.1.2
+  image_cropper: ^8.0.2
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

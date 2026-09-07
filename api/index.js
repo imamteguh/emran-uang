@@ -27,6 +27,7 @@ const walletRoutes = require('../src/routes/wallet.routes');
 const categoryRoutes = require('../src/routes/category.routes');
 const sharingRoutes = require('../src/routes/sharing.routes');
 const notificationRoutes = require('../src/routes/notification.routes');
+const ocrRoutes = require('../src/routes/ocr.routes');
 
 // ── Express App ──────────────────────────────────────────────────────────────
 const app = express();
@@ -80,6 +81,7 @@ app.use('/api/wallets', walletRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/sharing', sharingRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/ocr', ocrRoutes);
 
 // ── 404 Handler ──────────────────────────────────────────────────────────────
 app.use('/api/*', (req, res) => {

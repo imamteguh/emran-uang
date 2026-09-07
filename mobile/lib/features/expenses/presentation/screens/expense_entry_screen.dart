@@ -14,6 +14,7 @@ import '../bloc/dashboard_event.dart';
 import '../widgets/category_icon.dart';
 import '../widgets/user_avatar.dart';
 import 'categories_screen.dart';
+import 'ocr_scan_screen.dart';
 
 class ExpenseEntryScreen extends StatefulWidget {
   final DateTime? initialDate;
@@ -49,6 +50,61 @@ class _ExpenseEntryScreenState extends State<ExpenseEntryScreen> {
     _amountController.dispose();
     _descController.dispose();
     super.dispose();
+  }
+
+  void _handleOcrResult(OcrScanResult result) {
+    final dashboardState = context.read<DashboardBloc>().state;
+    final currencyCode = dashboardState.activeWallet?.currency ?? 'IDR';
+    final formatter = CurrencyHelper.getFormatter(currencyCode);
+
+    // Format the amount for display
+    String formattedAmount;
+    if (formatter.decimalDigits == 0) {
+      formattedAmount = result.amount.toInt().toString();
+      // Apply thousand separators
+      final formatted = formatter.format(result.amount);
+      final symbol = formatter.currencySymbol;
+      formattedAmount = formatted
+          .replaceFirst(symbol.trim(), '')
+          .replaceFirst(symbol, '')
+          .trim();
+    } else {
+      final formatted = formatter.format(result.amount);
+      final symbol = formatter.currencySymbol;
+      formattedAmount = formatted
+          .replaceFirst(symbol.trim(), '')
+          .replaceFirst(symbol, '')
+          .trim();
+    }
+
+    setState(() {
+      _amountController.text = formattedAmount;
+      if (result.description != null && result.description!.isNotEmpty) {
+        _descController.text = result.description!;
+      }
+      if (result.date != null) {
+        _selectedDate = result.date!;
+      }
+      if (result.category != null) {
+        _selectedCategory = result.category;
+      }
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(Icons.check_circle_rounded, color: Colors.white, size: 18),
+            const SizedBox(width: 8),
+            const Expanded(child: Text('Receipt data applied! Review and save.')),
+          ],
+        ),
+        backgroundColor: const Color(0xFF246A52),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        duration: const Duration(seconds: 3),
+      ),
+    );
   }
 
   void _handleSubmit() async {
@@ -463,6 +519,45 @@ class _ExpenseEntryScreenState extends State<ExpenseEntryScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         actions: [
+          // Scan Receipt button
+          Padding(
+            padding: const EdgeInsets.only(right: 4.0),
+            child: IconButton(
+              icon: Container(
+                padding: const EdgeInsets.all(7),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      AppTheme.primary.withAlpha(25),
+                      AppTheme.secondary.withAlpha(15),
+                    ],
+                  ),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: AppTheme.primary.withAlpha(40),
+                    width: 1,
+                  ),
+                ),
+                child: const Icon(
+                  Icons.document_scanner_rounded,
+                  color: AppTheme.primary,
+                  size: 18,
+                ),
+              ),
+              tooltip: 'Scan Receipt',
+              onPressed: () async {
+                final result = await Navigator.push<OcrScanResult>(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const OcrScanScreen(),
+                  ),
+                );
+                if (result != null && mounted) {
+                  _handleOcrResult(result);
+                }
+              },
+            ),
+          ),
           if (provider.allWallets.isNotEmpty)
             Padding(
               padding: const EdgeInsets.only(right: 16.0),
