@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
@@ -87,72 +88,86 @@ class _OcrScanScreenState extends State<OcrScanScreen>
   void _showImageSourcePicker() {
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
       backgroundColor: Colors.transparent,
       builder: (ctx) => Container(
-        padding: const EdgeInsets.fromLTRB(24, 8, 24, 32),
         decoration: const BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black12,
+              blurRadius: 20,
+              offset: Offset(0, -4),
+            ),
+          ],
         ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 36,
-              height: 4,
-              margin: const EdgeInsets.only(bottom: 20),
-              decoration: BoxDecoration(
-                color: Colors.grey[300],
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            Text(
-              'Scan Receipt',
-              style: GoogleFonts.plusJakartaSans(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: AppTheme.darkSlate,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              'Choose a source for your receipt image',
-              style: GoogleFonts.beVietnamPro(
-                fontSize: 13,
-                color: AppTheme.darkSlateVariant,
-              ),
-            ),
-            const SizedBox(height: 24),
-            Row(
+        child: SafeArea(
+          top: false,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(24, 12, 24, 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                Expanded(
-                  child: _buildSourceOption(
-                    icon: Icons.camera_alt_rounded,
-                    label: 'Camera',
-                    subtitle: 'Take a photo',
-                    color: AppTheme.primary,
-                    onTap: () {
-                      Navigator.pop(ctx);
-                      _pickImage(ImageSource.camera);
-                    },
+                Container(
+                  width: 40,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 20),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFCBD5E1),
+                    borderRadius: BorderRadius.circular(2),
                   ),
                 ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: _buildSourceOption(
-                    icon: Icons.photo_library_rounded,
-                    label: 'Gallery',
-                    subtitle: 'Choose photo',
-                    color: AppTheme.secondary,
-                    onTap: () {
-                      Navigator.pop(ctx);
-                      _pickImage(ImageSource.gallery);
-                    },
+                Text(
+                  'Scan Receipt',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: AppTheme.darkSlate,
                   ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'Choose a source for your receipt image',
+                  style: GoogleFonts.beVietnamPro(
+                    fontSize: 13,
+                    color: AppTheme.darkSlateVariant,
+                  ),
+                ),
+                const SizedBox(height: 24),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildSourceOption(
+                        icon: Icons.camera_alt_rounded,
+                        label: 'Camera',
+                        subtitle: 'Take a photo',
+                        color: AppTheme.primary,
+                        onTap: () {
+                          Navigator.pop(ctx);
+                          _pickImage(ImageSource.camera);
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: _buildSourceOption(
+                        icon: Icons.photo_library_rounded,
+                        label: 'Gallery',
+                        subtitle: 'Choose photo',
+                        color: AppTheme.secondary,
+                        onTap: () {
+                          Navigator.pop(ctx);
+                          _pickImage(ImageSource.gallery);
+                        },
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
-          ],
+          ),
         ),
       ),
     );
@@ -383,10 +398,18 @@ class _OcrScanScreenState extends State<OcrScanScreen>
     final currencyCode = provider.activeWallet?.currency ?? 'IDR';
     final currencySymbol =
         CurrencyHelper.getFormatter(currencyCode).currencySymbol.trim();
+    final bool showBottomBar = _hasResult && !_isProcessing;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF7F9FB),
       appBar: AppBar(
+        systemOverlayStyle: const SystemUiOverlayStyle(
+          statusBarColor: Colors.transparent,
+          statusBarIconBrightness: Brightness.dark,
+          statusBarBrightness: Brightness.light,
+        ),
+        scrolledUnderElevation: 0,
+        backgroundColor: const Color(0xFFF7F9FB),
         leading: IconButton(
           icon: const Icon(Icons.close_rounded, color: AppTheme.darkSlateVariant),
           onPressed: () => Navigator.of(context).pop(),
@@ -411,12 +434,12 @@ class _OcrScanScreenState extends State<OcrScanScreen>
               'Scan Receipt',
               style: GoogleFonts.plusJakartaSans(
                 fontWeight: FontWeight.bold,
+                fontSize: 18,
                 color: AppTheme.darkSlate,
               ),
             ),
           ],
         ),
-        backgroundColor: Colors.transparent,
         elevation: 0,
         actions: [
           if (_selectedImage != null && !_isProcessing)
@@ -439,8 +462,15 @@ class _OcrScanScreenState extends State<OcrScanScreen>
         ],
       ),
       body: SafeArea(
+        top: false,
+        bottom: !showBottomBar,
         child: SingleChildScrollView(
-          padding: responsive.screenPadding,
+          padding: EdgeInsets.fromLTRB(
+            responsive.screenPadding.left,
+            8,
+            responsive.screenPadding.right,
+            showBottomBar ? 24 : (responsive.screenPadding.bottom + 16),
+          ),
           child: Center(
             child: SizedBox(
               width: responsive.isTablet || responsive.isDesktop
@@ -470,6 +500,8 @@ class _OcrScanScreenState extends State<OcrScanScreen>
           ),
         ),
       ),
+      bottomNavigationBar:
+          showBottomBar ? _buildBottomActionBar(responsive) : null,
     );
   }
 
@@ -947,63 +979,121 @@ class _OcrScanScreenState extends State<OcrScanScreen>
           ),
         ),
 
-        const SizedBox(height: 24),
-
-        // ── Confirm Button ──
-        ElevatedButton(
-          onPressed: _confirmResult,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: AppTheme.primary,
-            foregroundColor: Colors.white,
-            shadowColor: AppTheme.primary.withAlpha(76),
-            elevation: 4,
-            minimumSize: const Size(double.infinity, 56),
-            shape: const StadiumBorder(),
+        // ── Tips Note ──
+        const SizedBox(height: 8),
+        Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF1F5F9),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: const Color(0xFFE2E8F0)),
           ),
           child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.check_circle_rounded, size: 20),
-              const SizedBox(width: 8),
-              Text(
-                'Use This Data',
-                style: GoogleFonts.plusJakartaSans(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
+              const Icon(
+                Icons.check_circle_outline_rounded,
+                size: 18,
+                color: AppTheme.secondary,
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'Verify the extracted details above. Tap "Use This Data" below to import into your transaction.',
+                  style: GoogleFonts.beVietnamPro(
+                    fontSize: 12,
+                    color: AppTheme.darkSlateVariant,
+                    height: 1.4,
+                  ),
                 ),
               ),
             ],
           ),
         ),
-        const SizedBox(height: 12),
-
-        // ── Retry button ──
-        OutlinedButton(
-          onPressed: _showImageSourcePicker,
-          style: OutlinedButton.styleFrom(
-            foregroundColor: AppTheme.darkSlateVariant,
-            side: const BorderSide(color: Color(0xFFE2E8F0)),
-            minimumSize: const Size(double.infinity, 48),
-            shape: const StadiumBorder(),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.camera_alt_rounded, size: 18),
-              const SizedBox(width: 8),
-              Text(
-                'Scan Another Receipt',
-                style: GoogleFonts.plusJakartaSans(
-                  fontWeight: FontWeight.w600,
-                  fontSize: 14,
-                ),
-              ),
-            ],
-          ),
-        ),
-
-        const SizedBox(height: 32),
+        const SizedBox(height: 16),
       ],
+    );
+  }
+
+  // ── Bottom Action Bar (Fixed at bottom with SafeArea) ───────────────────
+
+  Widget _buildBottomActionBar(ResponsiveHelper responsive) {
+    final double contentWidth = responsive.isTablet || responsive.isDesktop
+        ? 480
+        : double.infinity;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withAlpha(12),
+            blurRadius: 16,
+            offset: const Offset(0, -4),
+          ),
+        ],
+      ),
+      child: SafeArea(
+        top: false,
+        child: Center(
+          child: SizedBox(
+            width: contentWidth,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              child: Row(
+                children: [
+                  OutlinedButton.icon(
+                    onPressed: _showImageSourcePicker,
+                    icon: const Icon(Icons.camera_alt_rounded, size: 18),
+                    label: Text(
+                      'Retake',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 14,
+                      ),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppTheme.darkSlateVariant,
+                      side: const BorderSide(color: Color(0xFFE2E8F0)),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 14,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: _confirmResult,
+                      icon: const Icon(Icons.check_circle_rounded, size: 20),
+                      label: Text(
+                        'Use This Data',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 15,
+                        ),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppTheme.primary,
+                        foregroundColor: Colors.white,
+                        shadowColor: AppTheme.primary.withAlpha(76),
+                        elevation: 3,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 
@@ -1094,52 +1184,67 @@ class _OcrScanScreenState extends State<OcrScanScreen>
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      useSafeArea: true,
       backgroundColor: Colors.transparent,
       builder: (ctx) {
         return DraggableScrollableSheet(
           initialChildSize: 0.6,
-          minChildSize: 0.3,
-          maxChildSize: 0.85,
+          minChildSize: 0.35,
+          maxChildSize: 0.88,
           expand: false,
           builder: (context, scrollController) {
             return Container(
               decoration: const BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black12,
+                    blurRadius: 20,
+                    offset: Offset(0, -4),
+                  ),
+                ],
               ),
-              child: Column(
-                children: [
-                  const SizedBox(height: 12),
-                  Container(
-                    width: 36,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: Colors.grey[300],
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.all(20),
-                    child: Text(
-                      'Select Category',
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: AppTheme.darkSlate,
+              child: SafeArea(
+                top: false,
+                child: Column(
+                  children: [
+                    const SizedBox(height: 12),
+                    Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFCBD5E1),
+                        borderRadius: BorderRadius.circular(2),
                       ),
                     ),
-                  ),
-                  Expanded(
-                    child: GridView.builder(
-                      controller: scrollController,
-                      padding: const EdgeInsets.fromLTRB(20, 0, 20, 32),
-                      gridDelegate:
-                          const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 4,
-                        crossAxisSpacing: 12,
-                        mainAxisSpacing: 12,
-                        childAspectRatio: 0.95,
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
+                      child: Text(
+                        'Select Category',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: AppTheme.darkSlate,
+                        ),
                       ),
+                    ),
+                    Expanded(
+                      child: GridView.builder(
+                        controller: scrollController,
+                        padding: EdgeInsets.fromLTRB(
+                          20,
+                          4,
+                          20,
+                          24 + MediaQuery.of(context).padding.bottom,
+                        ),
+                        gridDelegate:
+                            const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 4,
+                          crossAxisSpacing: 12,
+                          mainAxisSpacing: 12,
+                          childAspectRatio: 0.95,
+                        ),
                       itemCount: categories.length,
                       itemBuilder: (context, index) {
                         final cat = categories[index];
@@ -1216,33 +1321,41 @@ class _OcrScanScreenState extends State<OcrScanScreen>
                   ),
                 ],
               ),
-            );
-          },
-        );
-      },
-    );
-  }
+            ),
+          );
+        },
+      );
+    },
+  );
+}
 
   Widget _buildEmptyState() {
     return Container(
-      margin: const EdgeInsets.symmetric(vertical: 60),
-      padding: const EdgeInsets.all(40),
+      margin: const EdgeInsets.symmetric(vertical: 36),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 36),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: AppTheme.softShadow,
+        border: Border.all(color: const Color(0xFFF1F5F9), width: 1.5),
+      ),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            width: 100,
-            height: 100,
+            width: 84,
+            height: 84,
             decoration: BoxDecoration(
-              color: AppTheme.primary.withAlpha(12),
+              color: AppTheme.primary.withAlpha(15),
               shape: BoxShape.circle,
             ),
             child: const Icon(
               Icons.receipt_long_rounded,
               color: AppTheme.primary,
-              size: 48,
+              size: 42,
             ),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 20),
           Text(
             'No receipt selected',
             style: GoogleFonts.plusJakartaSans(
@@ -1261,7 +1374,7 @@ class _OcrScanScreenState extends State<OcrScanScreen>
             ),
             textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 32),
+          const SizedBox(height: 28),
           ElevatedButton.icon(
             onPressed: _showImageSourcePicker,
             icon: const Icon(Icons.camera_alt_rounded, size: 20),
@@ -1275,7 +1388,7 @@ class _OcrScanScreenState extends State<OcrScanScreen>
             style: ElevatedButton.styleFrom(
               backgroundColor: AppTheme.primary,
               foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 15),
               shape: const StadiumBorder(),
               elevation: 3,
               shadowColor: AppTheme.primary.withAlpha(76),

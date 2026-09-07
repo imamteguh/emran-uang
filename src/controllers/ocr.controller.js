@@ -56,20 +56,48 @@ IMPORTANT RULES:
 Return format:
 {"amount": <number>, "description": "<string>", "date": "<ISO string or null>", "suggestedCategory": "<string>"}`;
 
-    // Call Gemini Vision API
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+    // Call Gemini Vision API with fallback model support
+    const candidateModels = [
+      process.env.GEMINI_MODEL,
+      'gemini-3.6-flash',
+      'gemini-2.5-flash',
+      'gemini-1.5-flash',
+    ].filter(Boolean);
+    const modelsToTry = [...new Set(candidateModels)];
 
-    const result = await model.generateContent([
-      prompt,
-      {
-        inlineData: {
-          data: image,
-          mimeType: imageMimeType,
-        },
-      },
-    ]);
+    let response;
+    let lastError;
 
-    const response = result.response;
+    for (const modelName of modelsToTry) {
+      try {
+        const model = genAI.getGenerativeModel({ model: modelName });
+        const result = await model.generateContent([
+          prompt,
+          {
+            inlineData: {
+              data: image,
+              mimeType: imageMimeType,
+            },
+          },
+        ]);
+        response = result.response;
+        if (response) break;
+      } catch (err) {
+        lastError = err;
+        console.warn(`Gemini model "${modelName}" failed:`, err.message || err);
+        // If 404 (model deprecated / not found), continue to next fallback
+        if (err.status === 404 || err.message?.includes('not found') || err.message?.includes('no longer available')) {
+          continue;
+        }
+        // If other error (e.g. invalid key 400/403), rethrow immediately
+        throw err;
+      }
+    }
+
+    if (!response) {
+      throw lastError || new Error('Failed to generate content with available Gemini models');
+    }
+
     const text = response.text().trim();
 
     // Parse AI response
