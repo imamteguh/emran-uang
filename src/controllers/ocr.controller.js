@@ -6,9 +6,33 @@ const { GoogleGenerativeAI } = require('@google/generative-ai');
 const prisma = require('../config/prisma');
 const { success, error } = require('../utils/apiResponse');
 
-// ── Initialize Gemini ───────────────────────────────────────────────────────
-
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
+
+// ── Helper: Robust JSON Extractor ──────────────────────────────────────────
+
+function extractJsonFromText(rawText) {
+  if (!rawText || typeof rawText !== 'string') return null;
+  let text = rawText.trim();
+
+  // Strip markdown code fences
+  const codeBlockMatch = text.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
+  if (codeBlockMatch) {
+    text = codeBlockMatch[1].trim();
+  }
+
+  // Find outermost JSON object
+  const firstBrace = text.indexOf('{');
+  const lastBrace = text.lastIndexOf('}');
+  if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+    text = text.substring(firstBrace, lastBrace + 1);
+  }
+
+  try {
+    return JSON.parse(text);
+  } catch {
+    return null;
+  }
+}
 
 // ── Helper: OpenAI-Compatible Vision (OpenRouter / OpenAI) ─────────────────
 
@@ -271,14 +295,8 @@ Return format:
     }
 
     // Parse AI response
-    let parsed;
-    try {
-      let cleanText = text;
-      if (cleanText.startsWith('```')) {
-        cleanText = cleanText.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '');
-      }
-      parsed = JSON.parse(cleanText);
-    } catch (parseErr) {
+    let parsed = extractJsonFromText(text);
+    if (!parsed) {
       console.error('AI response parse error:', text);
       return error(res, 'AI could not parse the receipt. Please try again with a clearer image.', 422);
     }
@@ -288,10 +306,33 @@ Return format:
       return error(res, parsed.error, 422);
     }
 
-    // Validate parsed amount
-    if (!parsed.amount || typeof parsed.amount !== 'number' || parsed.amount <= 0) {
+    // Sanitize and validate parsed amount
+    let amount = parsed.amount;
+    if (typeof amount === 'string') {
+      let cleanAmount = amount.replace(/[^0-9.,]/g, '').trim();
+      if (cleanAmount.includes(',') && cleanAmount.includes('.')) {
+        if (cleanAmount.lastIndexOf(',') > cleanAmount.lastIndexOf('.')) {
+          // Format like 50.000,00
+          cleanAmount = cleanAmount.replace(/\./g, '').replace(',', '.');
+        } else {
+          // Format like 50,000.00
+          cleanAmount = cleanAmount.replace(/,/g, '');
+        }
+      } else if (cleanAmount.includes(',')) {
+        const parts = cleanAmount.split(',');
+        if (parts[1] && parts[1].length === 2) {
+          cleanAmount = cleanAmount.replace(',', '.');
+        } else {
+          cleanAmount = cleanAmount.replace(/,/g, '');
+        }
+      }
+      amount = parseFloat(cleanAmount);
+    }
+
+    if (!amount || typeof amount !== 'number' || isNaN(amount) || amount <= 0) {
       return error(res, 'Could not extract a valid amount from the receipt.', 422);
     }
+    parsed.amount = amount;
 
     // Match suggested category with user's categories
     let matchedCategory = null;

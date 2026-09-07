@@ -347,26 +347,47 @@ class _OcrScanScreenState extends State<OcrScanScreen>
 
         // Parse date
         DateTime? parsedDate;
-        if (data['date'] != null && data['date'].toString().isNotEmpty) {
+        if (data['date'] != null && data['date'].toString().trim().isNotEmpty) {
           try {
-            parsedDate = DateTime.parse(data['date']);
+            parsedDate = DateTime.parse(data['date'].toString().trim());
           } catch (_) {}
         }
 
-        // Parse category
+        // Parse category safely
         ExpenseCategory? parsedCategory;
-        if (data['suggestedCategory'] != null) {
-          final rawCat = data['suggestedCategory'] as Map<dynamic, dynamic>;
-          final tempCat = ExpenseCategory.fromJson(rawCat);
-          if (!mounted) return;
-          final dashCategories = context.read<DashboardBloc>().state.categories;
-          parsedCategory = dashCategories.firstWhere(
-            (c) => c.id == tempCat.id,
-            orElse: () => dashCategories.firstWhere(
-              (c) => c.name.toLowerCase() == tempCat.name.toLowerCase(),
-              orElse: () => tempCat,
-            ),
-          );
+        final rawCategoryData = data['suggestedCategory'];
+        if (!mounted) return;
+        final dashCategories = context.read<DashboardBloc>().state.categories;
+
+        if (rawCategoryData is Map) {
+          try {
+            final tempCat = ExpenseCategory.fromJson(rawCategoryData);
+            parsedCategory = dashCategories.firstWhere(
+              (c) => c.id == tempCat.id,
+              orElse: () => dashCategories.firstWhere(
+                (c) => c.name.toLowerCase() == tempCat.name.toLowerCase(),
+                orElse: () => tempCat,
+              ),
+            );
+          } catch (_) {}
+        } else if (rawCategoryData is String && rawCategoryData.trim().isNotEmpty) {
+          final search = rawCategoryData.toLowerCase().trim();
+          try {
+            parsedCategory = dashCategories.firstWhere(
+              (c) => c.name.toLowerCase() == search || c.name.toLowerCase().contains(search),
+              orElse: () => dashCategories.firstWhere(
+                (c) => c.name.toLowerCase() == 'other',
+                orElse: () => dashCategories.isNotEmpty
+                    ? dashCategories.first
+                    : ExpenseCategory(
+                        id: 'temp',
+                        name: rawCategoryData.trim(),
+                        icon: 'category',
+                        color: '#4F46E5',
+                      ),
+              ),
+            );
+          } catch (_) {}
         }
 
         setState(() {
@@ -425,6 +446,28 @@ class _OcrScanScreenState extends State<OcrScanScreen>
     );
 
     Navigator.of(context).pop(result);
+  }
+
+  String _formatResultDate(DateTime? date) {
+    if (date == null) return 'Not detected (will use today)';
+    try {
+      return DateFormat('EEEE, d MMMM yyyy • HH:mm').format(date);
+    } catch (_) {
+      try {
+        return DateFormat('d MMM yyyy • HH:mm').format(date);
+      } catch (_) {
+        return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')} ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
+      }
+    }
+  }
+
+  String _formatResultAmount(double? amount, NumberFormat formatter) {
+    if (amount == null) return '0';
+    try {
+      return formatter.format(amount);
+    } catch (_) {
+      return amount.toStringAsFixed(0);
+    }
   }
 
   @override
@@ -857,6 +900,20 @@ class _OcrScanScreenState extends State<OcrScanScreen>
               width: double.infinity,
               height: 220,
               fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) {
+                return Container(
+                  width: double.infinity,
+                  height: 220,
+                  color: const Color(0xFFE2E8F0),
+                  child: const Center(
+                    child: Icon(
+                      Icons.broken_image_rounded,
+                      size: 40,
+                      color: Colors.grey,
+                    ),
+                  ),
+                );
+              },
             ),
             // Gradient overlay
             Positioned.fill(
@@ -1204,7 +1261,7 @@ class _OcrScanScreenState extends State<OcrScanScreen>
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
-                  formatter.format(_resultAmount ?? 0),
+                  _formatResultAmount(_resultAmount, formatter),
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 28,
                     fontWeight: FontWeight.w800,
@@ -1294,9 +1351,7 @@ class _OcrScanScreenState extends State<OcrScanScreen>
           iconColor: AppTheme.tertiary,
           label: 'DATE',
           child: Text(
-            _resultDate != null
-                ? DateFormat('EEEE, d MMMM yyyy • HH:mm').format(_resultDate!)
-                : 'Not detected (will use today)',
+            _formatResultDate(_resultDate),
             style: GoogleFonts.beVietnamPro(
               fontSize: 14,
               color: _resultDate != null ? AppTheme.darkSlate : Colors.grey,
@@ -1464,8 +1519,10 @@ class _OcrScanScreenState extends State<OcrScanScreen>
                   color: AppTheme.darkSlateVariant,
                 ),
               ),
-              const Spacer(),
-              ?trailing,
+              if (trailing != null) ...[
+                const Spacer(),
+                trailing,
+              ],
             ],
           ),
           const SizedBox(height: 12),
