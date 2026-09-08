@@ -12,18 +12,31 @@ class TabNotification extends Notification {
 }
 
 class MainShellScreen extends StatefulWidget {
-  const MainShellScreen({super.key});
+  final int initialIndex;
+
+  const MainShellScreen({super.key, this.initialIndex = 0});
+
+  /// Navigates directly to the Dashboard screen, clearing any routes above it.
+  static void navigateToDashboard(BuildContext context) {
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(
+        builder: (_) => const MainShellScreen(initialIndex: 0),
+      ),
+      (route) => false,
+    );
+  }
 
   @override
   State<MainShellScreen> createState() => _MainShellScreenState();
 }
 
 class _MainShellScreenState extends State<MainShellScreen> {
-  int _currentIndex = 0;
+  late int _currentIndex;
 
   @override
   void initState() {
     super.initState();
+    _currentIndex = widget.initialIndex;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       PushNotificationService().initialize();
     });
