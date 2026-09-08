@@ -26,13 +26,17 @@ class OcrSourcePickerSheet extends StatelessWidget {
       backgroundColor: Colors.transparent,
       builder: (ctx) => OcrSourcePickerSheet(
         onSourceSelected: (source) {
-          Navigator.pop(ctx);
-          onSourceSelected(source);
+          Navigator.of(ctx).pop();
+          Future.delayed(const Duration(milliseconds: 150), () {
+            onSourceSelected(source);
+          });
         },
         onManualInput: onManualInput != null
             ? () {
-                Navigator.pop(ctx);
-                onManualInput();
+                Navigator.of(ctx).pop();
+                Future.delayed(const Duration(milliseconds: 150), () {
+                  onManualInput();
+                });
               }
             : null,
       ),

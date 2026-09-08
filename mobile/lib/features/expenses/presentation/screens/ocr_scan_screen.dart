@@ -38,10 +38,12 @@ class OcrScanScreen extends StatefulWidget {
 class _OcrScanScreenState extends State<OcrScanScreen> {
   late final OcrScanCubit _cubit;
   bool _isSaving = false;
+  bool _isPickerOpen = false;
 
   @override
   void initState() {
     super.initState();
+    debugPrint('[OCR Screen] 🏁 Initializing OcrScanScreen');
     _cubit = OcrScanCubit(initialWallet: widget.initialWallet);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -49,50 +51,31 @@ class _OcrScanScreenState extends State<OcrScanScreen> {
       final dashboardState = context.read<DashboardBloc>().state;
       _cubit.initWallet(dashboardState.activeWallet);
 
-      final route = ModalRoute.of(context);
-      if (route != null && route.animation != null) {
-        void onAnimationComplete(AnimationStatus status) {
-          if (status == AnimationStatus.completed) {
-            route.animation!.removeStatusListener(onAnimationComplete);
-            if (mounted &&
-                _cubit.state.selectedImage == null &&
-                !_cubit.state.isProcessing &&
-                !_cubit.state.hasResult) {
-              _openSourcePicker();
-            }
-          }
+      // Safe delayed auto-prompt for source selection:
+      // Does not hook into route.animation to avoid navigator locking or semantics collision.
+      Future.delayed(const Duration(milliseconds: 300), () {
+        if (!mounted) return;
+        final route = ModalRoute.of(context);
+        if (route?.isCurrent == true &&
+            _cubit.state.selectedImage == null &&
+            !_cubit.state.isProcessing &&
+            !_cubit.state.hasResult) {
+          debugPrint('[OCR Screen] 🚀 Auto-opening source picker sheet');
+          _openSourcePicker();
         }
-
-        if (route.animation!.isCompleted) {
-          if (mounted &&
-              _cubit.state.selectedImage == null &&
-              !_cubit.state.isProcessing &&
-              !_cubit.state.hasResult) {
-            _openSourcePicker();
-          }
-        } else {
-          route.animation!.addStatusListener(onAnimationComplete);
-        }
-      } else {
-        Future.delayed(const Duration(milliseconds: 350), () {
-          if (mounted &&
-              _cubit.state.selectedImage == null &&
-              !_cubit.state.isProcessing &&
-              !_cubit.state.hasResult) {
-            _openSourcePicker();
-          }
-        });
-      }
+      });
     });
   }
 
   @override
   void dispose() {
+    debugPrint('[OCR Screen] 🛑 Disposing OcrScanScreen');
     _cubit.close();
     super.dispose();
   }
 
   void _openManualInput() {
+    debugPrint('[OCR Screen] ✍️ Navigating to Manual Expense Entry');
     final dashboardState = context.read<DashboardBloc>().state;
     final effectiveWallet = _cubit.state.activeWallet ?? dashboardState.activeWallet;
 
@@ -103,21 +86,39 @@ class _OcrScanScreenState extends State<OcrScanScreen> {
     );
   }
 
-  void _openSourcePicker() {
-    final categories = context.read<DashboardBloc>().state.categories;
-    OcrSourcePickerSheet.show(
-      context: context,
-      onSourceSelected: (source) {
-        _cubit.pickAndProcessImage(
-          source: source,
-          availableCategories: categories,
-        );
-      },
-      onManualInput: _openManualInput,
-    );
+  Future<void> _openSourcePicker() async {
+    if (!mounted || _isPickerOpen) {
+      debugPrint('[OCR Screen] ⚠️ Source picker skipped (mounted=$mounted, isOpen=$_isPickerOpen)');
+      return;
+    }
+    _isPickerOpen = true;
+    debugPrint('[OCR Screen] 📂 Opening source picker sheet');
+
+    try {
+      final categories = context.read<DashboardBloc>().state.categories;
+      await OcrSourcePickerSheet.show(
+        context: context,
+        onSourceSelected: (source) {
+          if (!mounted) return;
+          debugPrint('[OCR Screen] 📸 Source selected: $source');
+          _cubit.pickAndProcessImage(
+            source: source,
+            availableCategories: categories,
+          );
+        },
+        onManualInput: _openManualInput,
+      );
+    } catch (e, stack) {
+      debugPrint('[OCR Screen] ❌ Error displaying source picker: $e\n$stack');
+    } finally {
+      if (mounted) {
+        _isPickerOpen = false;
+      }
+    }
   }
 
   void _openWalletSwitchSheet() {
+    debugPrint('[OCR Screen] 🔄 Opening wallet switch sheet');
     final dashboardState = context.read<DashboardBloc>().state;
     OcrWalletSwitchSheet.show(
       context: context,
@@ -125,6 +126,7 @@ class _OcrScanScreenState extends State<OcrScanScreen> {
       personalWallets: dashboardState.personalWallets,
       sharedWallets: dashboardState.sharedWallets,
       onWalletSelected: (wallet) {
+        debugPrint('[OCR Screen] 💼 Selected wallet: ${wallet.name}');
         _cubit.switchWallet(wallet);
         context.read<DashboardBloc>().add(DashboardSelectWalletRequested(wallet));
       },
@@ -178,6 +180,8 @@ class _OcrScanScreenState extends State<OcrScanScreen> {
 
     try {
       final effectiveWallet = state.activeWallet ?? dashboardBloc.state.activeWallet;
+      debugPrint('[OCR Screen] 💾 Saving transaction: amount=$amount, category=${category!.name}, wallet=${effectiveWallet?.name}');
+
       final newExpense = ExpenseEntity(
         id: 'new_exp_${DateTime.now().millisecondsSinceEpoch}',
         amount: amount,
@@ -196,6 +200,7 @@ class _OcrScanScreenState extends State<OcrScanScreen> {
       dashboardBloc.add(DashboardAddExpenseRequested(newExpense, completer));
       final success = await completer.future;
 
+      debugPrint('[OCR Screen] 💾 Save transaction result: success=$success');
       if (!mounted) return;
 
       if (success) {
@@ -225,6 +230,7 @@ class _OcrScanScreenState extends State<OcrScanScreen> {
         );
       }
     } catch (e) {
+      debugPrint('[OCR Screen] ❌ Exception while saving transaction: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(

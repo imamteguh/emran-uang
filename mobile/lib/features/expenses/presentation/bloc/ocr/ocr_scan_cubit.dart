@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../data/services/ocr_service.dart';
@@ -19,12 +20,14 @@ class OcrScanCubit extends Cubit<OcrScanState> {
   /// Initialize target wallet if not already set.
   void initWallet(WalletEntity? wallet) {
     if (state.activeWallet == null && wallet != null) {
+      debugPrint('[OCR Cubit] 💼 Initialized wallet: ${wallet.name} (${wallet.currency})');
       emit(state.copyWith(activeWallet: wallet));
     }
   }
 
   /// Switch the target wallet for receipt scanning.
   void switchWallet(WalletEntity wallet) {
+    debugPrint('[OCR Cubit] 🔄 Switched wallet: ${wallet.name} (${wallet.currency})');
     emit(state.copyWith(activeWallet: wallet));
   }
 
@@ -54,9 +57,14 @@ class OcrScanCubit extends Cubit<OcrScanState> {
     required List<ExpenseCategory> availableCategories,
   }) async {
     try {
+      debugPrint('[OCR Cubit] 📸 pickAndProcessImage started for source: $source');
       final croppedFile = await _ocrService.pickAndCropImage(source);
-      if (croppedFile == null) return;
+      if (croppedFile == null) {
+        debugPrint('[OCR Cubit] 📸 No image picked or user cancelled');
+        return;
+      }
 
+      debugPrint('[OCR Cubit] 🖼️ Image ready for OCR: ${croppedFile.path}');
       emit(state.copyWith(
         selectedImage: croppedFile,
         status: OcrScanStatus.scanning,
@@ -68,6 +76,7 @@ class OcrScanCubit extends Cubit<OcrScanState> {
         availableCategories: availableCategories,
       );
     } catch (e) {
+      debugPrint('[OCR Cubit] ❌ pickAndProcessImage error: $e');
       emit(state.copyWith(
         status: OcrScanStatus.failure,
         errorMessage: e.toString().replaceFirst('Exception: ', ''),
@@ -82,6 +91,7 @@ class OcrScanCubit extends Cubit<OcrScanState> {
     final image = state.selectedImage;
     if (image == null) return;
 
+    debugPrint('[OCR Cubit] 🔄 Retrying scan for image: ${image.path}');
     emit(state.copyWith(
       status: OcrScanStatus.scanning,
       clearError: true,
@@ -98,12 +108,14 @@ class OcrScanCubit extends Cubit<OcrScanState> {
     required List<ExpenseCategory> availableCategories,
   }) async {
     try {
+      debugPrint('[OCR Cubit] ⏳ Processing image via backend OCR: ${image.path}');
       final parsed = await _ocrService.scanReceiptImage(
         image: image,
         walletId: state.activeWallet?.id,
         availableCategories: availableCategories,
       );
 
+      debugPrint('[OCR Cubit] ✅ Scan successful: amount=${parsed.amount}, category=${parsed.category?.name}, date=${parsed.date}');
       emit(state.copyWith(
         status: OcrScanStatus.success,
         amount: parsed.amount,
@@ -114,6 +126,7 @@ class OcrScanCubit extends Cubit<OcrScanState> {
         clearError: true,
       ));
     } catch (e) {
+      debugPrint('[OCR Cubit] ❌ OCR scan failed: $e');
       emit(state.copyWith(
         status: OcrScanStatus.failure,
         errorMessage: e.toString().replaceFirst('Exception: ', ''),

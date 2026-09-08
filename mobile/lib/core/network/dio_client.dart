@@ -40,9 +40,37 @@ class DioClient {
           if (_accessToken != null) {
             options.headers['Authorization'] = 'Bearer $_accessToken';
           }
+          final isOcr = options.path.contains('ocr');
+          if (isOcr) {
+            final dataDesc = options.data is Map
+                ? 'keys: ${(options.data as Map).keys.toList()}'
+                : '${options.data.runtimeType}';
+            debugPrint('[OCR HTTP] 🚀 --> ${options.method} ${options.baseUrl}${options.path} ($dataDesc)');
+          } else {
+            debugPrint('[HTTP REQ] --> ${options.method} ${options.path}');
+          }
           return handler.next(options);
         },
+        onResponse: (response, handler) {
+          final isOcr = response.requestOptions.path.contains('ocr');
+          if (isOcr) {
+            debugPrint('[OCR HTTP] 📩 <-- [${response.statusCode}] ${response.requestOptions.path}');
+            debugPrint('[OCR HTTP] 📦 Response data: ${response.data}');
+          } else {
+            debugPrint('[HTTP RES] <-- [${response.statusCode}] ${response.requestOptions.path}');
+          }
+          return handler.next(response);
+        },
         onError: (DioException error, handler) async {
+          final isOcr = error.requestOptions.path.contains('ocr');
+          if (isOcr) {
+            debugPrint('[OCR HTTP] ❌ <-- ERROR [${error.response?.statusCode}] ${error.requestOptions.path}: ${error.message}');
+            if (error.response?.data != null) {
+              debugPrint('[OCR HTTP] ❌ Error response body: ${error.response?.data}');
+            }
+          } else {
+            debugPrint('[HTTP ERR] <-- [${error.response?.statusCode}] ${error.requestOptions.path}: ${error.message}');
+          }
           // Check if it is a 401 Unauthorized error and we have a refresh token
           if (error.response?.statusCode == 401 && _refreshToken != null) {
             try {

@@ -38,48 +38,71 @@ class OcrService {
 
   /// Picks an image from the given [source] and opens the cropper tool.
   Future<File?> pickAndCropImage(ImageSource source) async {
-    final XFile? picked = await _picker.pickImage(
-      source: source,
-      maxWidth: 1920,
-      maxHeight: 1920,
-      imageQuality: 85,
-    );
+    try {
+      debugPrint('[OCR Service] 📸 Picking image from source: $source');
+      final XFile? picked = await _picker.pickImage(
+        source: source,
+        maxWidth: 1920,
+        maxHeight: 1920,
+        imageQuality: 85,
+      );
 
-    if (picked == null) return null;
+      if (picked == null) {
+        debugPrint('[OCR Service] 📸 Image picking cancelled by user');
+        return null;
+      }
 
-    final croppedFile = await ImageCropper().cropImage(
-      sourcePath: picked.path,
-      uiSettings: [
-        AndroidUiSettings(
-          toolbarTitle: 'Crop Receipt',
-          toolbarColor: AppTheme.primary,
-          toolbarWidgetColor: Colors.white,
-          activeControlsWidgetColor: AppTheme.primary,
-          statusBarLight: false,
-          navBarLight: true,
-          initAspectRatio: CropAspectRatioPreset.original,
-          lockAspectRatio: false,
-          aspectRatioPresets: [
-            CropAspectRatioPreset.original,
-            CropAspectRatioPreset.ratio3x2,
-            CropAspectRatioPreset.ratio4x3,
+      final fileLength = await picked.length();
+      debugPrint('[OCR Service] 📸 Image picked: ${picked.path} (${(fileLength / 1024).toStringAsFixed(1)} KB)');
+
+      try {
+        debugPrint('[OCR Service] ✂️ Launching ImageCropper...');
+        final croppedFile = await ImageCropper().cropImage(
+          sourcePath: picked.path,
+          uiSettings: [
+            AndroidUiSettings(
+              toolbarTitle: 'Crop Receipt',
+              toolbarColor: AppTheme.primary,
+              toolbarWidgetColor: Colors.white,
+              activeControlsWidgetColor: AppTheme.primary,
+              statusBarLight: false,
+              navBarLight: true,
+              initAspectRatio: CropAspectRatioPreset.original,
+              lockAspectRatio: false,
+              aspectRatioPresets: [
+                CropAspectRatioPreset.original,
+                CropAspectRatioPreset.ratio3x2,
+                CropAspectRatioPreset.ratio4x3,
+              ],
+            ),
+            IOSUiSettings(
+              title: 'Crop Receipt',
+              doneButtonTitle: 'Done',
+              cancelButtonTitle: 'Cancel',
+              aspectRatioPresets: [
+                CropAspectRatioPreset.original,
+                CropAspectRatioPreset.ratio3x2,
+                CropAspectRatioPreset.ratio4x3,
+              ],
+            ),
           ],
-        ),
-        IOSUiSettings(
-          title: 'Crop Receipt',
-          doneButtonTitle: 'Done',
-          cancelButtonTitle: 'Cancel',
-          aspectRatioPresets: [
-            CropAspectRatioPreset.original,
-            CropAspectRatioPreset.ratio3x2,
-            CropAspectRatioPreset.ratio4x3,
-          ],
-        ),
-      ],
-    );
+        );
 
-    if (croppedFile == null) return null;
-    return File(croppedFile.path);
+        if (croppedFile != null) {
+          debugPrint('[OCR Service] ✂️ Cropped image ready: ${croppedFile.path}');
+          return File(croppedFile.path);
+        } else {
+          debugPrint('[OCR Service] ✂️ Cropping skipped by user, falling back to original image');
+          return File(picked.path);
+        }
+      } catch (cropErr) {
+        debugPrint('[OCR Service] ⚠️ ImageCropper encountered error ($cropErr), falling back to original image');
+        return File(picked.path);
+      }
+    } catch (e, stack) {
+      debugPrint('[OCR Service] ❌ Error in pickAndCropImage: $e\n$stack');
+      rethrow;
+    }
   }
 
   /// Sends the cropped receipt file to the backend `/ocr/scan-receipt` endpoint.
@@ -88,6 +111,7 @@ class OcrService {
     String? walletId,
     required List<ExpenseCategory> availableCategories,
   }) async {
+    final stopwatch = Stopwatch()..start();
     try {
       final bytes = await image.readAsBytes();
       final base64Image = base64Encode(bytes);
@@ -100,14 +124,22 @@ class OcrService {
         mimeType = 'image/webp';
       }
 
+      debugPrint('[OCR Service] 🚀 Sending to API /ocr/scan-receipt: size=${(bytes.length / 1024).toStringAsFixed(1)} KB, mimeType=$mimeType, walletId=$walletId');
+
       final response = await _client.dio.post(
         '/ocr/scan-receipt',
         data: {
           'image': base64Image,
           'mimeType': mimeType,
-          'walletId': ?walletId,
+          'walletId': walletId,
         },
+        options: Options(
+          sendTimeout: const Duration(seconds: 45),
+          receiveTimeout: const Duration(seconds: 60),
+        ),
       );
+
+      debugPrint('[OCR Service] 📩 Received response in ${stopwatch.elapsedMilliseconds}ms: status=${response.statusCode}');
 
       if (response.data != null && response.data['success'] == true) {
         final data = response.data['data'] as Map<String, dynamic>;
@@ -168,6 +200,8 @@ class OcrService {
           } catch (_) {}
         }
 
+        debugPrint('[OCR Service] ✅ Parsed data: amount=$amount, desc=${data['description']}, category=${parsedCategory?.name}, date=$parsedDate');
+
         return OcrParsedData(
           amount: amount,
           description: data['description'] as String?,
@@ -177,9 +211,11 @@ class OcrService {
         );
       } else {
         final message = response.data?['message'] ?? 'Failed to scan receipt';
+        debugPrint('[OCR Service] ❌ Server returned unsuccessful response: $message');
         throw Exception(message);
       }
     } catch (e) {
+      debugPrint('[OCR Service] ❌ scanReceiptImage error after ${stopwatch.elapsedMilliseconds}ms: $e');
       if (e is DioException) {
         if (e.response?.data != null && e.response!.data is Map) {
           final msg = e.response!.data['message'];

@@ -50,6 +50,29 @@ app.use(
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
+// HTTP Request & Response Logging Middleware (focused on /api/ocr and debugging)
+app.use((req, res, next) => {
+  const start = Date.now();
+  const isOcr = req.originalUrl.includes('/ocr');
+
+  if (isOcr) {
+    const contentLength = req.headers['content-length'];
+    const sizeStr = contentLength ? `${(parseInt(contentLength, 10) / 1024).toFixed(1)} KB` : 'unknown size';
+    console.log(`[HTTP REQ] 📥 ${req.method} ${req.originalUrl} - Payload Size: ${sizeStr}`);
+  }
+
+  res.on('finish', () => {
+    const duration = Date.now() - start;
+    const status = res.statusCode;
+    const logTag = status >= 400 ? '❌' : '✅';
+    if (isOcr || status >= 400 || isDev) {
+      console.log(`[HTTP RES] ${logTag} ${req.method} ${req.originalUrl} - Status: ${status} (${duration}ms)`);
+    }
+  });
+
+  next();
+});
+
 // Rate limiting — 500 requests per 15 minutes per IP
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,

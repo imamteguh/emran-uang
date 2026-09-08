@@ -37,8 +37,10 @@ function extractJsonFromText(rawText) {
 // ── Helper: OpenAI-Compatible Vision (OpenRouter / OpenAI) ─────────────────
 
 async function callOpenAICompatibleVision({ apiKey, baseURL, model, image, mimeType, prompt }) {
+  const start = Date.now();
   const url = `${baseURL.replace(/\/+$/, '')}/chat/completions`;
   const dataUrl = `data:${mimeType};base64,${image}`;
+  console.log(`[OCR API] 🤖 Calling OpenAI-compatible vision: url=${url}, model=${model}, mimeType=${mimeType}`);
 
   const res = await fetch(url, {
     method: 'POST',
@@ -69,16 +71,21 @@ async function callOpenAICompatibleVision({ apiKey, baseURL, model, image, mimeT
     }),
   });
 
+  const duration = Date.now() - start;
+
   if (!res.ok) {
     const errBody = await res.text();
+    console.error(`[OCR API] ❌ AI Vision Provider error (${res.status}) in ${duration}ms: ${errBody}`);
     throw new Error(`AI Vision Provider error (${res.status}): ${errBody}`);
   }
 
   const json = await res.json();
   const text = json.choices?.[0]?.message?.content;
   if (!text) {
+    console.error(`[OCR API] ❌ No content in AI Vision Provider response:`, json);
     throw new Error('No content returned from AI Vision Provider');
   }
+  console.log(`[OCR API] 📥 AI response received in ${duration}ms (${text.length} chars)`);
   return text.trim();
 }
 
@@ -101,7 +108,9 @@ async function callGeminiVision({ image, mimeType, prompt }) {
   let lastError;
 
   for (const modelName of modelsToTry) {
+    const start = Date.now();
     try {
+      console.log(`[OCR API] 🤖 Calling Gemini model "${modelName}" (baseUrl=${requestOptions.baseUrl || 'default'})...`);
       const model = genAI.getGenerativeModel({ model: modelName }, requestOptions);
       const result = await model.generateContent([
         prompt,
@@ -112,13 +121,16 @@ async function callGeminiVision({ image, mimeType, prompt }) {
           },
         },
       ]);
+      const duration = Date.now() - start;
       const response = result.response;
       if (response) {
-        return response.text().trim();
+        const text = response.text().trim();
+        console.log(`[OCR API] 📥 Gemini model "${modelName}" succeeded in ${duration}ms (${text.length} chars)`);
+        return text;
       }
     } catch (err) {
       lastError = err;
-      console.warn(`Gemini model "${modelName}" failed:`, err.message || err);
+      console.warn(`[OCR API] ⚠️ Gemini model "${modelName}" failed:`, err.message || err);
       // If 404 (model deprecated / not found), continue to next fallback
       if (err.status === 404 || err.message?.includes('not found') || err.message?.includes('no longer available')) {
         continue;
@@ -134,14 +146,18 @@ async function callGeminiVision({ image, mimeType, prompt }) {
 // ── Scan Receipt ────────────────────────────────────────────────────────────
 
 async function scanReceipt(req, res) {
+  const scanStart = Date.now();
   const { image, mimeType, walletId } = req.body;
 
   // Validate input
   if (!image) {
+    console.warn('[OCR API] ⚠️ Rejected request: missing image base64');
     return error(res, 'image (base64) is required', 400);
   }
 
   const imageMimeType = mimeType || 'image/jpeg';
+  const approxSizeKb = Math.round((image.length * 0.75) / 1024);
+  console.log(`[OCR API] 📥 Received scan request: user=${req.user?.id || 'anon'}, walletId=${walletId || 'none'}, mimeType=${imageMimeType}, size=~${approxSizeKb} KB`);
 
   try {
     // Optional wallet context (supports both personal and shared/group wallets)
@@ -184,6 +200,8 @@ async function scanReceipt(req, res) {
     });
 
     const categoryNames = categories.map((c) => c.name);
+    console.log(`[OCR API] 📋 Found ${categories.length} available categories for matching: [${categoryNames.slice(0, 8).join(', ')}${categoryNames.length > 8 ? '...' : ''}]`);
+
     const walletCurrency = targetWallet?.currency || 'IDR';
     const isShared = targetWallet?.type === 'SHARED';
     const walletContext = targetWallet
@@ -212,13 +230,16 @@ Return format:
 
     let text;
     const provider = (process.env.AI_PROVIDER || '').toLowerCase();
+    console.log(`[OCR API] ⚙️ Active provider config: "${provider || 'gemini (default)'}"`);
 
     // 1. Direct OpenRouter if specified
     if (provider === 'openrouter' || (!provider && process.env.OPENROUTER_API_KEY && !process.env.GEMINI_API_KEY)) {
+      const model = process.env.OPENROUTER_MODEL || 'google/gemini-2.5-flash';
+      console.log(`[OCR API] 🚀 Routing to OpenRouter Vision (model: ${model})...`);
       text = await callOpenAICompatibleVision({
         apiKey: process.env.OPENROUTER_API_KEY,
         baseURL: process.env.OPENROUTER_BASE_URL || 'https://openrouter.ai/api/v1',
-        model: process.env.OPENROUTER_MODEL || 'google/gemini-2.5-flash',
+        model: model,
         image,
         mimeType: imageMimeType,
         prompt,
@@ -226,10 +247,12 @@ Return format:
     }
     // 2. Direct OpenAI if specified
     else if (provider === 'openai' || (!provider && process.env.OPENAI_API_KEY && !process.env.GEMINI_API_KEY)) {
+      const model = process.env.OPENAI_MODEL || 'gpt-4o-mini';
+      console.log(`[OCR API] 🚀 Routing to OpenAI Vision (model: ${model})...`);
       text = await callOpenAICompatibleVision({
         apiKey: process.env.OPENAI_API_KEY,
         baseURL: process.env.OPENAI_BASE_URL || 'https://api.openai.com/v1',
-        model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
+        model: model,
         image,
         mimeType: imageMimeType,
         prompt,
@@ -238,16 +261,17 @@ Return format:
     // 3. Default: Gemini Vision API (with automatic fallback to OpenRouter/OpenAI if location blocked)
     else {
       try {
+        console.log('[OCR API] 🚀 Routing to Google Gemini Vision API...');
         text = await callGeminiVision({
           image,
           mimeType: imageMimeType,
           prompt,
         });
       } catch (geminiErr) {
-        console.warn('[OCR] Gemini Vision call failed:', geminiErr.message || geminiErr);
+        console.warn('[OCR API] ⚠️ Gemini Vision call failed:', geminiErr.message || geminiErr);
 
         if (process.env.OPENROUTER_API_KEY) {
-          console.warn('[OCR] Falling back to OpenRouter Vision API...');
+          console.warn('[OCR API] 🔄 Falling back to OpenRouter Vision API...');
           try {
             text = await callOpenAICompatibleVision({
               apiKey: process.env.OPENROUTER_API_KEY,
@@ -258,11 +282,11 @@ Return format:
               prompt,
             });
           } catch (openRouterErr) {
-            console.error('[OCR] OpenRouter fallback also failed:', openRouterErr.message || openRouterErr);
+            console.error('[OCR API] ❌ OpenRouter fallback also failed:', openRouterErr.message || openRouterErr);
             throw geminiErr;
           }
         } else if (process.env.OPENAI_API_KEY) {
-          console.warn('[OCR] Falling back to OpenAI Vision API...');
+          console.warn('[OCR API] 🔄 Falling back to OpenAI Vision API...');
           try {
             text = await callOpenAICompatibleVision({
               apiKey: process.env.OPENAI_API_KEY,
@@ -273,7 +297,7 @@ Return format:
               prompt,
             });
           } catch (openAiErr) {
-            console.error('[OCR] OpenAI fallback also failed:', openAiErr.message || openAiErr);
+            console.error('[OCR API] ❌ OpenAI fallback also failed:', openAiErr.message || openAiErr);
             throw geminiErr;
           }
         } else {
@@ -282,7 +306,7 @@ Return format:
             geminiErr.status === 400;
 
           if (isGeoBlocked) {
-            console.error('[OCR] Gemini API blocked: Server location is not supported by Google AI.');
+            console.error('[OCR API] ❌ Gemini API blocked: Server location is not supported by Google AI.');
             return error(
               res,
               'Google AI tidak mendukung lokasi server ini (User location is not supported). Silakan gunakan GEMINI_BASE_URL (Cloudflare Worker proxy) atau OPENROUTER_API_KEY di file .env server Anda.',
@@ -295,14 +319,16 @@ Return format:
     }
 
     // Parse AI response
+    console.log(`[OCR API] 📄 Raw AI output:\n${text}`);
     let parsed = extractJsonFromText(text);
     if (!parsed) {
-      console.error('AI response parse error:', text);
+      console.error('[OCR API] ❌ Failed to parse JSON from AI response text:', text);
       return error(res, 'AI could not parse the receipt. Please try again with a clearer image.', 422);
     }
 
     // Check for AI-reported error
     if (parsed.error) {
+      console.warn(`[OCR API] ⚠️ AI reported unreadable receipt: ${parsed.error}`);
       return error(res, parsed.error, 422);
     }
 
@@ -330,6 +356,7 @@ Return format:
     }
 
     if (!amount || typeof amount !== 'number' || isNaN(amount) || amount <= 0) {
+      console.warn(`[OCR API] ⚠️ Invalid extracted amount: "${parsed.amount}"`);
       return error(res, 'Could not extract a valid amount from the receipt.', 422);
     }
     parsed.amount = amount;
@@ -359,6 +386,9 @@ Return format:
       }
     }
 
+    console.log(`[OCR API] 🏷️ Matched category: "${parsed.suggestedCategory}" -> ${matchedCategory ? `"${matchedCategory.name}" (${matchedCategory.id})` : 'null'}`);
+    console.log(`[OCR API] ✅ Receipt parsed successfully in ${Date.now() - scanStart}ms: amount=${parsed.amount}, date=${parsed.date}, desc="${parsed.description}"`);
+
     // Build response
     const ocrResult = {
       amount: parsed.amount,
@@ -379,7 +409,7 @@ Return format:
 
     return success(res, ocrResult, 'Receipt scanned successfully');
   } catch (err) {
-    console.error('OCR scan error:', err);
+    console.error(`[OCR API] ❌ OCR scan error (${Date.now() - scanStart}ms):`, err);
 
     if (err.message?.includes('API_KEY')) {
       return error(res, 'AI service is not configured. Please contact support.', 500);

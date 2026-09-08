@@ -17,6 +17,46 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await dotenv.load(fileName: ".env");
   await initializeDateFormatting();
+
+  // Global Flutter error handler to log errors rather than silently failing
+  FlutterError.onError = (FlutterErrorDetails details) {
+    FlutterError.presentError(details);
+    debugPrint('[FLUTTER ERROR] ${details.exception}');
+    debugPrint('[FLUTTER STACK] ${details.stack}');
+  };
+
+  // Custom ErrorWidget boundary to prevent blank white screens on widget crashes
+  ErrorWidget.builder = (FlutterErrorDetails details) {
+    debugPrint('[CRITICAL WIDGET ERROR] ${details.exception}');
+    return Material(
+      color: const Color(0xFFF7F9FB),
+      child: SafeArea(
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.error_outline_rounded, color: Colors.red, size: 48),
+                const SizedBox(height: 16),
+                const Text(
+                  'Tampilan Mengalami Kesalahan',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  '${details.exception}',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(fontSize: 12, color: Colors.black54),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  };
+
   runApp(const EmranUangApp());
 }
 
