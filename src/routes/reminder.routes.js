@@ -6,6 +6,7 @@ const { Router } = require('express');
 const { asyncHandler } = require('../middleware/errorHandler');
 const { authenticate } = require('../middleware/auth');
 const { walletGuard } = require('../middleware/walletGuard');
+const { billReminderCheck } = require('../middleware/billReminderCheck.middleware');
 const {
   createReminder,
   getReminders,
@@ -18,7 +19,7 @@ const router = Router();
 // All reminder routes require auth + wallet verification
 router.use(authenticate);
 
-router.get('/', walletGuard, asyncHandler(getReminders));
+router.get('/', walletGuard, billReminderCheck, asyncHandler(getReminders));
 router.post('/', walletGuard, asyncHandler(createReminder));
 router.put('/:id', walletGuard, asyncHandler(updateReminder));
 router.delete('/:id', walletGuard, asyncHandler(deleteReminder));

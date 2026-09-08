@@ -1,4 +1,4 @@
-enum Periodicity { daily, weekly, monthly, yearly }
+enum Periodicity { monthly, yearly, daily, weekly }
 
 enum ReminderStatus { active, snoozed, completed, cancelled }
 
@@ -92,29 +92,118 @@ class BillReminderEntity {
     required this.expenses,
   });
 
-  bool get isPaidForCurrentPeriod {
+  bool get isMonthly => periodicity == Periodicity.monthly;
+  bool get isYearly => periodicity == Periodicity.yearly;
+
+  /// Memeriksa apakah tagihan sudah dibayar untuk siklus aktif (atau siklus acuan).
+  bool isPaidForPeriod([DateTime? nowRef]) {
     if (expenses.isEmpty) return false;
-    final now = DateTime.now();
+    final now = nowRef ?? DateTime.now();
 
     switch (periodicity) {
-      case Periodicity.daily:
-        return expenses.any((e) =>
-            e.date.year == now.year &&
-            e.date.month == now.month &&
-            e.date.day == now.day);
-      case Periodicity.weekly:
-        final startOfWeek = now.subtract(Duration(days: now.weekday - 1));
-        final endOfWeek = startOfWeek.add(const Duration(days: 6, hours: 23, minutes: 59, seconds: 59));
-        return expenses.any((e) =>
-            e.date.isAfter(startOfWeek.subtract(const Duration(seconds: 1))) &&
-            e.date.isBefore(endOfWeek.add(const Duration(seconds: 1))));
+      case Periodicity.yearly:
+        return expenses.any((e) => e.date.year == now.year);
       case Periodicity.monthly:
+      case Periodicity.daily:
+      case Periodicity.weekly:
         return expenses.any((e) =>
             e.date.year == now.year &&
             e.date.month == now.month);
-      case Periodicity.yearly:
-        return expenses.any((e) => e.date.year == now.year);
     }
+  }
+
+  bool get isPaidForCurrentPeriod => isPaidForPeriod();
+
+  /// Menghitung tanggal jatuh tempo efektif untuk siklus saat ini
+  /// (atau siklus berikutnya jika periode saat ini sudah dibayar).
+  DateTime getEffectiveDueDate([DateTime? nowRef]) {
+    final now = nowRef ?? DateTime.now();
+    final baseDueDate = dueDate;
+
+    if (periodicity == Periodicity.yearly) {
+      final candidateThisYear = DateTime(
+        now.year,
+        baseDueDate.month,
+        baseDueDate.day,
+      );
+
+      if (baseDueDate.isAfter(candidateThisYear)) {
+        return baseDueDate;
+      }
+
+      // Jika sudah dibayar tahun ini, tampilkan tanggal jatuh tempo tahun depan
+      if (isPaidForPeriod(now)) {
+        return DateTime(now.year + 1, baseDueDate.month, baseDueDate.day);
+      }
+
+      return candidateThisYear;
+    }
+
+    // Default: Bulanan (Monthly)
+    final targetDay = baseDueDate.day;
+    final lastDayOfMonth = DateTime(now.year, now.month + 1, 0).day;
+    final clampedDay = targetDay > lastDayOfMonth ? lastDayOfMonth : targetDay;
+    final candidateThisMonth = DateTime(now.year, now.month, clampedDay);
+
+    if (baseDueDate.isAfter(candidateThisMonth)) {
+      return baseDueDate;
+    }
+
+    // Jika sudah lunas bulan ini, tampilkan tanggal jatuh tempo bulan depan
+    if (isPaidForPeriod(now)) {
+      final nextMonth = now.month == 12 ? 1 : now.month + 1;
+      final nextYear = now.month == 12 ? now.year + 1 : now.year;
+      final lastDayNext = DateTime(nextYear, nextMonth + 1, 0).day;
+      final nextClamped = targetDay > lastDayNext ? lastDayNext : targetDay;
+      return DateTime(nextYear, nextMonth, nextClamped);
+    }
+
+    return candidateThisMonth;
+  }
+
+  /// Menghitung selisih hari dari hari ini ke tanggal jatuh tempo efektif.
+  /// Nilai negatif = terlambat (overdue), 0 = jatuh tempo hari ini, positif = sisa hari.
+  int getDaysUntilDue([DateTime? nowRef]) {
+    final now = nowRef ?? DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final effectiveDue = getEffectiveDueDate(now);
+    final dueDay = DateTime(effectiveDue.year, effectiveDue.month, effectiveDue.day);
+    return dueDay.difference(today).inDays;
+  }
+
+  /// Tagihan sudah melewati tanggal jatuh tempo dan belum dibayar.
+  bool get isOverdue => isOverdueFor();
+
+  /// Tagihan jatuh tempo hari ini dan belum dibayar.
+  bool get isDueToday => isDueTodayFor();
+
+  /// Tagihan jatuh tempo dalam rentang hari pengingat (notifyDaysBefore) dan belum dibayar.
+  bool isDueSoon([int? thresholdDays, DateTime? nowRef]) => isDueSoonFor(thresholdDays, nowRef);
+
+  /// Tagihan memerlukan perhatian/alert pengguna segera (overdue, hari ini, atau segera).
+  bool get needsAlert => needsAlertFor();
+
+  /// Memeriksa status jatuh tempo terhadap waktu acuan (nowRef)
+  bool isOverdueFor([DateTime? nowRef]) {
+    if (isPaidForPeriod(nowRef)) return false;
+    return getDaysUntilDue(nowRef) < 0;
+  }
+
+  bool isDueTodayFor([DateTime? nowRef]) {
+    if (isPaidForPeriod(nowRef)) return false;
+    return getDaysUntilDue(nowRef) == 0;
+  }
+
+  bool isDueSoonFor([int? thresholdDays, DateTime? nowRef]) {
+    if (isPaidForPeriod(nowRef)) return false;
+    final days = getDaysUntilDue(nowRef);
+    final maxDays = thresholdDays ?? notifyDaysBefore;
+    return days > 0 && days <= maxDays;
+  }
+
+  bool needsAlertFor([DateTime? nowRef]) {
+    if (isPaidForPeriod(nowRef)) return false;
+    return isOverdueFor(nowRef) || isDueTodayFor(nowRef) || isDueSoonFor(null, nowRef);
   }
 
   factory BillReminderEntity.fromJson(Map<dynamic, dynamic> json) {
@@ -129,6 +218,9 @@ class BillReminderEntity {
     Periodicity parsedPeriodicity = Periodicity.monthly;
     final rawPeriodicity = json['periodicity'] as String? ?? 'MONTHLY';
     switch (rawPeriodicity.toUpperCase()) {
+      case 'YEARLY':
+        parsedPeriodicity = Periodicity.yearly;
+        break;
       case 'DAILY':
         parsedPeriodicity = Periodicity.daily;
         break;
@@ -136,10 +228,8 @@ class BillReminderEntity {
         parsedPeriodicity = Periodicity.weekly;
         break;
       case 'MONTHLY':
+      default:
         parsedPeriodicity = Periodicity.monthly;
-        break;
-      case 'YEARLY':
-        parsedPeriodicity = Periodicity.yearly;
         break;
     }
 

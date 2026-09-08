@@ -32,8 +32,8 @@ async function createReminder(req, res) {
     return error(res, 'dueDate is required', 400);
   }
 
-  // Validate periodicity
-  const validPeriodicities = ['DAILY', 'WEEKLY', 'MONTHLY', 'YEARLY'];
+  // Validate periodicity: only MONTHLY or YEARLY
+  const validPeriodicities = ['MONTHLY', 'YEARLY'];
   if (periodicity && !validPeriodicities.includes(periodicity.toUpperCase())) {
     return error(
       res,
@@ -101,12 +101,14 @@ async function getReminders(req, res) {
     walletId: req.wallet.id,
   };
 
-  // Status filter
+  // Status filter: default to excluding CANCELLED if status is not specified
   if (status) {
     const validStatuses = ['ACTIVE', 'SNOOZED', 'COMPLETED', 'CANCELLED'];
     if (validStatuses.includes(status.toUpperCase())) {
       where.status = status.toUpperCase();
     }
+  } else {
+    where.status = { not: 'CANCELLED' };
   }
 
   // Upcoming filter — only reminders due within X days
@@ -166,6 +168,16 @@ async function updateReminder(req, res) {
     return error(res, 'Only the creator can edit this reminder', 403);
   }
 
+  // Validate periodicity if provided
+  const validPeriodicities = ['MONTHLY', 'YEARLY'];
+  if (periodicity && !validPeriodicities.includes(periodicity.toUpperCase())) {
+    return error(
+      res,
+      `periodicity must be one of: ${validPeriodicities.join(', ')}`,
+      400
+    );
+  }
+
   // Validate categoryId if provided
   if (categoryId) {
     const category = await prisma.category.findUnique({ where: { id: categoryId } });
@@ -196,7 +208,7 @@ async function updateReminder(req, res) {
   return success(res, reminder, 'Reminder updated');
 }
 
-// ─── Delete (Cancel) Reminder ───────────────────────────────────────────────
+// ─── Delete Reminder ────────────────────────────────────────────────────────
 
 async function deleteReminder(req, res) {
   const { id } = req.params;
@@ -209,16 +221,15 @@ async function deleteReminder(req, res) {
     return error(res, 'Access denied', 403);
   }
   if (existing.userId !== req.user.id) {
-    return error(res, 'Only the creator can cancel this reminder', 403);
+    return error(res, 'Only the creator can delete this reminder', 403);
   }
 
-  // Soft cancel — keep the record for history
-  const reminder = await prisma.billReminder.update({
+  // Delete the reminder cleanly (foreign key on expense has onDelete: SetNull)
+  await prisma.billReminder.delete({
     where: { id },
-    data: { status: 'CANCELLED' },
   });
 
-  return success(res, reminder, 'Reminder cancelled');
+  return success(res, { id }, 'Reminder deleted');
 }
 
 module.exports = {

@@ -27,7 +27,7 @@ router.use(authenticate);
 // billReminderCheck: cek reminder aktif user secara non-blocking setiap kali
 // user mengambil notifikasi (pendekatan event-driven, tanpa cron)
 router.get('/', billReminderCheck, asyncHandler(getNotifications));
-router.get('/unread-count', asyncHandler(getUnreadCount));
+router.get('/unread-count', billReminderCheck, asyncHandler(getUnreadCount));
 router.post('/read-all', asyncHandler(markAllAsRead));
 router.post('/:id/read', asyncHandler(markAsRead));
 router.delete('/clear', asyncHandler(clearAllNotifications));

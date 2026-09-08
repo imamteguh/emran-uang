@@ -594,6 +594,220 @@ class _BillsScreenState extends State<BillsScreen> {
     return '${date.day} ${months[date.month - 1]}';
   }
 
+  Widget _buildAlertBanner({
+    required List<BillReminderEntity> overdueBills,
+    required List<BillReminderEntity> dueTodayBills,
+    required List<BillReminderEntity> dueSoonBills,
+    required NumberFormat currencyFormatter,
+    required ResponsiveHelper responsive,
+  }) {
+    if (overdueBills.isNotEmpty) {
+      final totalOverdue = overdueBills.fold<double>(0, (sum, b) => sum + b.amount);
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFEF2F2),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFFFCA5A5)),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: const BoxDecoration(
+                color: Color(0xFFFEE2E2),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.warning_amber_rounded,
+                color: AppTheme.error,
+                size: 22,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Perhatian: ${overdueBills.length} Tagihan Lewat Jatuh Tempo!',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                      color: const Color(0xFF991B1B),
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    'Total tertunggak: ${currencyFormatter.format(totalOverdue)}. Segera lakukan pembayaran.',
+                    style: GoogleFonts.beVietnamPro(
+                      fontSize: 11,
+                      color: const Color(0xFFB91C1C),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+    } else if (dueTodayBills.isNotEmpty) {
+      final totalDueToday = dueTodayBills.fold<double>(0, (sum, b) => sum + b.amount);
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFFF7ED),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFFFDBA74)),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: const BoxDecoration(
+                color: Color(0xFFFFEDD5),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.alarm_rounded,
+                color: Color(0xFFEA580C),
+                size: 22,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '${dueTodayBills.length} Tagihan Jatuh Tempo HARI INI',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                      color: const Color(0xFF9A3412),
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    'Total hari ini: ${currencyFormatter.format(totalDueToday)}. Segera selesaikan pembayaran.',
+                    style: GoogleFonts.beVietnamPro(
+                      fontSize: 11,
+                      color: const Color(0xFFC2410C),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+    } else if (dueSoonBills.isNotEmpty) {
+      final nextBill = dueSoonBills.first;
+      final days = nextBill.getDaysUntilDue();
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFFFBEB),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFFFCD34D)),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: const BoxDecoration(
+                color: Color(0xFFFEF3C7),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.schedule_rounded,
+                color: Color(0xFFD97706),
+                size: 22,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Pengingat: ${dueSoonBills.length} Tagihan Mendekati Jatuh Tempo',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                      color: const Color(0xFF92400E),
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    '${nextBill.title} (${currencyFormatter.format(nextBill.amount)}) jatuh tempo dalam $days hari.',
+                    style: GoogleFonts.beVietnamPro(
+                      fontSize: 11,
+                      color: const Color(0xFFB45309),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+    } else {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF0FDF4),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFFBBF7D0)),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: const BoxDecoration(
+                color: Color(0xFFDCFCE7),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.check_circle_outline_rounded,
+                color: AppTheme.secondary,
+                size: 22,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Semua Tagihan Terkendali',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                      color: const Color(0xFF166534),
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    'Semua tagihan sudah lunas atau belum mendekati jatuh tempo.',
+                    style: GoogleFonts.beVietnamPro(
+                      fontSize: 11,
+                      color: const Color(0xFF15803D),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final responsive = ResponsiveHelper(context);
@@ -612,14 +826,9 @@ class _BillsScreenState extends State<BillsScreen> {
     double pendingThisMonth = 0;
 
     for (var r in activeReminders) {
-      double monthlyAmt = r.amount;
-      if (r.periodicity == Periodicity.daily) {
-        monthlyAmt = r.amount * 30.4;
-      } else if (r.periodicity == Periodicity.weekly) {
-        monthlyAmt = r.amount * 4.33;
-      } else if (r.periodicity == Periodicity.yearly) {
-        monthlyAmt = r.amount / 12.0;
-      }
+      double monthlyAmt = r.periodicity == Periodicity.yearly
+          ? r.amount / 12.0
+          : r.amount;
 
       totalMonthlyOutflow += monthlyAmt;
       if (r.isPaidForCurrentPeriod) {
@@ -629,7 +838,7 @@ class _BillsScreenState extends State<BillsScreen> {
       }
     }
 
-    // Partition lists
+    // Partition lists: only Monthly and Yearly
     final regularBills = activeReminders
         .where((r) => r.periodicity != Periodicity.yearly)
         .toList();
@@ -637,14 +846,10 @@ class _BillsScreenState extends State<BillsScreen> {
         .where((r) => r.periodicity == Periodicity.yearly)
         .toList();
 
-    // Due in next 7 days count
-    final now = DateTime.now();
-    final nextWeek = now.add(const Duration(days: 7));
-    final dueSoonCount = activeReminders.where((r) {
-      return !r.isPaidForCurrentPeriod &&
-          r.dueDate.isAfter(now.subtract(const Duration(days: 1))) &&
-          r.dueDate.isBefore(nextWeek);
-    }).length;
+    // Alert lists based on recurring due date logic
+    final overdueBills = activeReminders.where((r) => r.isOverdue).toList();
+    final dueTodayBills = activeReminders.where((r) => r.isDueToday).toList();
+    final dueSoonBills = activeReminders.where((r) => r.isDueSoon()).toList();
 
     return Scaffold(
       appBar: AppBar(
@@ -873,29 +1078,22 @@ class _BillsScreenState extends State<BillsScreen> {
                           children: [
                             // Summary Header
                 Text(
-                  'Upcoming Bills',
+                  'Daftar Tagihan',
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: responsive.scaleFont(28),
                     fontWeight: FontWeight.bold,
                     color: AppTheme.darkSlate,
                   ),
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  dueSoonCount > 0
-                      ? 'You have $dueSoonCount bills due in the next 7 days.'
-                      : 'All your bills are paid for the next 7 days.',
-                  style: GoogleFonts.beVietnamPro(
-                    fontSize: responsive.scaleFont(14),
-                    color: dueSoonCount > 0
-                        ? AppTheme.error
-                        : AppTheme.darkSlateVariant,
-                    fontWeight: dueSoonCount > 0
-                        ? FontWeight.bold
-                        : FontWeight.normal,
-                  ),
+                const SizedBox(height: 12),
+                _buildAlertBanner(
+                  overdueBills: overdueBills,
+                  dueTodayBills: dueTodayBills,
+                  dueSoonBills: dueSoonBills,
+                  currencyFormatter: currencyFormatter,
+                  responsive: responsive,
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 20),
 
                 // Bento Outflow Card
                 Container(
@@ -1079,7 +1277,7 @@ class _BillsScreenState extends State<BillsScreen> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      'Regular Bills',
+                      'Tagihan Bulanan',
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: responsive.scaleFont(18),
                         fontWeight: FontWeight.bold,
@@ -1094,7 +1292,7 @@ class _BillsScreenState extends State<BillsScreen> {
                         color: AppTheme.primary,
                       ),
                       label: Text(
-                        'Add',
+                        'Tambah',
                         style: GoogleFonts.plusJakartaSans(
                           fontWeight: FontWeight.bold,
                           color: AppTheme.primary,
@@ -1127,7 +1325,7 @@ class _BillsScreenState extends State<BillsScreen> {
                         ),
                         const SizedBox(height: 12),
                         Text(
-                          'No regular bills at this time',
+                          'Belum ada tagihan bulanan',
                           style: GoogleFonts.plusJakartaSans(
                             fontWeight: FontWeight.bold,
                             color: AppTheme.darkSlate,
@@ -1135,7 +1333,7 @@ class _BillsScreenState extends State<BillsScreen> {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          'Tap "Add" to start tracking bills like electricity, internet, etc.',
+                          'Tekan "Tambah" untuk mencatat tagihan listrik, internet, kos, dsb.',
                           textAlign: TextAlign.center,
                           style: GoogleFonts.beVietnamPro(
                             fontSize: 12,
@@ -1164,7 +1362,7 @@ class _BillsScreenState extends State<BillsScreen> {
 
                 // Annual Renewals Section
                 Text(
-                  'Annual Renewals',
+                  'Tagihan Tahunan',
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: responsive.scaleFont(18),
                     fontWeight: FontWeight.bold,
@@ -1195,7 +1393,7 @@ class _BillsScreenState extends State<BillsScreen> {
                         ),
                         const SizedBox(height: 12),
                         Text(
-                          'No annual renewals at this time',
+                          'Belum ada tagihan tahunan',
                           style: GoogleFonts.plusJakartaSans(
                             fontWeight: FontWeight.bold,
                             color: AppTheme.darkSlate,
@@ -1203,7 +1401,7 @@ class _BillsScreenState extends State<BillsScreen> {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          'Annual bills like taxes or insurance will appear here.',
+                          'Tagihan tahunan seperti pajak kendaraan, domain, atau asuransi akan muncul di sini.',
                           textAlign: TextAlign.center,
                           style: GoogleFonts.beVietnamPro(
                             fontSize: 12,
@@ -1253,48 +1451,53 @@ class _BillsScreenState extends State<BillsScreen> {
     final iconColor = categoryColor;
     final isPaid = reminder.isPaidForCurrentPeriod;
 
-    // Calculate due state
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    final due = DateTime(
-      reminder.dueDate.year,
-      reminder.dueDate.month,
-      reminder.dueDate.day,
-    );
-    final daysUntilDue = due.difference(today).inDays;
+    // Calculate accurate recurring due state
+    final effectiveDue = reminder.getEffectiveDueDate();
+    final daysUntilDue = reminder.getDaysUntilDue();
+    final isOverdue = reminder.isOverdue;
+    final isDueToday = reminder.isDueToday;
+    final isDueSoon = reminder.isDueSoon();
+    final isUrgent = reminder.needsAlert;
 
     String dueText;
-    bool isUrgent = false;
+    String statusBadgeLabel;
+    Color statusBadgeColor;
+    Color statusBadgeBgColor;
 
     if (isPaid) {
       dueText = reminder.periodicity == Periodicity.yearly
-          ? 'Paid for this year'
-          : 'Paid this month';
+          ? 'Lunas tahun ini (berikutnya ${_formatEnglishDayMonth(effectiveDue)})'
+          : 'Lunas bulan ini (berikutnya ${_formatEnglishDayMonth(effectiveDue)})';
+      statusBadgeLabel = 'Paid';
+      statusBadgeColor = AppTheme.secondary;
+      statusBadgeBgColor = AppTheme.secondaryContainer;
+    } else if (isOverdue) {
+      dueText = 'Lewat ${daysUntilDue.abs()} hari (${_formatEnglishDayMonth(effectiveDue)})';
+      statusBadgeLabel = 'Overdue';
+      statusBadgeColor = AppTheme.error;
+      statusBadgeBgColor = AppTheme.errorContainer;
+    } else if (isDueToday) {
+      dueText = 'Jatuh tempo HARI INI';
+      statusBadgeLabel = 'Due Today';
+      statusBadgeColor = const Color(0xFFEA580C);
+      statusBadgeBgColor = const Color(0xFFFFEDD5);
+    } else if (isDueSoon) {
+      dueText = 'Jatuh tempo dlm $daysUntilDue hari (${_formatEnglishDayMonth(effectiveDue)})';
+      statusBadgeLabel = 'Due Soon';
+      statusBadgeColor = const Color(0xFFD97706);
+      statusBadgeBgColor = const Color(0xFFFEF3C7);
     } else {
-      if (daysUntilDue < 0) {
-        dueText = 'Overdue by ${daysUntilDue.abs()} days';
-        isUrgent = true;
-      } else if (daysUntilDue == 0) {
-        dueText = 'Due TODAY';
-        isUrgent = true;
-      } else if (daysUntilDue <= 3) {
-        dueText =
-            'Due in $daysUntilDue days (${_formatEnglishDayMonth(reminder.dueDate)})';
-        isUrgent = true;
-      } else if (reminder.periodicity == Periodicity.yearly) {
-        dueText = 'Due ${_formatEnglishMonthYear(reminder.dueDate)}';
-      } else {
-        dueText = 'Due ${_formatEnglishDayMonth(reminder.dueDate)}';
-      }
+      dueText = reminder.periodicity == Periodicity.yearly
+          ? 'Jatuh tempo ${_formatEnglishMonthYear(effectiveDue)}'
+          : 'Jatuh tempo ${_formatEnglishDayMonth(effectiveDue)}';
+      statusBadgeLabel = 'Unpaid';
+      statusBadgeColor = AppTheme.darkSlateVariant;
+      statusBadgeBgColor = const Color(0xFFF1F5F9);
     }
 
     final String periodicityLabel = reminder.periodicity == Periodicity.yearly
-        ? 'Annual'
-        : (reminder.periodicity == Periodicity.monthly
-            ? 'Monthly'
-            : (reminder.periodicity == Periodicity.weekly
-                ? 'Weekly'
-                : 'Daily'));
+        ? 'Tahunan'
+        : 'Bulanan';
 
     return Material(
       color: Colors.transparent,
@@ -1415,25 +1618,15 @@ class _BillsScreenState extends State<BillsScreen> {
                           vertical: 3,
                         ),
                         decoration: BoxDecoration(
-                          color: isPaid
-                              ? AppTheme.secondaryContainer
-                              : (isUrgent
-                                  ? AppTheme.errorContainer
-                                  : const Color(0xFFF1F5F9)),
+                          color: statusBadgeBgColor,
                           borderRadius: BorderRadius.circular(10),
                         ),
                         child: Text(
-                          isPaid
-                              ? 'Paid'
-                              : (isUrgent ? 'Overdue' : 'Unpaid'),
+                          statusBadgeLabel,
                           style: TextStyle(
                             fontSize: 10,
                             fontWeight: FontWeight.bold,
-                            color: isPaid
-                                ? AppTheme.secondary
-                                : (isUrgent
-                                    ? AppTheme.error
-                                    : AppTheme.darkSlateVariant),
+                            color: statusBadgeColor,
                           ),
                         ),
                       ),

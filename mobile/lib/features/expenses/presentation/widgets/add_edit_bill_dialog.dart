@@ -40,7 +40,9 @@ class _AddEditBillDialogState extends State<AddEditBillDialog> {
       text: r != null ? r.amount.toStringAsFixed(0) : '',
     );
     _selectedDate = r?.dueDate ?? DateTime.now().add(const Duration(days: 1));
-    _periodicity = r?.periodicity ?? Periodicity.monthly;
+    _periodicity = (r?.periodicity == Periodicity.yearly)
+        ? Periodicity.yearly
+        : Periodicity.monthly;
     _selectedCategoryId = r?.categoryId;
     _notifyDaysBefore = r?.notifyDaysBefore ?? 3;
     _autoLogExpense = r?.autoLogExpense ?? false;
@@ -427,9 +429,9 @@ class _AddEditBillDialogState extends State<AddEditBillDialog> {
                     ),
               const SizedBox(height: 20),
 
-              // Periodicity Pills
+              // Periodicity Pills (Hanya Bulanan atau Tahunan)
               Text(
-                'BILL PERIOD',
+                'PERIODE TAGIHAN',
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 11,
                   fontWeight: FontWeight.bold,
@@ -439,14 +441,13 @@ class _AddEditBillDialogState extends State<AddEditBillDialog> {
               ),
               const SizedBox(height: 8),
               Row(
-                children: Periodicity.values.map((p) {
-                  final label = p == Periodicity.daily
-                      ? 'Daily'
-                      : p == Periodicity.weekly
-                      ? 'Weekly'
-                      : p == Periodicity.monthly
-                      ? 'Monthly'
-                      : 'Yearly';
+                children: [
+                  Periodicity.monthly,
+                  Periodicity.yearly,
+                ].map((p) {
+                  final isMonthly = p == Periodicity.monthly;
+                  final label = isMonthly ? 'Bulanan' : 'Tahunan';
+                  final subtitle = isMonthly ? 'Setiap bulan' : 'Setiap tahun';
                   final isSelected = _periodicity == p;
                   return Expanded(
                     child: GestureDetector(
@@ -457,26 +458,45 @@ class _AddEditBillDialogState extends State<AddEditBillDialog> {
                       },
                       child: Container(
                         margin: const EdgeInsets.symmetric(horizontal: 4),
-                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
                         decoration: BoxDecoration(
                           color: isSelected
                               ? AppTheme.primary
                               : const Color(0xFFF8FAFC),
-                          borderRadius: BorderRadius.circular(10),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: isSelected
+                                ? AppTheme.primary
+                                : const Color(0xFFE2E8F0),
+                            width: isSelected ? 1.5 : 1.0,
+                          ),
                           boxShadow: isSelected ? AppTheme.softShadow : null,
                         ),
                         alignment: Alignment.center,
-                        child: Text(
-                          label,
-                          style: GoogleFonts.beVietnamPro(
-                            fontSize: 12,
-                            fontWeight: isSelected
-                                ? FontWeight.bold
-                                : FontWeight.normal,
-                            color: isSelected
-                                ? Colors.white
-                                : AppTheme.darkSlate,
-                          ),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              label,
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 13,
+                                fontWeight: FontWeight.bold,
+                                color: isSelected
+                                    ? Colors.white
+                                    : AppTheme.darkSlate,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              subtitle,
+                              style: GoogleFonts.beVietnamPro(
+                                fontSize: 10,
+                                color: isSelected
+                                    ? Colors.white.withValues(alpha: 0.85)
+                                    : AppTheme.darkSlateVariant,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ),
@@ -493,7 +513,7 @@ class _AddEditBillDialogState extends State<AddEditBillDialog> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'DUE DATE',
+                          'JATUH TEMPO',
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 11,
                             fontWeight: FontWeight.bold,
@@ -547,7 +567,7 @@ class _AddEditBillDialogState extends State<AddEditBillDialog> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'REMIND ME',
+                          'INGATKAN SAYA',
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 11,
                             fontWeight: FontWeight.bold,
@@ -571,14 +591,14 @@ class _AddEditBillDialogState extends State<AddEditBillDialog> {
                               ),
                               style: GoogleFonts.beVietnamPro(
                                 color: AppTheme.darkSlate,
-                                fontSize: 13,
+                                fontSize: 12,
                               ),
                               isExpanded: true,
-                              items: [1, 3, 5, 7].map((days) {
+                              items: [1, 2, 3, 5, 7].map((days) {
                                 return DropdownMenuItem<int>(
                                   value: days,
                                   child: Text(
-                                    '$days day${days > 1 ? 's' : ''} before',
+                                    '$days hari sebelum',
                                     overflow: TextOverflow.ellipsis,
                                   ),
                                 );
