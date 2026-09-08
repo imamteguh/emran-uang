@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../../../core/theme/app_theme.dart';
-import '../../../../../core/utils/responsive_helper.dart';
 
 /// Fixed bottom action bar displaying "Retake" and "Use This Data" buttons.
 class OcrBottomActionBar extends StatelessWidget {
@@ -18,11 +17,6 @@ class OcrBottomActionBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final responsive = ResponsiveHelper(context);
-    final double contentWidth = responsive.isTablet || responsive.isDesktop
-        ? 480
-        : double.infinity;
-
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -38,8 +32,9 @@ class OcrBottomActionBar extends StatelessWidget {
       child: SafeArea(
         top: false,
         child: Center(
-          child: SizedBox(
-            width: contentWidth,
+          heightFactor: 1.0,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 480),
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
               child: Row(
@@ -57,6 +52,7 @@ class OcrBottomActionBar extends StatelessWidget {
                     style: OutlinedButton.styleFrom(
                       foregroundColor: AppTheme.darkSlateVariant,
                       side: const BorderSide(color: Color(0xFFE2E8F0)),
+                      minimumSize: const Size(0, 48),
                       padding: const EdgeInsets.symmetric(
                         horizontal: 16,
                         vertical: 14,

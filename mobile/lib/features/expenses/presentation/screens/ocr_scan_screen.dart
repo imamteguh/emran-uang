@@ -29,7 +29,8 @@ export '../../domain/entities/ocr_scan_result.dart';
 
 class OcrScanScreen extends StatefulWidget {
   final WalletEntity? initialWallet;
-  const OcrScanScreen({super.key, this.initialWallet});
+  final OcrScanCubit? cubit;
+  const OcrScanScreen({super.key, this.initialWallet, this.cubit});
 
   @override
   State<OcrScanScreen> createState() => _OcrScanScreenState();
@@ -44,7 +45,7 @@ class _OcrScanScreenState extends State<OcrScanScreen> {
   void initState() {
     super.initState();
     debugPrint('[OCR Screen] 🏁 Initializing OcrScanScreen');
-    _cubit = OcrScanCubit(initialWallet: widget.initialWallet);
+    _cubit = widget.cubit ?? OcrScanCubit(initialWallet: widget.initialWallet);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
@@ -355,11 +356,11 @@ class _OcrScanScreenState extends State<OcrScanScreen> {
                   showBottomBar ? 24 : (responsive.screenPadding.bottom + 16),
                 ),
                 child: Center(
-                  child: SizedBox(
-                    width: responsive.isTablet || responsive.isDesktop
-                        ? 480
-                        : double.infinity,
-                    child: Column(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 480),
+                    child: SizedBox(
+                      width: double.infinity,
+                      child: Column(
                       children: [
                         // ── Target Wallet Banner ──
                         OcrWalletSelectorCard(
@@ -412,7 +413,8 @@ class _OcrScanScreenState extends State<OcrScanScreen> {
                             onSelectReceipt: _openSourcePicker,
                             onManualInput: _openManualInput,
                           ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
                 ),
