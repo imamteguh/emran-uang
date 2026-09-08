@@ -11,22 +11,23 @@ import '../../domain/entities/expense.dart';
 import '../../domain/entities/wallet.dart';
 import '../bloc/dashboard_bloc.dart';
 import '../bloc/dashboard_event.dart';
-import '../bloc/dashboard_state.dart';
 import '../widgets/category_icon.dart';
 import '../widgets/user_avatar.dart';
+import '../../domain/entities/ocr_scan_result.dart';
 import 'categories_screen.dart';
-import 'ocr_scan_screen.dart';
 import 'ai_chat_screen.dart';
 
 class ExpenseEntryScreen extends StatefulWidget {
   final DateTime? initialDate;
   final ExpenseCategory? initialCategory;
+  final WalletEntity? initialWallet;
   final OcrScanResult? initialOcrResult;
 
   const ExpenseEntryScreen({
     super.key,
     this.initialDate,
     this.initialCategory,
+    this.initialWallet,
     this.initialOcrResult,
   });
 
@@ -51,6 +52,9 @@ class _ExpenseEntryScreenState extends State<ExpenseEntryScreen> {
     _selectedCategory = widget.initialCategory;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<DashboardBloc>().add(const DashboardFetchCategoriesRequested());
+      if (widget.initialWallet != null) {
+        context.read<DashboardBloc>().add(DashboardSelectWalletRequested(widget.initialWallet!));
+      }
       if (widget.initialOcrResult != null) {
         _handleOcrResult(widget.initialOcrResult!);
       }
@@ -598,46 +602,6 @@ class _ExpenseEntryScreenState extends State<ExpenseEntryScreen> {
               },
             ),
           ),
-          // Scan Receipt button
-          Padding(
-            padding: const EdgeInsets.only(right: 4.0),
-            child: IconButton(
-              icon: Container(
-                padding: const EdgeInsets.all(7),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      AppTheme.primary.withAlpha(25),
-                      AppTheme.secondary.withAlpha(15),
-                    ],
-                  ),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: AppTheme.primary.withAlpha(40),
-                    width: 1,
-                  ),
-                ),
-                child: const Icon(
-                  Icons.document_scanner_rounded,
-                  color: AppTheme.primary,
-                  size: 18,
-                ),
-              ),
-              tooltip: 'Scan Receipt',
-              onPressed: () async {
-                final currentWallet = context.read<DashboardBloc>().state.activeWallet;
-                final result = await Navigator.push<OcrScanResult>(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => OcrScanScreen(initialWallet: currentWallet),
-                  ),
-                );
-                if (result != null && mounted) {
-                  _handleOcrResult(result);
-                }
-              },
-            ),
-          ),
           if (provider.allWallets.isNotEmpty)
             Padding(
               padding: const EdgeInsets.only(right: 16.0),
@@ -819,10 +783,6 @@ class _ExpenseEntryScreenState extends State<ExpenseEntryScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    // AI Quick Scan Banner
-                    _buildAiScanBanner(context, provider),
-                    const SizedBox(height: 16),
-
                     // Enter Amount Section - Redesigned to Premium Card
                     Container(
                       padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
@@ -1391,105 +1351,7 @@ class _ExpenseEntryScreenState extends State<ExpenseEntryScreen> {
     );
   }
 
-  Widget _buildAiScanBanner(BuildContext context, DashboardState provider) {
-    return InkWell(
-      onTap: () async {
-        final result = await Navigator.push<OcrScanResult>(
-          context,
-          MaterialPageRoute(
-            builder: (_) => OcrScanScreen(initialWallet: provider.activeWallet),
-          ),
-        );
-        if (result != null && mounted) {
-          _handleOcrResult(result);
-        }
-      },
-      borderRadius: BorderRadius.circular(16),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              AppTheme.primary.withAlpha(20),
-              AppTheme.secondary.withAlpha(15),
-            ],
-          ),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: AppTheme.primary.withAlpha(40),
-            width: 1.2,
-          ),
-          boxShadow: AppTheme.softShadow,
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 38,
-              height: 38,
-              decoration: BoxDecoration(
-                color: AppTheme.primary.withAlpha(25),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(
-                Icons.auto_awesome_rounded,
-                color: AppTheme.primary,
-                size: 20,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Scan Receipt with AI',
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 13,
-                      fontWeight: FontWeight.bold,
-                      color: AppTheme.darkSlate,
-                    ),
-                  ),
-                  Text(
-                    'Auto-fill amount, date & category',
-                    style: GoogleFonts.beVietnamPro(
-                      fontSize: 11,
-                      color: AppTheme.darkSlateVariant,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-              decoration: BoxDecoration(
-                color: AppTheme.primary,
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(
-                    Icons.document_scanner_rounded,
-                    color: Colors.white,
-                    size: 14,
-                  ),
-                  const SizedBox(width: 4),
-                  Text(
-                    'Scan',
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 11,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+
 
   bool _isSameDay(DateTime d1, DateTime d2) {
     return d1.year == d2.year && d1.month == d2.month && d1.day == d2.day;

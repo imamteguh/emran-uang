@@ -16,7 +16,6 @@ import '../widgets/category_icon.dart';
 import '../widgets/dashboard_skeleton.dart';
 import '../../domain/entities/wallet.dart';
 import '../../domain/entities/expense.dart';
-import 'expense_entry_screen.dart';
 import 'shared_groups_screen.dart';
 import 'notifications_screen.dart';
 import 'activity_list_screen.dart';
@@ -245,29 +244,6 @@ class DashboardScreen extends StatelessWidget {
             splashRadius: 24,
           ),
           IconButton(
-            onPressed: () async {
-              final result = await Navigator.of(context).push<OcrScanResult>(
-                MaterialPageRoute(
-                  builder: (_) => OcrScanScreen(initialWallet: provider.activeWallet),
-                ),
-              );
-              if (result != null && context.mounted) {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => ExpenseEntryScreen(initialOcrResult: result),
-                  ),
-                );
-              }
-            },
-            icon: const Icon(
-              Icons.document_scanner_rounded,
-              size: 24,
-              color: AppTheme.primary,
-            ),
-            tooltip: 'Scan Receipt with AI',
-            splashRadius: 24,
-          ),
-          IconButton(
             onPressed: () {
               Navigator.of(context).push(
                 MaterialPageRoute(builder: (_) => const SharedGroupsScreen()),
@@ -445,15 +421,18 @@ class DashboardScreen extends StatelessWidget {
         child: FloatingActionButton(
           onPressed: () {
             Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const ExpenseEntryScreen()),
+              MaterialPageRoute(
+                builder: (_) => OcrScanScreen(initialWallet: provider.activeWallet),
+              ),
             );
           },
           backgroundColor: AppTheme.primary,
           foregroundColor: Colors.white,
+          tooltip: 'Scan Receipt with AI',
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
-          child: const Icon(Icons.add, size: 28),
+          child: const Icon(Icons.document_scanner_rounded, size: 26),
         ),
       ),
     );

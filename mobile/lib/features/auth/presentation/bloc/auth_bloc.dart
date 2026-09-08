@@ -41,10 +41,13 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     try {
       debugPrint('AuthBloc: fetching auth configuration...');
       final response = await _client.dio.get('/auth/config');
-      if (response.data != null && response.data['success'] == true) {
-        final newClientId = response.data['data']['googleClientId'] as String?;
-        if (newClientId != null && newClientId.isNotEmpty) {
-          _updateGoogleClientId(newClientId);
+      if (response.data is Map && response.data['success'] == true) {
+        final data = response.data['data'];
+        if (data is Map) {
+          final newClientId = data['googleClientId'] as String?;
+          if (newClientId != null && newClientId.isNotEmpty) {
+            _updateGoogleClientId(newClientId);
+          }
         }
       }
     } catch (e) {
