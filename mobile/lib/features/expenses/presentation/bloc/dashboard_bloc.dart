@@ -27,7 +27,9 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
     on<DashboardAddExpenseRequested>(_onAddExpenseRequested);
     on<DashboardDeleteExpenseRequested>(_onDeleteExpenseRequested);
     on<DashboardUpdateDailyBudgetRequested>(_onUpdateDailyBudgetRequested);
-    on<DashboardUpdateWalletCurrencyRequested>(_onUpdateWalletCurrencyRequested);
+    on<DashboardUpdateWalletCurrencyRequested>(
+      _onUpdateWalletCurrencyRequested,
+    );
     on<DashboardFetchSharedGroupsRequested>(_onFetchSharedGroupsRequested);
     on<DashboardSendInviteRequested>(_onSendInviteRequested);
     on<DashboardAcceptInviteRequested>(_onAcceptInviteRequested);
@@ -46,7 +48,13 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
     DashboardInitializeRequested event,
     Emitter<DashboardState> emit,
   ) async {
-    emit(state.copyWith(isLoading: true, isInitialLoad: true, status: DashboardStatus.loading));
+    emit(
+      state.copyWith(
+        isLoading: true,
+        isInitialLoad: true,
+        status: DashboardStatus.loading,
+      ),
+    );
 
     try {
       final walletsResult = await _fetchWalletsHelper(state.selectedWallet);
@@ -59,38 +67,48 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
           _fetchRemindersDataHelper(selectedWallet.id),
         ]);
 
-        emit(state.copyWith(
-          personalWallets: walletsResult.personal,
-          sharedWallets: walletsResult.shared,
-          selectedWallet: selectedWallet,
-          expenses: results[0] as List<ExpenseEntity>,
-          reminders: results[1] as List<BillReminderEntity>,
-          isLoading: false,
-          isInitialLoad: false,
-          isLoadingAnalytics: true,
-          status: DashboardStatus.success,
-        ));
+        emit(
+          state.copyWith(
+            personalWallets: walletsResult.personal,
+            sharedWallets: walletsResult.shared,
+            selectedWallet: selectedWallet,
+            expenses: results[0] as List<ExpenseEntity>,
+            reminders: results[1] as List<BillReminderEntity>,
+            isLoading: false,
+            isInitialLoad: false,
+            isLoadingAnalytics: true,
+            status: DashboardStatus.success,
+          ),
+        );
 
         // Trigger secondary data fetch in background
         _loadSecondaryData(selectedWallet.id);
       } else {
         // No wallet available
-        emit(state.copyWith(
-          personalWallets: walletsResult.personal,
-          sharedWallets: walletsResult.shared,
-          selectedWallet: null,
-          isLoading: false,
-          isInitialLoad: false,
-          isLoadingAnalytics: true,
-          status: DashboardStatus.success,
-        ));
+        emit(
+          state.copyWith(
+            personalWallets: walletsResult.personal,
+            sharedWallets: walletsResult.shared,
+            selectedWallet: null,
+            isLoading: false,
+            isInitialLoad: false,
+            isLoadingAnalytics: true,
+            status: DashboardStatus.success,
+          ),
+        );
 
         // Trigger secondary data fetch in background
         _loadSecondaryData(null);
       }
     } catch (e) {
       debugPrint('DashboardBloc: Initialize failed ($e)');
-      emit(state.copyWith(isLoading: false, isInitialLoad: false, status: DashboardStatus.failure));
+      emit(
+        state.copyWith(
+          isLoading: false,
+          isInitialLoad: false,
+          status: DashboardStatus.failure,
+        ),
+      );
     }
   }
 
@@ -98,7 +116,13 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
     DashboardSelectWalletRequested event,
     Emitter<DashboardState> emit,
   ) async {
-    emit(state.copyWith(selectedWallet: event.wallet, isLoading: true, status: DashboardStatus.loading));
+    emit(
+      state.copyWith(
+        selectedWallet: event.wallet,
+        isLoading: true,
+        status: DashboardStatus.loading,
+      ),
+    );
     await _fetchWalletDataHelper(event.wallet, emit);
   }
 
@@ -106,7 +130,13 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
     DashboardSetTimeframeRequested event,
     Emitter<DashboardState> emit,
   ) async {
-    emit(state.copyWith(activeTimeframe: event.timeframe, isLoading: true, status: DashboardStatus.loading));
+    emit(
+      state.copyWith(
+        activeTimeframe: event.timeframe,
+        isLoading: true,
+        status: DashboardStatus.loading,
+      ),
+    );
     await _fetchWalletDataHelper(state.selectedWallet, emit);
   }
 
@@ -116,12 +146,24 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
   ) async {
     if (event.isShared) {
       if (state.sharedWallets.isNotEmpty) {
-        emit(state.copyWith(selectedWallet: state.sharedWallets[0], isLoading: true, status: DashboardStatus.loading));
+        emit(
+          state.copyWith(
+            selectedWallet: state.sharedWallets[0],
+            isLoading: true,
+            status: DashboardStatus.loading,
+          ),
+        );
         await _fetchWalletDataHelper(state.sharedWallets[0], emit);
       }
     } else {
       if (state.personalWallets.isNotEmpty) {
-        emit(state.copyWith(selectedWallet: state.personalWallets[0], isLoading: true, status: DashboardStatus.loading));
+        emit(
+          state.copyWith(
+            selectedWallet: state.personalWallets[0],
+            isLoading: true,
+            status: DashboardStatus.loading,
+          ),
+        );
         await _fetchWalletDataHelper(state.personalWallets[0], emit);
       }
     }
@@ -144,28 +186,32 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
           _fetchRemindersDataHelper(wallet.id),
         ]);
 
-        emit(state.copyWith(
-          personalWallets: walletsResult.personal,
-          sharedWallets: walletsResult.shared,
-          selectedWallet: wallet,
-          expenses: results[0] as List<ExpenseEntity>,
-          reminders: results[1] as List<BillReminderEntity>,
-          isLoading: false,
-          isLoadingAnalytics: true,
-          status: DashboardStatus.success,
-        ));
+        emit(
+          state.copyWith(
+            personalWallets: walletsResult.personal,
+            sharedWallets: walletsResult.shared,
+            selectedWallet: wallet,
+            expenses: results[0] as List<ExpenseEntity>,
+            reminders: results[1] as List<BillReminderEntity>,
+            isLoading: false,
+            isLoadingAnalytics: true,
+            status: DashboardStatus.success,
+          ),
+        );
 
         // Trigger secondary data fetch in background
         _loadSecondaryData(wallet.id);
       } else {
-        emit(state.copyWith(
-          personalWallets: walletsResult.personal,
-          sharedWallets: walletsResult.shared,
-          selectedWallet: null,
-          isLoading: false,
-          isLoadingAnalytics: true,
-          status: DashboardStatus.success,
-        ));
+        emit(
+          state.copyWith(
+            personalWallets: walletsResult.personal,
+            sharedWallets: walletsResult.shared,
+            selectedWallet: null,
+            isLoading: false,
+            isLoadingAnalytics: true,
+            status: DashboardStatus.success,
+          ),
+        );
 
         // Trigger secondary data fetch in background
         _loadSecondaryData(null);
@@ -191,12 +237,14 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
         _fetchBreakdownDataHelper(wallet.id),
       ]);
 
-      emit(state.copyWith(
-        compareData: results[0],
-        breakdownData: results[1],
-        isLoading: false,
-        status: DashboardStatus.success,
-      ));
+      emit(
+        state.copyWith(
+          compareData: results[0],
+          breakdownData: results[1],
+          isLoading: false,
+          status: DashboardStatus.success,
+        ),
+      );
     } catch (e) {
       debugPrint('DashboardBloc: Fetch analytics failed ($e)');
       emit(state.copyWith(isLoading: false, status: DashboardStatus.failure));
@@ -244,17 +292,14 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
     );
 
     // Optimistic insert
-    final updatedCategories = List<ExpenseCategory>.from(state.categories)..add(newCategory);
+    final updatedCategories = List<ExpenseCategory>.from(state.categories)
+      ..add(newCategory);
     emit(state.copyWith(categories: updatedCategories));
 
     try {
       final response = await _client.dio.post(
         '/categories',
-        data: {
-          'name': event.name,
-          'icon': event.icon,
-          'color': event.color,
-        },
+        data: {'name': event.name, 'icon': event.icon, 'color': event.color},
       );
 
       if (response.data != null && response.data['success'] == true) {
@@ -303,11 +348,7 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
     try {
       final response = await _client.dio.put(
         '/categories/${event.id}',
-        data: {
-          'name': event.name,
-          'icon': event.icon,
-          'color': event.color,
-        },
+        data: {'name': event.name, 'icon': event.icon, 'color': event.color},
       );
 
       if (response.data != null && response.data['success'] == true) {
@@ -342,7 +383,8 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
     final backup = state.categories[index];
 
     // Optimistic delete
-    final updatedCategories = List<ExpenseCategory>.from(state.categories)..removeAt(index);
+    final updatedCategories = List<ExpenseCategory>.from(state.categories)
+      ..removeAt(index);
     emit(state.copyWith(categories: updatedCategories));
 
     try {
@@ -354,13 +396,15 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
         event.completer.complete(true);
       } else {
         // Rollback
-        final rolledBack = List<ExpenseCategory>.from(state.categories)..insert(index, backup);
+        final rolledBack = List<ExpenseCategory>.from(state.categories)
+          ..insert(index, backup);
         emit(state.copyWith(categories: rolledBack));
         event.completer.complete(false);
       }
     } catch (e) {
       debugPrint('DashboardBloc: Failed to delete category ($e)');
-      final rolledBack = List<ExpenseCategory>.from(state.categories)..insert(index, backup);
+      final rolledBack = List<ExpenseCategory>.from(state.categories)
+        ..insert(index, backup);
       emit(state.copyWith(categories: rolledBack));
       event.completer.complete(false);
     }
@@ -377,14 +421,17 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
     }
 
     // Optimistic insert
-    final updatedExpenses = List<ExpenseEntity>.from(state.expenses)..insert(0, event.expense);
+    final updatedExpenses = List<ExpenseEntity>.from(state.expenses)
+      ..insert(0, event.expense);
     emit(state.copyWith(expenses: updatedExpenses));
 
     try {
       final body = {
         'amount': event.expense.amount,
         'description': event.expense.description,
-        'type': event.expense.type == ExpenseType.routine ? 'ROUTINE' : 'NON_ROUTINE',
+        'type': event.expense.type == ExpenseType.routine
+            ? 'ROUTINE'
+            : 'NON_ROUTINE',
         'categoryId': event.expense.category.id,
         'walletId': wallet.id,
         'date': event.expense.date.toUtc().toIso8601String(),
@@ -393,7 +440,9 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
       final response = await _client.dio.post('/expenses', data: body);
 
       if (response.data != null && response.data['success'] == true) {
-        final serverExpense = ExpenseEntity.fromJson(response.data['data'] as Map);
+        final serverExpense = ExpenseEntity.fromJson(
+          response.data['data'] as Map,
+        );
         final currentExpenses = List<ExpenseEntity>.from(state.expenses);
         final idx = currentExpenses.indexWhere((e) => e.id == event.expense.id);
         if (idx >= 0) {
@@ -437,7 +486,8 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
     final backup = state.expenses[index];
 
     // Optimistic delete
-    final updatedExpenses = List<ExpenseEntity>.from(state.expenses)..removeAt(index);
+    final updatedExpenses = List<ExpenseEntity>.from(state.expenses)
+      ..removeAt(index);
     emit(state.copyWith(expenses: updatedExpenses));
 
     try {
@@ -451,13 +501,15 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
         event.completer.complete(true);
       } else {
         // Rollback
-        final rolledBack = List<ExpenseEntity>.from(state.expenses)..insert(index, backup);
+        final rolledBack = List<ExpenseEntity>.from(state.expenses)
+          ..insert(index, backup);
         emit(state.copyWith(expenses: rolledBack));
         event.completer.complete(false);
       }
     } catch (e) {
       debugPrint('DashboardBloc: Failed to delete expense ($e)');
-      final rolledBack = List<ExpenseEntity>.from(state.expenses)..insert(index, backup);
+      final rolledBack = List<ExpenseEntity>.from(state.expenses)
+        ..insert(index, backup);
       emit(state.copyWith(expenses: rolledBack));
       event.completer.complete(false);
     }
@@ -486,11 +538,13 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
 
       if (response.data != null && response.data['success'] == true) {
         final walletsResult = await _fetchWalletsHelper(state.selectedWallet);
-        emit(state.copyWith(
-          personalWallets: walletsResult.personal,
-          sharedWallets: walletsResult.shared,
-          selectedWallet: walletsResult.selected,
-        ));
+        emit(
+          state.copyWith(
+            personalWallets: walletsResult.personal,
+            sharedWallets: walletsResult.shared,
+            selectedWallet: walletsResult.selected,
+          ),
+        );
         event.completer.complete(true);
       } else {
         _updateLocalWalletInState(backup, emit);
@@ -526,11 +580,13 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
 
       if (response.data != null && response.data['success'] == true) {
         final walletsResult = await _fetchWalletsHelper(state.selectedWallet);
-        emit(state.copyWith(
-          personalWallets: walletsResult.personal,
-          sharedWallets: walletsResult.shared,
-          selectedWallet: walletsResult.selected,
-        ));
+        emit(
+          state.copyWith(
+            personalWallets: walletsResult.personal,
+            sharedWallets: walletsResult.shared,
+            selectedWallet: walletsResult.selected,
+          ),
+        );
         event.completer.complete(true);
       } else {
         _updateLocalWalletInState(backup, emit);
@@ -549,10 +605,12 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
   ) async {
     try {
       final sharedMap = await _fetchSharedGroupsHelper();
-      emit(state.copyWith(
-        sharedGroups: sharedMap['groups'] as List,
-        pendingInvites: sharedMap['pendingInvites'] as List,
-      ));
+      emit(
+        state.copyWith(
+          sharedGroups: sharedMap['groups'] as List,
+          pendingInvites: sharedMap['pendingInvites'] as List,
+        ),
+      );
     } catch (e) {
       debugPrint('DashboardBloc: Failed to fetch shared groups ($e)');
     }
@@ -577,21 +635,27 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
         final sharedMap = results[0] as Map;
         final walletsResult = results[1] as _WalletsResult;
 
-        emit(state.copyWith(
-          sharedGroups: sharedMap['groups'] as List,
-          pendingInvites: sharedMap['pendingInvites'] as List,
-          personalWallets: walletsResult.personal,
-          sharedWallets: walletsResult.shared,
-          selectedWallet: walletsResult.selected,
-        ));
+        emit(
+          state.copyWith(
+            sharedGroups: sharedMap['groups'] as List,
+            pendingInvites: sharedMap['pendingInvites'] as List,
+            personalWallets: walletsResult.personal,
+            sharedWallets: walletsResult.shared,
+            selectedWallet: walletsResult.selected,
+          ),
+        );
         event.completer.complete(null);
       } else {
-        event.completer.complete(response.data?['message'] ?? 'Failed to send invite');
+        event.completer.complete(
+          response.data?['message'] ?? 'Failed to send invite',
+        );
       }
     } catch (e) {
       debugPrint('DashboardBloc: Failed to send invite ($e)');
       if (e is DioException && e.response?.data != null) {
-        event.completer.complete(e.response?.data['message'] ?? 'Failed to send invite');
+        event.completer.complete(
+          e.response?.data['message'] ?? 'Failed to send invite',
+        );
       } else {
         event.completer.complete('Connection error. Please try again.');
       }
@@ -603,7 +667,9 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
     Emitter<DashboardState> emit,
   ) async {
     try {
-      final response = await _client.dio.post('/sharing/invite/${event.inviteId}/accept');
+      final response = await _client.dio.post(
+        '/sharing/invite/${event.inviteId}/accept',
+      );
 
       if (response.data != null && response.data['success'] == true) {
         final results = await Future.wait([
@@ -614,13 +680,15 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
         final sharedMap = results[0] as Map;
         final walletsResult = results[1] as _WalletsResult;
 
-        emit(state.copyWith(
-          sharedGroups: sharedMap['groups'] as List,
-          pendingInvites: sharedMap['pendingInvites'] as List,
-          personalWallets: walletsResult.personal,
-          sharedWallets: walletsResult.shared,
-          selectedWallet: walletsResult.selected,
-        ));
+        emit(
+          state.copyWith(
+            sharedGroups: sharedMap['groups'] as List,
+            pendingInvites: sharedMap['pendingInvites'] as List,
+            personalWallets: walletsResult.personal,
+            sharedWallets: walletsResult.shared,
+            selectedWallet: walletsResult.selected,
+          ),
+        );
         event.completer.complete(true);
       } else {
         event.completer.complete(false);
@@ -636,7 +704,9 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
     Emitter<DashboardState> emit,
   ) async {
     try {
-      final response = await _client.dio.post('/sharing/invite/${event.inviteId}/reject');
+      final response = await _client.dio.post(
+        '/sharing/invite/${event.inviteId}/reject',
+      );
 
       if (response.data != null && response.data['success'] == true) {
         final results = await Future.wait([
@@ -647,13 +717,15 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
         final sharedMap = results[0] as Map;
         final walletsResult = results[1] as _WalletsResult;
 
-        emit(state.copyWith(
-          sharedGroups: sharedMap['groups'] as List,
-          pendingInvites: sharedMap['pendingInvites'] as List,
-          personalWallets: walletsResult.personal,
-          sharedWallets: walletsResult.shared,
-          selectedWallet: walletsResult.selected,
-        ));
+        emit(
+          state.copyWith(
+            sharedGroups: sharedMap['groups'] as List,
+            pendingInvites: sharedMap['pendingInvites'] as List,
+            personalWallets: walletsResult.personal,
+            sharedWallets: walletsResult.shared,
+            selectedWallet: walletsResult.selected,
+          ),
+        );
         event.completer.complete(true);
       } else {
         event.completer.complete(false);
@@ -669,7 +741,9 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
     Emitter<DashboardState> emit,
   ) async {
     try {
-      final response = await _client.dio.post('/sharing/groups/${event.groupId}/leave');
+      final response = await _client.dio.post(
+        '/sharing/groups/${event.groupId}/leave',
+      );
 
       if (response.data != null && response.data['success'] == true) {
         final results = await Future.wait([
@@ -680,13 +754,15 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
         final sharedMap = results[0] as Map;
         final walletsResult = results[1] as _WalletsResult;
 
-        emit(state.copyWith(
-          sharedGroups: sharedMap['groups'] as List,
-          pendingInvites: sharedMap['pendingInvites'] as List,
-          personalWallets: walletsResult.personal,
-          sharedWallets: walletsResult.shared,
-          selectedWallet: walletsResult.selected,
-        ));
+        emit(
+          state.copyWith(
+            sharedGroups: sharedMap['groups'] as List,
+            pendingInvites: sharedMap['pendingInvites'] as List,
+            personalWallets: walletsResult.personal,
+            sharedWallets: walletsResult.shared,
+            selectedWallet: walletsResult.selected,
+          ),
+        );
         event.completer.complete(true);
       } else {
         event.completer.complete(false);
@@ -702,7 +778,9 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
     Emitter<DashboardState> emit,
   ) async {
     try {
-      final response = await _client.dio.delete('/sharing/groups/${event.groupId}');
+      final response = await _client.dio.delete(
+        '/sharing/groups/${event.groupId}',
+      );
 
       if (response.data != null && response.data['success'] == true) {
         final results = await Future.wait([
@@ -713,13 +791,15 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
         final sharedMap = results[0] as Map;
         final walletsResult = results[1] as _WalletsResult;
 
-        emit(state.copyWith(
-          sharedGroups: sharedMap['groups'] as List,
-          pendingInvites: sharedMap['pendingInvites'] as List,
-          personalWallets: walletsResult.personal,
-          sharedWallets: walletsResult.shared,
-          selectedWallet: walletsResult.selected,
-        ));
+        emit(
+          state.copyWith(
+            sharedGroups: sharedMap['groups'] as List,
+            pendingInvites: sharedMap['pendingInvites'] as List,
+            personalWallets: walletsResult.personal,
+            sharedWallets: walletsResult.shared,
+            selectedWallet: walletsResult.selected,
+          ),
+        );
         event.completer.complete(true);
       } else {
         event.completer.complete(false);
@@ -742,10 +822,18 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
 
     Periodicity parsedPeriodicity = Periodicity.monthly;
     switch (event.periodicity.toUpperCase()) {
-      case 'DAILY': parsedPeriodicity = Periodicity.daily; break;
-      case 'WEEKLY': parsedPeriodicity = Periodicity.weekly; break;
-      case 'MONTHLY': parsedPeriodicity = Periodicity.monthly; break;
-      case 'YEARLY': parsedPeriodicity = Periodicity.yearly; break;
+      case 'DAILY':
+        parsedPeriodicity = Periodicity.daily;
+        break;
+      case 'WEEKLY':
+        parsedPeriodicity = Periodicity.weekly;
+        break;
+      case 'MONTHLY':
+        parsedPeriodicity = Periodicity.monthly;
+        break;
+      case 'YEARLY':
+        parsedPeriodicity = Periodicity.yearly;
+        break;
     }
 
     final tempId = 'temp_rem_${DateTime.now().millisecondsSinceEpoch}';
@@ -753,7 +841,12 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
       (c) => c.id == event.categoryId,
       orElse: () => state.categories.isNotEmpty
           ? state.categories.first
-          : ExpenseCategory(id: 'temp', name: 'Other', icon: '💰', color: '#4F46E5'),
+          : ExpenseCategory(
+              id: 'temp',
+              name: 'Other',
+              icon: '💰',
+              color: '#4F46E5',
+            ),
     );
 
     final reminderCategory = BillReminderCategory(
@@ -782,7 +875,8 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
     );
 
     // Optimistic insert
-    final updatedReminders = List<BillReminderEntity>.from(state.reminders)..add(newReminder);
+    final updatedReminders = List<BillReminderEntity>.from(state.reminders)
+      ..add(newReminder);
     emit(state.copyWith(reminders: updatedReminders));
 
     try {
@@ -840,26 +934,45 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
     Periodicity parsedPeriodicity = backup.periodicity;
     if (event.periodicity != null) {
       switch (event.periodicity!.toUpperCase()) {
-        case 'DAILY': parsedPeriodicity = Periodicity.daily; break;
-        case 'WEEKLY': parsedPeriodicity = Periodicity.weekly; break;
-        case 'MONTHLY': parsedPeriodicity = Periodicity.monthly; break;
-        case 'YEARLY': parsedPeriodicity = Periodicity.yearly; break;
+        case 'DAILY':
+          parsedPeriodicity = Periodicity.daily;
+          break;
+        case 'WEEKLY':
+          parsedPeriodicity = Periodicity.weekly;
+          break;
+        case 'MONTHLY':
+          parsedPeriodicity = Periodicity.monthly;
+          break;
+        case 'YEARLY':
+          parsedPeriodicity = Periodicity.yearly;
+          break;
       }
     }
 
     ReminderStatus parsedStatus = backup.status;
     if (event.status != null) {
       switch (event.status!.toUpperCase()) {
-        case 'ACTIVE': parsedStatus = ReminderStatus.active; break;
-        case 'SNOOZED': parsedStatus = ReminderStatus.snoozed; break;
-        case 'COMPLETED': parsedStatus = ReminderStatus.completed; break;
-        case 'CANCELLED': parsedStatus = ReminderStatus.cancelled; break;
+        case 'ACTIVE':
+          parsedStatus = ReminderStatus.active;
+          break;
+        case 'SNOOZED':
+          parsedStatus = ReminderStatus.snoozed;
+          break;
+        case 'COMPLETED':
+          parsedStatus = ReminderStatus.completed;
+          break;
+        case 'CANCELLED':
+          parsedStatus = ReminderStatus.cancelled;
+          break;
       }
     }
 
     BillReminderCategory? reminderCategory = backup.category;
     if (event.categoryId != null) {
-      final categoryMatch = state.categories.firstWhere((c) => c.id == event.categoryId, orElse: () => state.categories.first);
+      final categoryMatch = state.categories.firstWhere(
+        (c) => c.id == event.categoryId,
+        orElse: () => state.categories.first,
+      );
       reminderCategory = BillReminderCategory(
         id: categoryMatch.id,
         name: categoryMatch.name,
@@ -900,12 +1013,16 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
           'walletId': wallet.id,
           if (event.title != null) 'title': event.title,
           if (event.amount != null) 'amount': event.amount,
-          if (event.dueDate != null) 'dueDate': event.dueDate!.toUtc().toIso8601String(),
-          if (event.periodicity != null) 'periodicity': event.periodicity!.toUpperCase(),
+          if (event.dueDate != null)
+            'dueDate': event.dueDate!.toUtc().toIso8601String(),
+          if (event.periodicity != null)
+            'periodicity': event.periodicity!.toUpperCase(),
           if (event.status != null) 'status': event.status!.toUpperCase(),
           'categoryId': event.categoryId,
-          if (event.notifyDaysBefore != null) 'notifyDaysBefore': event.notifyDaysBefore,
-          if (event.autoLogExpense != null) 'autoLogExpense': event.autoLogExpense,
+          if (event.notifyDaysBefore != null)
+            'notifyDaysBefore': event.notifyDaysBefore,
+          if (event.autoLogExpense != null)
+            'autoLogExpense': event.autoLogExpense,
         },
       );
 
@@ -935,20 +1052,23 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
   ) async {
     final wallet = state.selectedWallet;
     if (wallet == null) {
-      event.completer.complete(false);
+      if (!event.completer.isCompleted) event.completer.complete(false);
       return;
     }
 
     final index = state.reminders.indexWhere((r) => r.id == event.id);
     if (index == -1) {
-      event.completer.complete(false);
+      if (!event.completer.isCompleted) event.completer.complete(false);
       return;
     }
     final backup = state.reminders[index];
-    final targetWalletId = backup.walletId.isNotEmpty ? backup.walletId : wallet.id;
+    final targetWalletId = backup.walletId.isNotEmpty
+        ? backup.walletId
+        : wallet.id;
 
     // Optimistic delete
-    final updatedReminders = List<BillReminderEntity>.from(state.reminders)..removeAt(index);
+    final updatedReminders = List<BillReminderEntity>.from(state.reminders)
+      ..removeAt(index);
     emit(state.copyWith(reminders: updatedReminders));
 
     try {
@@ -960,18 +1080,20 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
       if (response.data != null && response.data['success'] == true) {
         final reminders = await _fetchRemindersDataHelper(wallet.id);
         emit(state.copyWith(reminders: reminders));
-        event.completer.complete(true);
+        if (!event.completer.isCompleted) event.completer.complete(true);
       } else {
         // Rollback
-        final rolledBack = List<BillReminderEntity>.from(state.reminders)..insert(index, backup);
+        final rolledBack = List<BillReminderEntity>.from(state.reminders)
+          ..insert(index, backup);
         emit(state.copyWith(reminders: rolledBack));
-        event.completer.complete(false);
+        if (!event.completer.isCompleted) event.completer.complete(false);
       }
     } catch (e) {
       debugPrint('DashboardBloc: Failed to delete reminder ($e)');
-      final rolledBack = List<BillReminderEntity>.from(state.reminders)..insert(index, backup);
+      final rolledBack = List<BillReminderEntity>.from(state.reminders)
+        ..insert(index, backup);
       emit(state.copyWith(reminders: rolledBack));
-      event.completer.complete(false);
+      if (!event.completer.isCompleted) event.completer.complete(false);
     }
   }
 
@@ -999,7 +1121,8 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
     }
 
     ExpenseCategory? categoryMatch;
-    String? resolvedCategoryId = event.reminder.categoryId ?? event.reminder.category?.id;
+    String? resolvedCategoryId =
+        event.reminder.categoryId ?? event.reminder.category?.id;
     if (resolvedCategoryId != null && resolvedCategoryId.isNotEmpty) {
       for (final c in availableCategories) {
         if (c.id == resolvedCategoryId) {
@@ -1018,7 +1141,12 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
       );
       resolvedCategoryId = categoryMatch.id;
     }
-    categoryMatch ??= ExpenseCategory(id: 'temp', name: 'Other', icon: '💰', color: '#4F46E5');
+    categoryMatch ??= ExpenseCategory(
+      id: 'temp',
+      name: 'Other',
+      icon: '💰',
+      color: '#4F46E5',
+    );
 
     final optimisticExpense = ExpenseEntity(
       id: 'temp_pay_${DateTime.now().millisecondsSinceEpoch}',
@@ -1043,7 +1171,9 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
     BillReminderEntity? reminderBackup;
     if (index != -1) {
       reminderBackup = state.reminders[index];
-      final updatedExpenses = List<BillReminderExpense>.from(event.reminder.expenses)..add(optBillExpense);
+      final updatedExpenses = List<BillReminderExpense>.from(
+        event.reminder.expenses,
+      )..add(optBillExpense);
       final updatedReminders = List<BillReminderEntity>.from(state.reminders);
       updatedReminders[index] = BillReminderEntity(
         id: event.reminder.id,
@@ -1065,8 +1195,14 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
         lastTriggeredAt: event.reminder.lastTriggeredAt,
       );
 
-      final updatedExpensesList = List<ExpenseEntity>.from(state.expenses)..insert(0, optimisticExpense);
-      emit(state.copyWith(reminders: updatedReminders, expenses: updatedExpensesList));
+      final updatedExpensesList = List<ExpenseEntity>.from(state.expenses)
+        ..insert(0, optimisticExpense);
+      emit(
+        state.copyWith(
+          reminders: updatedReminders,
+          expenses: updatedExpensesList,
+        ),
+      );
     }
 
     try {
@@ -1076,16 +1212,15 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
       try {
         final payResponse = await _client.dio.post(
           '/reminders/${event.reminder.id}/pay',
-          data: {
-            'walletId': targetWalletId,
-            if (resolvedCategoryId != null) 'categoryId': resolvedCategoryId,
-          },
+          data: {'walletId': targetWalletId, 'categoryId': ?resolvedCategoryId},
         );
         if (payResponse.data != null && payResponse.data['success'] == true) {
           isPaidSuccess = true;
         }
       } catch (payErr) {
-        debugPrint('DashboardBloc: /reminders/:id/pay fallback to /expenses ($payErr)');
+        debugPrint(
+          'DashboardBloc: /reminders/:id/pay fallback to /expenses ($payErr)',
+        );
       }
 
       // 2. Fallback to POST /expenses if needed
@@ -1094,7 +1229,7 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
           'amount': event.reminder.amount,
           'description': 'Pembayaran: ${event.reminder.title}',
           'type': 'ROUTINE',
-          if (resolvedCategoryId != null) 'categoryId': resolvedCategoryId,
+          'categoryId': ?resolvedCategoryId,
           'walletId': targetWalletId,
           'date': DateTime.now().toUtc().toIso8601String(),
           'billReminderId': event.reminder.id,
@@ -1115,38 +1250,57 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
         // Rollback
         final rolledBackExpenses = List<ExpenseEntity>.from(state.expenses)
           ..removeWhere((e) => e.id == optimisticExpense.id);
-        final rolledBackReminders = List<BillReminderEntity>.from(state.reminders);
+        final rolledBackReminders = List<BillReminderEntity>.from(
+          state.reminders,
+        );
         if (index != -1 && reminderBackup != null) {
           rolledBackReminders[index] = reminderBackup;
         }
-        emit(state.copyWith(expenses: rolledBackExpenses, reminders: rolledBackReminders));
+        emit(
+          state.copyWith(
+            expenses: rolledBackExpenses,
+            reminders: rolledBackReminders,
+          ),
+        );
         event.completer.complete(false);
       }
     } catch (e) {
       debugPrint('DashboardBloc: Failed to pay bill ($e)');
       final rolledBackExpenses = List<ExpenseEntity>.from(state.expenses)
         ..removeWhere((e) => e.id == optimisticExpense.id);
-      final rolledBackReminders = List<BillReminderEntity>.from(state.reminders);
+      final rolledBackReminders = List<BillReminderEntity>.from(
+        state.reminders,
+      );
       if (index != -1 && reminderBackup != null) {
         rolledBackReminders[index] = reminderBackup;
       }
-      emit(state.copyWith(expenses: rolledBackExpenses, reminders: rolledBackReminders));
+      emit(
+        state.copyWith(
+          expenses: rolledBackExpenses,
+          reminders: rolledBackReminders,
+        ),
+      );
       event.completer.complete(false);
     }
   }
 
   // ─── Helpers ─────────────────────────────────────────────────────────────
 
-  Future<void> _fetchWalletDataHelper(WalletEntity? wallet, Emitter<DashboardState> emit) async {
+  Future<void> _fetchWalletDataHelper(
+    WalletEntity? wallet,
+    Emitter<DashboardState> emit,
+  ) async {
     if (wallet == null) {
-      emit(state.copyWith(
-        expenses: const [],
-        compareData: null,
-        breakdownData: null,
-        reminders: const [],
-        isLoading: false,
-        status: DashboardStatus.success,
-      ));
+      emit(
+        state.copyWith(
+          expenses: const [],
+          compareData: null,
+          breakdownData: null,
+          reminders: const [],
+          isLoading: false,
+          status: DashboardStatus.success,
+        ),
+      );
       return;
     }
 
@@ -1156,13 +1310,15 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
         _fetchRemindersDataHelper(wallet.id),
       ]);
 
-      emit(state.copyWith(
-        expenses: results[0] as List<ExpenseEntity>,
-        reminders: results[1] as List<BillReminderEntity>,
-        isLoading: false,
-        isLoadingAnalytics: true,
-        status: DashboardStatus.success,
-      ));
+      emit(
+        state.copyWith(
+          expenses: results[0] as List<ExpenseEntity>,
+          reminders: results[1] as List<BillReminderEntity>,
+          isLoading: false,
+          isLoadingAnalytics: true,
+          status: DashboardStatus.success,
+        ),
+      );
 
       _loadSecondaryWalletData(wallet.id);
     } catch (e) {
@@ -1171,15 +1327,21 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
     }
   }
 
-  Future<_WalletsResult> _fetchWalletsHelper(WalletEntity? currentSelected) async {
+  Future<_WalletsResult> _fetchWalletsHelper(
+    WalletEntity? currentSelected,
+  ) async {
     final response = await _client.dio.get('/wallets');
     if (response.data != null && response.data['success'] == true) {
       final data = response.data['data'];
       final personalList = data['personal'] as List;
-      final personal = personalList.map((item) => WalletEntity.fromJson(item as Map)).toList();
+      final personal = personalList
+          .map((item) => WalletEntity.fromJson(item as Map))
+          .toList();
 
       final sharedList = data['shared'] as List;
-      final shared = sharedList.map((item) => WalletEntity.fromJson(item as Map)).toList();
+      final shared = sharedList
+          .map((item) => WalletEntity.fromJson(item as Map))
+          .toList();
 
       WalletEntity? selected = currentSelected;
       if (selected == null) {
@@ -1207,17 +1369,20 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
           }
         }
       }
-      return _WalletsResult(personal: personal, shared: shared, selected: selected);
+      return _WalletsResult(
+        personal: personal,
+        shared: shared,
+        selected: selected,
+      );
     }
     return _WalletsResult(personal: const [], shared: const [], selected: null);
   }
 
   Future<List<ExpenseEntity>> _fetchExpensesDataHelper(String walletId) async {
-    final response = await _client.dio.get('/expenses', queryParameters: {
-      'walletId': walletId,
-      'timeframe': 'all',
-      'limit': 500,
-    });
+    final response = await _client.dio.get(
+      '/expenses',
+      queryParameters: {'walletId': walletId, 'timeframe': 'all', 'limit': 500},
+    );
     if (response.data != null && response.data['success'] == true) {
       final list = response.data['data'] as List;
       return list.map((item) => ExpenseEntity.fromJson(item as Map)).toList();
@@ -1226,26 +1391,41 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
   }
 
   Future<Map<String, dynamic>?> _fetchCompareDataHelper(String walletId) async {
-    final response = await _client.dio.get('/analytics/compare', queryParameters: {'walletId': walletId, 'months': 4});
+    final response = await _client.dio.get(
+      '/analytics/compare',
+      queryParameters: {'walletId': walletId, 'months': 4},
+    );
     if (response.data != null && response.data['success'] == true) {
       return response.data['data'] as Map<String, dynamic>;
     }
     return null;
   }
 
-  Future<Map<String, dynamic>?> _fetchBreakdownDataHelper(String walletId) async {
-    final response = await _client.dio.get('/analytics/breakdown', queryParameters: {'walletId': walletId, 'timeframe': 'monthly'});
+  Future<Map<String, dynamic>?> _fetchBreakdownDataHelper(
+    String walletId,
+  ) async {
+    final response = await _client.dio.get(
+      '/analytics/breakdown',
+      queryParameters: {'walletId': walletId, 'timeframe': 'monthly'},
+    );
     if (response.data != null && response.data['success'] == true) {
       return response.data['data'] as Map<String, dynamic>;
     }
     return null;
   }
 
-  Future<List<BillReminderEntity>> _fetchRemindersDataHelper(String walletId) async {
-    final response = await _client.dio.get('/reminders', queryParameters: {'walletId': walletId});
+  Future<List<BillReminderEntity>> _fetchRemindersDataHelper(
+    String walletId,
+  ) async {
+    final response = await _client.dio.get(
+      '/reminders',
+      queryParameters: {'walletId': walletId},
+    );
     if (response.data != null && response.data['success'] == true) {
       final list = response.data['data'] as List;
-      return list.map((item) => BillReminderEntity.fromJson(item as Map)).toList();
+      return list
+          .map((item) => BillReminderEntity.fromJson(item as Map))
+          .toList();
     }
     return const [];
   }
@@ -1276,24 +1456,28 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
     if (wallet == null) return;
 
     Future.wait([
-      _fetchCompareDataHelper(wallet.id),
-      _fetchBreakdownDataHelper(wallet.id),
-      _fetchWalletsHelper(wallet),
-    ]).then((results) {
-      final compare = results[0] as Map<String, dynamic>?;
-      final breakdown = results[1] as Map<String, dynamic>?;
-      final walletsResult = results[2] as _WalletsResult;
+          _fetchCompareDataHelper(wallet.id),
+          _fetchBreakdownDataHelper(wallet.id),
+          _fetchWalletsHelper(wallet),
+        ])
+        .then((results) {
+          final compare = results[0] as Map<String, dynamic>?;
+          final breakdown = results[1] as Map<String, dynamic>?;
+          final walletsResult = results[2] as _WalletsResult;
 
-      add(_DashboardBackgroundDataLoaded(
-        compare: compare,
-        breakdown: breakdown,
-        personal: walletsResult.personal,
-        shared: walletsResult.shared,
-        selected: walletsResult.selected,
-      ));
-    }).catchError((e) {
-      debugPrint('DashboardBloc: Background refresh failed ($e)');
-    });
+          add(
+            _DashboardBackgroundDataLoaded(
+              compare: compare,
+              breakdown: breakdown,
+              personal: walletsResult.personal,
+              shared: walletsResult.shared,
+              selected: walletsResult.selected,
+            ),
+          );
+        })
+        .catchError((e) {
+          debugPrint('DashboardBloc: Background refresh failed ($e)');
+        });
   }
 
   // Internal event handler for background loading to bypass on/emit limitations
@@ -1301,89 +1485,106 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
     _DashboardBackgroundDataLoaded event,
     Emitter<DashboardState> emit,
   ) {
-    emit(state.copyWith(
-      compareData: event.compare,
-      breakdownData: event.breakdown,
-      personalWallets: event.personal,
-      sharedWallets: event.shared,
-      selectedWallet: event.selected,
-    ));
+    emit(
+      state.copyWith(
+        compareData: event.compare,
+        breakdownData: event.breakdown,
+        personalWallets: event.personal,
+        sharedWallets: event.shared,
+        selectedWallet: event.selected,
+      ),
+    );
   }
 
   void _onSecondaryDataLoaded(
     _DashboardSecondaryDataLoaded event,
     Emitter<DashboardState> emit,
   ) {
-    emit(state.copyWith(
-      compareData: event.compare,
-      breakdownData: event.breakdown,
-      categories: event.categories,
-      sharedGroups: event.sharedGroups,
-      pendingInvites: event.pendingInvites,
-      isLoadingAnalytics: false,
-    ));
+    emit(
+      state.copyWith(
+        compareData: event.compare,
+        breakdownData: event.breakdown,
+        categories: event.categories,
+        sharedGroups: event.sharedGroups,
+        pendingInvites: event.pendingInvites,
+        isLoadingAnalytics: false,
+      ),
+    );
   }
 
   void _loadSecondaryData(String? walletId) {
     if (walletId != null) {
       Future.wait([
-        _fetchCompareDataHelper(walletId),
-        _fetchBreakdownDataHelper(walletId),
-        _fetchCategoriesHelper(),
-        _fetchSharedGroupsHelper(),
-      ]).then((results) {
-        if (state.selectedWallet?.id == walletId) {
-          add(_DashboardSecondaryDataLoaded(
-            compare: results[0] as Map<String, dynamic>?,
-            breakdown: results[1] as Map<String, dynamic>?,
-            categories: results[2] as List<ExpenseCategory>,
-            sharedGroups: (results[3] as Map)['groups'] as List,
-            pendingInvites: (results[3] as Map)['pendingInvites'] as List,
-          ));
-        }
-      }).catchError((e) {
-        debugPrint('DashboardBloc: Secondary background fetch failed ($e)');
-      });
+            _fetchCompareDataHelper(walletId),
+            _fetchBreakdownDataHelper(walletId),
+            _fetchCategoriesHelper(),
+            _fetchSharedGroupsHelper(),
+          ])
+          .then((results) {
+            if (state.selectedWallet?.id == walletId) {
+              add(
+                _DashboardSecondaryDataLoaded(
+                  compare: results[0] as Map<String, dynamic>?,
+                  breakdown: results[1] as Map<String, dynamic>?,
+                  categories: results[2] as List<ExpenseCategory>,
+                  sharedGroups: (results[3] as Map)['groups'] as List,
+                  pendingInvites: (results[3] as Map)['pendingInvites'] as List,
+                ),
+              );
+            }
+          })
+          .catchError((e) {
+            debugPrint('DashboardBloc: Secondary background fetch failed ($e)');
+          });
     } else {
-      Future.wait([
-        _fetchCategoriesHelper(),
-        _fetchSharedGroupsHelper(),
-      ]).then((results) {
-        if (state.selectedWallet == null) {
-          add(_DashboardSecondaryDataLoaded(
-            compare: null,
-            breakdown: null,
-            categories: results[0] as List<ExpenseCategory>,
-            sharedGroups: (results[1] as Map)['groups'] as List,
-            pendingInvites: (results[1] as Map)['pendingInvites'] as List,
-          ));
-        }
-      }).catchError((e) {
-        debugPrint('DashboardBloc: Secondary background fetch failed ($e)');
-      });
+      Future.wait([_fetchCategoriesHelper(), _fetchSharedGroupsHelper()])
+          .then((results) {
+            if (state.selectedWallet == null) {
+              add(
+                _DashboardSecondaryDataLoaded(
+                  compare: null,
+                  breakdown: null,
+                  categories: results[0] as List<ExpenseCategory>,
+                  sharedGroups: (results[1] as Map)['groups'] as List,
+                  pendingInvites: (results[1] as Map)['pendingInvites'] as List,
+                ),
+              );
+            }
+          })
+          .catchError((e) {
+            debugPrint('DashboardBloc: Secondary background fetch failed ($e)');
+          });
     }
   }
 
   void _loadSecondaryWalletData(String walletId) {
     Future.wait([
-      _fetchCompareDataHelper(walletId),
-      _fetchBreakdownDataHelper(walletId),
-    ]).then((results) {
-      if (state.selectedWallet?.id == walletId) {
-        add(_DashboardSecondaryDataLoaded(
-          compare: results[0],
-          breakdown: results[1],
-          categories: state.categories,
-          sharedGroups: state.sharedGroups,
-          pendingInvites: state.pendingInvites,
-        ));
-      }
-    }).catchError((e) {
-      debugPrint('DashboardBloc: Secondary wallet fetch failed ($e)');
-    });
+          _fetchCompareDataHelper(walletId),
+          _fetchBreakdownDataHelper(walletId),
+        ])
+        .then((results) {
+          if (state.selectedWallet?.id == walletId) {
+            add(
+              _DashboardSecondaryDataLoaded(
+                compare: results[0],
+                breakdown: results[1],
+                categories: state.categories,
+                sharedGroups: state.sharedGroups,
+                pendingInvites: state.pendingInvites,
+              ),
+            );
+          }
+        })
+        .catchError((e) {
+          debugPrint('DashboardBloc: Secondary wallet fetch failed ($e)');
+        });
   }
 
-  WalletEntity _copyWallet(WalletEntity w, {double? dailyBudget, String? currency}) {
+  WalletEntity _copyWallet(
+    WalletEntity w, {
+    double? dailyBudget,
+    String? currency,
+  }) {
     return WalletEntity(
       id: w.id,
       name: w.name,
@@ -1394,7 +1595,10 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
     );
   }
 
-  void _updateLocalWalletInState(WalletEntity updated, Emitter<DashboardState> emit) {
+  void _updateLocalWalletInState(
+    WalletEntity updated,
+    Emitter<DashboardState> emit,
+  ) {
     WalletEntity? selected = state.selectedWallet;
     if (selected?.id == updated.id) {
       selected = updated;
@@ -1412,11 +1616,13 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
       shared[idxS] = updated;
     }
 
-    emit(state.copyWith(
-      personalWallets: personal,
-      sharedWallets: shared,
-      selectedWallet: selected,
-    ));
+    emit(
+      state.copyWith(
+        personalWallets: personal,
+        sharedWallets: shared,
+        selectedWallet: selected,
+      ),
+    );
   }
 }
 
@@ -1425,7 +1631,11 @@ class _WalletsResult {
   final List<WalletEntity> shared;
   final WalletEntity? selected;
 
-  const _WalletsResult({required this.personal, required this.shared, required this.selected});
+  const _WalletsResult({
+    required this.personal,
+    required this.shared,
+    required this.selected,
+  });
 }
 
 // Internal event to handle asynchronous background loads without violating BLoC guidelines
