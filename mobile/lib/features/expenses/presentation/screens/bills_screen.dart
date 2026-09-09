@@ -126,13 +126,6 @@ class _BillsScreenState extends State<BillsScreen> {
     final categoryColor = Color(
       int.parse(categoryColorStr.replaceFirst('#', '0xFF')),
     );
-
-    final authState = context.read<AuthBloc>().state;
-    final currentUserId = authState.currentUser?.id;
-    final isPersonalWallet = provider.activeWallet?.type == WalletType.personal;
-    final isCreator = currentUserId != null && reminder.userId == currentUserId;
-    final isOwner = isPersonalWallet || isCreator || reminder.userId.isEmpty;
-
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
@@ -295,283 +288,143 @@ class _BillsScreenState extends State<BillsScreen> {
                 ),
                 enabled: false,
               ),
-            if (isOwner)
-              ListTile(
-                leading: Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: AppTheme.primary.withValues(alpha: 0.1),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.edit_outlined,
-                    color: AppTheme.primary,
-                    size: 20,
-                  ),
+            ListTile(
+              leading: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppTheme.primary.withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
                 ),
-                title: Text(
-                  'Edit Bill',
-                  style: GoogleFonts.plusJakartaSans(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 15,
-                    color: AppTheme.darkSlate,
-                  ),
+                child: const Icon(
+                  Icons.edit_outlined,
+                  color: AppTheme.primary,
+                  size: 20,
                 ),
-                subtitle: Text(
-                  'Modify amount, due date, or periodicity',
-                  style: GoogleFonts.beVietnamPro(
-                    fontSize: 12,
-                    color: AppTheme.darkSlateVariant,
-                  ),
-                ),
-                onTap: () {
-                  Navigator.of(context).pop();
-                  _showAddEditBillDialog(reminder: reminder);
-                },
-              )
-            else
-              ListTile(
-                leading: Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: Colors.grey.withValues(alpha: 0.1),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.lock_outline_rounded,
-                    color: Colors.grey,
-                    size: 20,
-                  ),
-                ),
-                title: Row(
-                  children: [
-                    Text(
-                      'Edit Bill',
-                      style: GoogleFonts.plusJakartaSans(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 15,
-                        color: Colors.grey,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 6,
-                        vertical: 2,
-                      ),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF1F5F9),
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: Text(
-                        'Owner only',
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.grey,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                subtitle: Text(
-                  'Only the bill creator can edit this reminder',
-                  style: GoogleFonts.beVietnamPro(
-                    fontSize: 12,
-                    color: Colors.grey,
-                  ),
-                ),
-                onTap: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text(
-                        'Only the bill creator can edit this reminder.',
-                      ),
-                      behavior: SnackBarBehavior.floating,
-                    ),
-                  );
-                },
               ),
-            if (isOwner)
-              ListTile(
-                leading: Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: AppTheme.error.withValues(alpha: 0.1),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.delete_outline_rounded,
-                    color: AppTheme.error,
-                    size: 20,
-                  ),
+              title: Text(
+                'Edit Bill',
+                style: GoogleFonts.plusJakartaSans(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 15,
+                  color: AppTheme.darkSlate,
                 ),
-                title: Text(
-                  'Delete Bill',
-                  style: GoogleFonts.plusJakartaSans(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 15,
-                    color: AppTheme.error,
-                  ),
+              ),
+              subtitle: Text(
+                'Modify amount, due date, or periodicity',
+                style: GoogleFonts.beVietnamPro(
+                  fontSize: 12,
+                  color: AppTheme.darkSlateVariant,
                 ),
-                subtitle: Text(
-                  'Remove this reminder from your wallet',
-                  style: GoogleFonts.beVietnamPro(
-                    fontSize: 12,
-                    color: AppTheme.darkSlateVariant,
-                  ),
+              ),
+              onTap: () {
+                Navigator.of(context).pop();
+                _showAddEditBillDialog(reminder: reminder);
+              },
+            ),
+            ListTile(
+              leading: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppTheme.error.withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
                 ),
-                onTap: () async {
-                  if (!isOwner) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text(
-                          'Only the bill creator can delete this reminder.',
-                        ),
-                        behavior: SnackBarBehavior.floating,
-                      ),
-                    );
-                    return;
-                  }
-
-                  Navigator.of(context).pop();
-                  final confirm = await showDialog<bool>(
-                    context: context,
-                    builder: (context) => AlertDialog(
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      title: Text(
-                        'Delete Bill',
-                        style: GoogleFonts.plusJakartaSans(
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      content: Text(
-                        'Are you sure you want to delete the bill reminder "${reminder.title}"?',
-                      ),
-                      actions: [
-                        TextButton(
-                          onPressed: () => Navigator.of(context).pop(false),
-                          child: const Text(
-                            'Cancel',
-                            style: TextStyle(color: AppTheme.outline),
-                          ),
-                        ),
-                        TextButton(
-                          onPressed: () => Navigator.of(context).pop(true),
-                          child: const Text(
-                            'Delete',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: AppTheme.error,
-                            ),
-                          ),
-                        ),
-                      ],
+                child: const Icon(
+                  Icons.delete_outline_rounded,
+                  color: AppTheme.error,
+                  size: 20,
+                ),
+              ),
+              title: Text(
+                'Delete Bill',
+                style: GoogleFonts.plusJakartaSans(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 15,
+                  color: AppTheme.error,
+                ),
+              ),
+              subtitle: Text(
+                'Remove this reminder from your wallet',
+                style: GoogleFonts.beVietnamPro(
+                  fontSize: 12,
+                  color: AppTheme.darkSlateVariant,
+                ),
+              ),
+              onTap: () async {
+                Navigator.of(context).pop();
+                final confirm = await showDialog<bool>(
+                  context: context,
+                  builder: (context) => AlertDialog(
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
                     ),
-                  );
-
-                  if (!context.mounted) return;
-
-                  if (confirm == true) {
-                    showDialog(
-                      context: context,
-                      barrierDismissible: false,
-                      builder: (context) => const Center(
-                        child: CircularProgressIndicator(color: AppTheme.primary),
-                      ),
-                    );
-                    final completer = Completer<bool>();
-                    context.read<DashboardBloc>().add(
-                          DashboardDeleteReminderRequested(
-                            reminder.id,
-                            completer,
-                          ),
-                        );
-                    final success = await completer.future;
-                    if (context.mounted) {
-                      Navigator.of(context).pop(); // dismiss loading dialog
-                      if (success) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Bill successfully deleted'),
-                          ),
-                        );
-                      } else {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Failed to delete bill'),
-                          ),
-                        );
-                      }
-                    }
-                  }
-                },
-              )
-            else
-              ListTile(
-                leading: Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: Colors.grey.withValues(alpha: 0.1),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.lock_outline_rounded,
-                    color: Colors.grey,
-                    size: 20,
-                  ),
-                ),
-                title: Row(
-                  children: [
-                    Text(
+                    title: Text(
                       'Delete Bill',
                       style: GoogleFonts.plusJakartaSans(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 15,
-                        color: Colors.grey,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
-                    const SizedBox(width: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 6,
-                        vertical: 2,
-                      ),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF1F5F9),
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: Text(
-                        'Owner only',
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.grey,
+                    content: Text(
+                      'Are you sure you want to delete the bill reminder "${reminder.title}"?',
+                    ),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.of(context).pop(false),
+                        child: const Text(
+                          'Cancel',
+                          style: TextStyle(color: AppTheme.outline),
                         ),
                       ),
-                    ),
-                  ],
-                ),
-                subtitle: Text(
-                  'Only the bill creator can delete this reminder',
-                  style: GoogleFonts.beVietnamPro(
-                    fontSize: 12,
-                    color: Colors.grey,
-                  ),
-                ),
-                onTap: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text(
-                        'Only the bill creator can delete this reminder.',
+                      TextButton(
+                        onPressed: () => Navigator.of(context).pop(true),
+                        child: const Text(
+                          'Delete',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: AppTheme.error,
+                          ),
+                        ),
                       ),
-                      behavior: SnackBarBehavior.floating,
+                    ],
+                  ),
+                );
+
+                if (!context.mounted) return;
+
+                if (confirm == true) {
+                  showDialog(
+                    context: context,
+                    barrierDismissible: false,
+                    builder: (context) => const Center(
+                      child: CircularProgressIndicator(color: AppTheme.primary),
                     ),
                   );
-                },
-              ),
+                  final completer = Completer<bool>();
+                  context.read<DashboardBloc>().add(
+                        DashboardDeleteReminderRequested(
+                          reminder.id,
+                          completer,
+                        ),
+                      );
+                  final success = await completer.future;
+                  if (context.mounted) {
+                    Navigator.of(context).pop(); // dismiss loading dialog
+                    if (success) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Bill successfully deleted'),
+                        ),
+                      );
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Failed to delete bill'),
+                        ),
+                      );
+                    }
+                  }
+                }
+              },
+            ),
           ],
         ),
       ),

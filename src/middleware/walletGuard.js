@@ -34,8 +34,27 @@ setInterval(() => {
  */
 async function walletGuard(req, res, next) {
   try {
-    const walletId =
+    let walletId =
       req.body?.walletId || req.query?.walletId || req.params?.walletId;
+
+    // Auto-resolve walletId if resource ID is provided in params
+    if (!walletId && req.params?.id) {
+      const reminder = await prisma.billReminder.findUnique({
+        where: { id: req.params.id },
+        select: { walletId: true },
+      });
+      if (reminder) {
+        walletId = reminder.walletId;
+      } else {
+        const expense = await prisma.expense.findUnique({
+          where: { id: req.params.id },
+          select: { walletId: true },
+        });
+        if (expense) {
+          walletId = expense.walletId;
+        }
+      }
+    }
 
     if (!walletId) {
       return error(res, 'walletId is required', 400);

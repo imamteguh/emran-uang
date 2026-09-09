@@ -945,6 +945,7 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
       return;
     }
     final backup = state.reminders[index];
+    final targetWalletId = backup.walletId.isNotEmpty ? backup.walletId : wallet.id;
 
     // Optimistic delete
     final updatedReminders = List<BillReminderEntity>.from(state.reminders)..removeAt(index);
@@ -953,7 +954,7 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
     try {
       final response = await _client.dio.delete(
         '/reminders/${event.id}',
-        queryParameters: {'walletId': wallet.id},
+        queryParameters: {'walletId': targetWalletId},
       );
 
       if (response.data != null && response.data['success'] == true) {
@@ -984,13 +985,40 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
       return;
     }
 
-    // Create optimistic Expense
-    final categoryMatch = state.categories.firstWhere(
-      (c) => c.id == (event.reminder.categoryId ?? ''),
-      orElse: () => state.categories.isNotEmpty
-          ? state.categories.first
-          : ExpenseCategory(id: 'temp', name: 'Other', icon: '💰', color: '#4F46E5'),
-    );
+    final targetWalletId = event.reminder.walletId.isNotEmpty
+        ? event.reminder.walletId
+        : wallet.id;
+
+    // Ensure categories are loaded
+    List<ExpenseCategory> availableCategories = state.categories;
+    if (availableCategories.isEmpty) {
+      try {
+        availableCategories = await _fetchCategoriesHelper();
+        emit(state.copyWith(categories: availableCategories));
+      } catch (_) {}
+    }
+
+    ExpenseCategory? categoryMatch;
+    String? resolvedCategoryId = event.reminder.categoryId ?? event.reminder.category?.id;
+    if (resolvedCategoryId != null && resolvedCategoryId.isNotEmpty) {
+      for (final c in availableCategories) {
+        if (c.id == resolvedCategoryId) {
+          categoryMatch = c;
+          break;
+        }
+      }
+    }
+    if (categoryMatch == null && availableCategories.isNotEmpty) {
+      categoryMatch = availableCategories.firstWhere(
+        (c) =>
+            c.name.toLowerCase().contains('util') ||
+            c.name.toLowerCase().contains('sub') ||
+            c.name.toLowerCase().contains('tagihan'),
+        orElse: () => availableCategories.first,
+      );
+      resolvedCategoryId = categoryMatch.id;
+    }
+    categoryMatch ??= ExpenseCategory(id: 'temp', name: 'Other', icon: '💰', color: '#4F46E5');
 
     final optimisticExpense = ExpenseEntity(
       id: 'temp_pay_${DateTime.now().millisecondsSinceEpoch}',
@@ -999,7 +1027,7 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
       date: DateTime.now(),
       type: ExpenseType.routine,
       userId: 'user_1',
-      walletId: wallet.id,
+      walletId: targetWalletId,
       category: categoryMatch,
       creatorName: 'Me',
     );
@@ -1042,19 +1070,43 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
     }
 
     try {
-      final body = {
-        'amount': event.reminder.amount,
-        'description': 'Pembayaran: ${event.reminder.title}',
-        'type': 'ROUTINE',
-        'categoryId': event.reminder.categoryId ?? (state.categories.isNotEmpty ? state.categories[0].id : null),
-        'walletId': wallet.id,
-        'date': DateTime.now().toUtc().toIso8601String(),
-        'billReminderId': event.reminder.id,
-      };
+      bool isPaidSuccess = false;
 
-      final response = await _client.dio.post('/expenses', data: body);
+      // 1. Try dedicated pay endpoint first
+      try {
+        final payResponse = await _client.dio.post(
+          '/reminders/${event.reminder.id}/pay',
+          data: {
+            'walletId': targetWalletId,
+            if (resolvedCategoryId != null) 'categoryId': resolvedCategoryId,
+          },
+        );
+        if (payResponse.data != null && payResponse.data['success'] == true) {
+          isPaidSuccess = true;
+        }
+      } catch (payErr) {
+        debugPrint('DashboardBloc: /reminders/:id/pay fallback to /expenses ($payErr)');
+      }
 
-      if (response.data != null && response.data['success'] == true) {
+      // 2. Fallback to POST /expenses if needed
+      if (!isPaidSuccess) {
+        final body = {
+          'amount': event.reminder.amount,
+          'description': 'Pembayaran: ${event.reminder.title}',
+          'type': 'ROUTINE',
+          if (resolvedCategoryId != null) 'categoryId': resolvedCategoryId,
+          'walletId': targetWalletId,
+          'date': DateTime.now().toUtc().toIso8601String(),
+          'billReminderId': event.reminder.id,
+        };
+
+        final response = await _client.dio.post('/expenses', data: body);
+        if (response.data != null && response.data['success'] == true) {
+          isPaidSuccess = true;
+        }
+      }
+
+      if (isPaidSuccess) {
         _backgroundRefreshAfterMutation(emit);
         final reminders = await _fetchRemindersDataHelper(wallet.id);
         emit(state.copyWith(reminders: reminders));

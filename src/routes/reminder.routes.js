@@ -12,6 +12,7 @@ const {
   getReminders,
   updateReminder,
   deleteReminder,
+  payReminder,
 } = require('../controllers/reminder.controller');
 
 const router = Router();
@@ -21,6 +22,7 @@ router.use(authenticate);
 
 router.get('/', walletGuard, billReminderCheck, asyncHandler(getReminders));
 router.post('/', walletGuard, asyncHandler(createReminder));
+router.post('/:id/pay', walletGuard, asyncHandler(payReminder));
 router.put('/:id', walletGuard, asyncHandler(updateReminder));
 router.delete('/:id', walletGuard, asyncHandler(deleteReminder));
 

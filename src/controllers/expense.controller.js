@@ -10,23 +10,59 @@ const { notifyGroupMembers } = require('../utils/notification.helper');
 // ─── Create Expense ─────────────────────────────────────────────────────────
 
 async function createExpense(req, res) {
-  const { amount, description, date, type, categoryId, walletId, billReminderId } =
+  let { amount, description, date, type, categoryId, walletId, billReminderId } =
     req.body;
 
   // Validation
   if (!amount || amount <= 0) {
     return error(res, 'amount is required and must be positive', 400);
   }
+
+  // If categoryId is missing, attempt to resolve from bill reminder
+  if (!categoryId && billReminderId) {
+    const reminder = await prisma.billReminder.findUnique({
+      where: { id: billReminderId },
+      select: { categoryId: true },
+    });
+    if (reminder?.categoryId) {
+      categoryId = reminder.categoryId;
+    }
+  }
+
+  // If still missing, fall back to a default system category
+  if (!categoryId) {
+    const fallbackCategory = await prisma.category.findFirst({
+      where: {
+        OR: [
+          { name: { contains: 'Utilities', mode: 'insensitive' } },
+          { name: { contains: 'Subscriptions', mode: 'insensitive' } },
+          { name: { contains: 'Other', mode: 'insensitive' } },
+          { isDefault: true },
+        ],
+      },
+    });
+    if (fallbackCategory) {
+      categoryId = fallbackCategory.id;
+    }
+  }
+
   if (!categoryId) {
     return error(res, 'categoryId is required', 400);
   }
 
   // Verify category exists
-  const category = await prisma.category.findUnique({
+  let category = await prisma.category.findUnique({
     where: { id: categoryId },
   });
   if (!category) {
-    return error(res, 'Category not found', 404);
+    // If the provided category wasn't found, fall back to any available category
+    const anyCat = await prisma.category.findFirst();
+    if (anyCat) {
+      categoryId = anyCat.id;
+      category = anyCat;
+    } else {
+      return error(res, 'Category not found', 404);
+    }
   }
 
   const expense = await prisma.expense.create({
