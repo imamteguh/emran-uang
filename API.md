@@ -223,6 +223,7 @@ Mengambil seluruh daftar dompet milik user (Personal) dan dompet dari grup bersa
         "type": "PERSONAL",
         "currency": "IDR",
         "dailyBudget": "50000.00",
+        "monthlyBudget": "1500000.00",
         "createdAt": "2026-06-29T10:00:00.000Z",
         "_count": {
           "expenses": 12,
@@ -237,6 +238,7 @@ Mengambil seluruh daftar dompet milik user (Personal) dan dompet dari grup bersa
         "type": "SHARED",
         "currency": "IDR",
         "dailyBudget": null,
+        "monthlyBudget": null,
         "createdAt": "2026-06-29T10:05:00.000Z",
         "_count": {
           "expenses": 4,
@@ -260,12 +262,13 @@ Mengambil seluruh daftar dompet milik user (Personal) dan dompet dari grup bersa
 ```
 
 #### `PATCH /wallets/:id`
-Memperbarui detail dompet (seperti limit harian atau nama).
+Memperbarui detail dompet (seperti nama, limit budget harian, atau limit budget bulanan).
 - **Body Request:** (Semua field opsional)
 ```json
 {
   "name": "Dompet Harian",
-  "dailyBudget": 75000
+  "dailyBudget": 75000,
+  "monthlyBudget": 2250000
 }
 ```
 - **Response (200 OK):**
@@ -279,6 +282,7 @@ Memperbarui detail dompet (seperti limit harian atau nama).
     "type": "PERSONAL",
     "currency": "IDR",
     "dailyBudget": 75000.00,
+    "monthlyBudget": 2250000.00,
     "createdAt": "2026-06-29T10:00:00.000Z",
     "updatedAt": "2026-06-29T10:30:00.000Z"
   }

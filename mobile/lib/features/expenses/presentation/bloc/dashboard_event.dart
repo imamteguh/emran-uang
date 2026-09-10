@@ -100,6 +100,18 @@ class DashboardUpdateDailyBudgetRequested extends DashboardEvent {
   const DashboardUpdateDailyBudgetRequested(this.budget, this.completer);
 }
 
+class DashboardUpdateMonthlyBudgetRequested extends DashboardEvent {
+  final double budget;
+  final bool syncDailyBudget;
+  final Completer<bool> completer;
+
+  const DashboardUpdateMonthlyBudgetRequested(
+    this.budget,
+    this.completer, {
+    this.syncDailyBudget = false,
+  });
+}
+
 class DashboardUpdateWalletCurrencyRequested extends DashboardEvent {
   final String currency;
   final Completer<bool> completer;

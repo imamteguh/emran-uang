@@ -27,6 +27,7 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
     on<DashboardAddExpenseRequested>(_onAddExpenseRequested);
     on<DashboardDeleteExpenseRequested>(_onDeleteExpenseRequested);
     on<DashboardUpdateDailyBudgetRequested>(_onUpdateDailyBudgetRequested);
+    on<DashboardUpdateMonthlyBudgetRequested>(_onUpdateMonthlyBudgetRequested);
     on<DashboardUpdateWalletCurrencyRequested>(
       _onUpdateWalletCurrencyRequested,
     );
@@ -552,6 +553,65 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
       }
     } catch (e) {
       debugPrint('DashboardBloc: Failed to update budget ($e)');
+      _updateLocalWalletInState(backup, emit);
+      event.completer.complete(false);
+    }
+  }
+
+  Future<void> _onUpdateMonthlyBudgetRequested(
+    DashboardUpdateMonthlyBudgetRequested event,
+    Emitter<DashboardState> emit,
+  ) async {
+    final wallet = state.selectedWallet;
+    if (wallet == null) {
+      event.completer.complete(false);
+      return;
+    }
+    final backup = wallet;
+
+    double? computedDaily;
+    if (event.syncDailyBudget) {
+      final daysInMonth = state.daysInCurrentMonth;
+      computedDaily = (event.budget / daysInMonth).roundToDouble();
+    }
+
+    // Optimistic update
+    final updated = _copyWallet(
+      wallet,
+      monthlyBudget: event.budget,
+      dailyBudget: computedDaily,
+    );
+    _updateLocalWalletInState(updated, emit);
+
+    try {
+      final payload = <String, dynamic>{
+        'monthlyBudget': event.budget,
+      };
+      if (computedDaily != null) {
+        payload['dailyBudget'] = computedDaily;
+      }
+
+      final response = await _client.dio.patch(
+        '/wallets/${wallet.id}',
+        data: payload,
+      );
+
+      if (response.data != null && response.data['success'] == true) {
+        final walletsResult = await _fetchWalletsHelper(state.selectedWallet);
+        emit(
+          state.copyWith(
+            personalWallets: walletsResult.personal,
+            sharedWallets: walletsResult.shared,
+            selectedWallet: walletsResult.selected,
+          ),
+        );
+        event.completer.complete(true);
+      } else {
+        _updateLocalWalletInState(backup, emit);
+        event.completer.complete(false);
+      }
+    } catch (e) {
+      debugPrint('DashboardBloc: Failed to update monthly budget ($e)');
       _updateLocalWalletInState(backup, emit);
       event.completer.complete(false);
     }
@@ -1583,6 +1643,7 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
   WalletEntity _copyWallet(
     WalletEntity w, {
     double? dailyBudget,
+    double? monthlyBudget,
     String? currency,
   }) {
     return WalletEntity(
@@ -1591,6 +1652,7 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
       type: w.type,
       currency: currency ?? w.currency,
       dailyBudget: dailyBudget ?? w.dailyBudget,
+      monthlyBudget: monthlyBudget ?? w.monthlyBudget,
       groupMembers: w.groupMembers,
     );
   }

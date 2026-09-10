@@ -110,6 +110,55 @@ class DashboardState {
         .fold(0.0, (sum, item) => sum + item.amount);
   }
 
+  int get daysInCurrentMonth {
+    final now = DateTime.now();
+    return DateTime(now.year, now.month + 1, 0).day;
+  }
+
+  int get daysRemainingInMonth {
+    final now = DateTime.now();
+    final totalDays = DateTime(now.year, now.month + 1, 0).day;
+    return (totalDays - now.day + 1).clamp(1, totalDays);
+  }
+
+  double get monthlyBudgetLimit {
+    final direct = activeWallet?.monthlyBudget;
+    if (direct != null && direct > 0) return direct;
+    final daily = activeWallet?.dailyBudget;
+    if (daily != null && daily > 0) return daily * daysInCurrentMonth;
+    return 0.0;
+  }
+
+  double get monthlyBudgetPercent {
+    if (monthlyBudgetLimit <= 0) return 0.0;
+    return (monthlySpend / monthlyBudgetLimit).clamp(0.0, 1.0);
+  }
+
+  double get rawMonthlyBudgetPercent {
+    if (monthlyBudgetLimit <= 0) return 0.0;
+    return monthlySpend / monthlyBudgetLimit;
+  }
+
+  double get monthlyBudgetRemaining {
+    if (monthlyBudgetLimit <= 0) return 0.0;
+    return monthlyBudgetLimit - monthlySpend;
+  }
+
+  double get dailyRecommendedSpending {
+    if (monthlyBudgetLimit <= 0) return 0.0;
+    final remaining = monthlyBudgetRemaining;
+    if (remaining <= 0) return 0.0;
+    return remaining / daysRemainingInMonth;
+  }
+
+  bool get isOverMonthlyBudget =>
+      monthlyBudgetLimit > 0 && monthlySpend > monthlyBudgetLimit;
+
+  bool get isNearMonthlyBudget =>
+      monthlyBudgetLimit > 0 &&
+      (monthlySpend / monthlyBudgetLimit) >= 0.8 &&
+      !isOverMonthlyBudget;
+
   String get topCategory {
     if (expenses.isEmpty) return 'None';
     final Map<String, double> categorySums = {};

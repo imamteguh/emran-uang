@@ -151,6 +151,7 @@ async function main() {
       currency: 'IDR',
       userId: userA.id,
       dailyBudget: 150000.0,
+      monthlyBudget: 4500000.0,
     },
   });
 
@@ -161,6 +162,7 @@ async function main() {
       currency: 'IDR',
       userId: userB.id,
       dailyBudget: 120000.0,
+      monthlyBudget: 3600000.0,
     },
   });
 
@@ -186,6 +188,7 @@ async function main() {
       currency: 'IDR',
       groupId: group.id,
       dailyBudget: 500000.0,
+      monthlyBudget: 15000000.0,
     },
   });
   console.log('   Wallets created: personal and shared wallets.');

@@ -6,6 +6,7 @@ class WalletEntity {
   final WalletType type;
   final String currency;
   final double? dailyBudget;
+  final double? monthlyBudget;
   final List<dynamic>? groupMembers;
 
   WalletEntity({
@@ -14,6 +15,7 @@ class WalletEntity {
     required this.type,
     required this.currency,
     this.dailyBudget,
+    this.monthlyBudget,
     this.groupMembers,
   });
 
@@ -24,6 +26,14 @@ class WalletEntity {
       parsedBudget = rawBudget.toDouble();
     } else if (rawBudget is String) {
       parsedBudget = double.tryParse(rawBudget);
+    }
+
+    double? parsedMonthlyBudget;
+    final rawMonthlyBudget = json['monthlyBudget'];
+    if (rawMonthlyBudget is num) {
+      parsedMonthlyBudget = rawMonthlyBudget.toDouble();
+    } else if (rawMonthlyBudget is String) {
+      parsedMonthlyBudget = double.tryParse(rawMonthlyBudget);
     }
 
     List<dynamic>? members;
@@ -38,6 +48,7 @@ class WalletEntity {
       type: json['type'] == 'SHARED' ? WalletType.shared : WalletType.personal,
       currency: json['currency'] as String? ?? 'IDR',
       dailyBudget: parsedBudget,
+      monthlyBudget: parsedMonthlyBudget,
       groupMembers: members,
     );
   }

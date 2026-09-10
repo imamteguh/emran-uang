@@ -22,6 +22,7 @@ async function getWallets(req, res) {
       type: true,
       currency: true,
       dailyBudget: true,
+      monthlyBudget: true,
       createdAt: true,
       _count: { select: { expenses: true, billReminders: true } },
     },
@@ -40,6 +41,7 @@ async function getWallets(req, res) {
               type: true,
               currency: true,
               dailyBudget: true,
+              monthlyBudget: true,
               createdAt: true,
               _count: { select: { expenses: true, billReminders: true } },
             },
@@ -83,7 +85,7 @@ async function getWallets(req, res) {
 async function updateWallet(req, res) {
   const { id } = req.params;
   const userId = req.user.id;
-  const { name, currency, dailyBudget } = req.body;
+  const { name, currency, dailyBudget, monthlyBudget } = req.body;
   const { error } = require('../utils/apiResponse');
 
   // Find the wallet and ensure the user owns it or is part of the group that owns it
@@ -121,6 +123,7 @@ async function updateWallet(req, res) {
       name: name !== undefined ? name : undefined,
       currency: currency !== undefined ? currency : undefined,
       dailyBudget: dailyBudget !== undefined ? (dailyBudget === null ? null : parseFloat(dailyBudget)) : undefined,
+      monthlyBudget: monthlyBudget !== undefined ? (monthlyBudget === null ? null : parseFloat(monthlyBudget)) : undefined,
     },
   });
 

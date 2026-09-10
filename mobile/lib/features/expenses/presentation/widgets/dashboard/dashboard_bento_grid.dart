@@ -20,14 +20,8 @@ class DashboardBentoGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final double dailyBudget = provider.activeWallet?.dailyBudget ?? 0.0;
-    final int daysInMonth = DateTime(
-      DateTime.now().year,
-      DateTime.now().month + 1,
-      0,
-    ).day;
-    final double monthlyBudgetLimit = dailyBudget * daysInMonth;
-    final double monthlySavings = dailyBudget > 0
+    final double monthlyBudgetLimit = provider.monthlyBudgetLimit;
+    final double monthlySavings = monthlyBudgetLimit > 0
         ? (monthlyBudgetLimit - provider.monthlySpend).clamp(
             0.0,
             double.infinity,

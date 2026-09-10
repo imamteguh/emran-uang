@@ -125,8 +125,9 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
 
   String _generateInsight(
     Map<String, dynamic> currentMonth,
-    Map<String, dynamic>? previousMonth,
-  ) {
+    Map<String, dynamic>? previousMonth, {
+    double monthlyBudgetLimit = 0.0,
+  }) {
     if (currentMonth['byCategory'] == null ||
         (currentMonth['byCategory'] as List).isEmpty) {
       return 'Start adding your daily expenses to see smart budget recommendations and spending trends here.';
@@ -141,8 +142,20 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
         ? (topCategoryTotal / totalSpend * 100).round()
         : 0;
 
+    if (monthlyBudgetLimit > 0) {
+      if (totalSpend > monthlyBudgetLimit) {
+        final overPercent =
+            (((totalSpend - monthlyBudgetLimit) / monthlyBudgetLimit) * 100)
+                .round();
+        return 'Perhatian: Total pengeluaran telah melampaui anggaran bulanan sebesar $overPercent%. Kategori terbesar adalah "$topCategoryName" ($percentage%).';
+      } else if (totalSpend / monthlyBudgetLimit >= 0.8) {
+        final utilPercent = ((totalSpend / monthlyBudgetLimit) * 100).round();
+        return 'Pengeluaran telah mencapai $utilPercent% dari anggaran bulanan Anda. Pantau pengeluaran pada "$topCategoryName" ($percentage%) agar tetap hemat.';
+      }
+    }
+
     if (previousMonth == null) {
-      return 'Your top spending category is "$topCategoryName", making up $percentage% of your total monthly budget.';
+      return 'Your top spending category is "$topCategoryName", making up $percentage% of your total monthly spend.';
     }
 
     double prevCategoryTotal = 0.0;
@@ -165,7 +178,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
       }
     }
 
-    return 'Your top spending category is "$topCategoryName", making up $percentage% of your total monthly budget.';
+    return 'Your top spending category is "$topCategoryName", making up $percentage% of your total monthly spend.';
   }
 
   void _onWalletSelected(WalletEntity wallet) {
@@ -363,7 +376,11 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     final prevMonthData = (filterIndex + 1 < monthsList.length)
         ? monthsList[filterIndex + 1] as Map<String, dynamic>
         : null;
-    final insightMessage = _generateInsight(activeMonthData, prevMonthData);
+    final insightMessage = _generateInsight(
+      activeMonthData,
+      prevMonthData,
+      monthlyBudgetLimit: provider.monthlyBudgetLimit,
+    );
 
     final chartMonths = List.from(monthsList.take(4)).reversed.toList();
     double maxMonthTotal = 0.0;

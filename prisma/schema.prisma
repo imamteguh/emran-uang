@@ -178,11 +178,12 @@ model SharedGroupInvite {
 /// Every user gets a PERSONAL wallet on sign-up.
 /// When a shared group is formed, a SHARED wallet is created and linked to the group.
 model Wallet {
-  id           String     @id @default(cuid())
-  name         String     @default("My Wallet")
-  type         WalletType @default(PERSONAL)
-  currency     String     @default("IDR") // ISO 4217
-  dailyBudget  Decimal?   @db.Decimal(15, 2) // daily budget limit
+  id            String     @id @default(cuid())
+  name          String     @default("My Wallet")
+  type          WalletType @default(PERSONAL)
+  currency      String     @default("IDR") // ISO 4217
+  dailyBudget   Decimal?   @db.Decimal(15, 2) // daily budget limit
+  monthlyBudget Decimal?   @db.Decimal(15, 2) // monthly budget limit
 
   // ── Ownership ────────────────────────────────────────────────────────────
   // PERSONAL wallets → userId is set, groupId is null

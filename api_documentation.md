@@ -161,6 +161,7 @@ Menyetujui undangan sharing data. Aksi ini akan menambahkan user saat ini ke dal
       "type": "SHARED",
       "currency": "IDR",
       "dailyBudget": null,
+      "monthlyBudget": null,
       "userId": null,
       "groupId": "group-cuid-123",
       "createdAt": "2026-06-29T03:22:00.000Z",

@@ -64,6 +64,14 @@ class DashboardScreen extends StatelessWidget {
                                 responsive: responsive,
                                 formatter: currencyFormatter,
                               ),
+                              const SizedBox(height: 16),
+
+                              // Monthly Budget Card
+                              MonthlyBudgetCard(
+                                provider: provider,
+                                responsive: responsive,
+                                formatter: currencyFormatter,
+                              ),
                               const SizedBox(height: 20),
 
                               // Bill Alert Banner
