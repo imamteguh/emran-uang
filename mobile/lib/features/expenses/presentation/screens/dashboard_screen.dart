@@ -66,8 +66,8 @@ class DashboardScreen extends StatelessWidget {
                               ),
                               const SizedBox(height: 16),
 
-                              // Monthly Budget Card
-                              MonthlyBudgetCard(
+                              // Category Monthly Budget Card
+                              CategoryMonthlyBudgetCard(
                                 provider: provider,
                                 responsive: responsive,
                                 formatter: currencyFormatter,

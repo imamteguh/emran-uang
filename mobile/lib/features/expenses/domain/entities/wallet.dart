@@ -1,3 +1,5 @@
+import 'category_budget.dart';
+
 enum WalletType { personal, shared }
 
 class WalletEntity {
@@ -8,6 +10,7 @@ class WalletEntity {
   final double? dailyBudget;
   final double? monthlyBudget;
   final List<dynamic>? groupMembers;
+  final List<CategoryBudgetEntity> categoryBudgets;
 
   WalletEntity({
     required this.id,
@@ -17,6 +20,7 @@ class WalletEntity {
     this.dailyBudget,
     this.monthlyBudget,
     this.groupMembers,
+    this.categoryBudgets = const [],
   });
 
   factory WalletEntity.fromJson(Map<dynamic, dynamic> json) {
@@ -42,6 +46,15 @@ class WalletEntity {
       members = groupData['members'];
     }
 
+    List<CategoryBudgetEntity> parsedCategoryBudgets = const [];
+    final rawCategoryBudgets = json['categoryBudgets'];
+    if (rawCategoryBudgets is List) {
+      parsedCategoryBudgets = rawCategoryBudgets
+          .whereType<Map>()
+          .map((item) => CategoryBudgetEntity.fromJson(item))
+          .toList();
+    }
+
     return WalletEntity(
       id: json['id'] as String,
       name: json['name'] as String,
@@ -50,6 +63,7 @@ class WalletEntity {
       dailyBudget: parsedBudget,
       monthlyBudget: parsedMonthlyBudget,
       groupMembers: members,
+      categoryBudgets: parsedCategoryBudgets,
     );
   }
 }

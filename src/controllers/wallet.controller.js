@@ -3,7 +3,40 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 const prisma = require('../config/prisma');
-const { success } = require('../utils/apiResponse');
+const { success, error } = require('../utils/apiResponse');
+
+/**
+ * Helper to find a wallet and verify user ownership/membership.
+ */
+async function findAndAuthorizeWallet(walletId, userId) {
+  const wallet = await prisma.wallet.findUnique({
+    where: { id: walletId },
+    include: {
+      group: {
+        include: {
+          members: true,
+        },
+      },
+    },
+  });
+
+  if (!wallet) {
+    return { wallet: null, errorStatus: 404, errorMessage: 'Wallet not found' };
+  }
+
+  if (wallet.type === 'PERSONAL' && wallet.userId !== userId) {
+    return { wallet: null, errorStatus: 403, errorMessage: 'Unauthorized to access this wallet' };
+  }
+
+  if (wallet.type === 'SHARED') {
+    const isMember = wallet.group?.members.some((m) => m.userId === userId);
+    if (!isMember) {
+      return { wallet: null, errorStatus: 403, errorMessage: 'Unauthorized to access this shared wallet' };
+    }
+  }
+
+  return { wallet, errorStatus: null, errorMessage: null };
+}
 
 /**
  * List all wallets the authenticated user has access to:
@@ -25,6 +58,13 @@ async function getWallets(req, res) {
       monthlyBudget: true,
       createdAt: true,
       _count: { select: { expenses: true, billReminders: true } },
+      categoryBudgets: {
+        select: {
+          id: true,
+          categoryId: true,
+          amount: true,
+        },
+      },
     },
   });
 
@@ -44,6 +84,13 @@ async function getWallets(req, res) {
               monthlyBudget: true,
               createdAt: true,
               _count: { select: { expenses: true, billReminders: true } },
+              categoryBudgets: {
+                select: {
+                  id: true,
+                  categoryId: true,
+                  amount: true,
+                },
+              },
             },
           },
           members: {
@@ -86,35 +133,10 @@ async function updateWallet(req, res) {
   const { id } = req.params;
   const userId = req.user.id;
   const { name, currency, dailyBudget, monthlyBudget } = req.body;
-  const { error } = require('../utils/apiResponse');
 
-  // Find the wallet and ensure the user owns it or is part of the group that owns it
-  const wallet = await prisma.wallet.findUnique({
-    where: { id },
-    include: {
-      group: {
-        include: {
-          members: true,
-        },
-      },
-    },
-  });
-
+  const { wallet, errorStatus, errorMessage } = await findAndAuthorizeWallet(id, userId);
   if (!wallet) {
-    return error(res, 'Wallet not found', 404);
-  }
-
-  // Access check: Personal wallet must be owned by the user
-  if (wallet.type === 'PERSONAL' && wallet.userId !== userId) {
-    return error(res, 'Unauthorized to update this wallet', 403);
-  }
-
-  // Access check: Shared wallet group status must be active and user must be a member
-  if (wallet.type === 'SHARED') {
-    const isMember = wallet.group?.members.some((m) => m.userId === userId);
-    if (!isMember) {
-      return error(res, 'Unauthorized to update this shared wallet', 403);
-    }
+    return error(res, errorMessage, errorStatus);
   }
 
   const updatedWallet = await prisma.wallet.update({
@@ -130,4 +152,132 @@ async function updateWallet(req, res) {
   return success(res, updatedWallet);
 }
 
-module.exports = { getWallets, updateWallet };
+/**
+ * Get all category budgets for a wallet.
+ */
+async function getCategoryBudgets(req, res) {
+  const { id } = req.params;
+  const userId = req.user.id;
+
+  const { wallet, errorStatus, errorMessage } = await findAndAuthorizeWallet(id, userId);
+  if (!wallet) {
+    return error(res, errorMessage, errorStatus);
+  }
+
+  const budgets = await prisma.categoryBudget.findMany({
+    where: { walletId: id },
+    include: {
+      category: {
+        select: {
+          id: true,
+          name: true,
+          icon: true,
+          color: true,
+          isDefault: true,
+        },
+      },
+    },
+    orderBy: { createdAt: 'asc' },
+  });
+
+  return success(res, budgets);
+}
+
+/**
+ * Set or update a category budget for a wallet.
+ * If amount <= 0, the budget record is removed.
+ */
+async function setCategoryBudget(req, res) {
+  const { id } = req.params;
+  const userId = req.user.id;
+  const { categoryId, amount } = req.body;
+
+  const { wallet, errorStatus, errorMessage } = await findAndAuthorizeWallet(id, userId);
+  if (!wallet) {
+    return error(res, errorMessage, errorStatus);
+  }
+
+  if (!categoryId) {
+    return error(res, 'categoryId is required', 400);
+  }
+
+  const parsedAmount = parseFloat(amount);
+  if (isNaN(parsedAmount) || parsedAmount < 0) {
+    return error(res, 'amount must be a non-negative number', 400);
+  }
+
+  const category = await prisma.category.findFirst({
+    where: {
+      id: categoryId,
+      OR: [{ userId: null, isDefault: true }, { userId }],
+      isActive: true,
+    },
+  });
+  if (!category) {
+    return error(res, 'Category not found or inactive', 404);
+  }
+
+  if (parsedAmount === 0) {
+    await prisma.categoryBudget.deleteMany({
+      where: { walletId: id, categoryId },
+    });
+    return success(res, { categoryId, amount: 0, walletId: id }, 'Category budget removed');
+  }
+
+  const budget = await prisma.categoryBudget.upsert({
+    where: {
+      walletId_categoryId: {
+        walletId: id,
+        categoryId,
+      },
+    },
+    create: {
+      walletId: id,
+      categoryId,
+      amount: parsedAmount,
+    },
+    update: {
+      amount: parsedAmount,
+    },
+    include: {
+      category: {
+        select: {
+          id: true,
+          name: true,
+          icon: true,
+          color: true,
+          isDefault: true,
+        },
+      },
+    },
+  });
+
+  return success(res, budget, 'Category budget saved');
+}
+
+/**
+ * Delete a category budget for a wallet.
+ */
+async function deleteCategoryBudget(req, res) {
+  const { id, categoryId } = req.params;
+  const userId = req.user.id;
+
+  const { wallet, errorStatus, errorMessage } = await findAndAuthorizeWallet(id, userId);
+  if (!wallet) {
+    return error(res, errorMessage, errorStatus);
+  }
+
+  await prisma.categoryBudget.deleteMany({
+    where: { walletId: id, categoryId },
+  });
+
+  return success(res, { categoryId, amount: 0, walletId: id }, 'Category budget deleted');
+}
+
+module.exports = {
+  getWallets,
+  updateWallet,
+  getCategoryBudgets,
+  setCategoryBudget,
+  deleteCategoryBudget,
+};

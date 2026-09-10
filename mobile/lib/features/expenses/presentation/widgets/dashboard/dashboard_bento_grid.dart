@@ -20,9 +20,14 @@ class DashboardBentoGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final double monthlyBudgetLimit = provider.monthlyBudgetLimit;
-    final double monthlySavings = monthlyBudgetLimit > 0
-        ? (monthlyBudgetLimit - provider.monthlySpend).clamp(
+    final double budgetLimit = provider.totalCategoryBudgetLimit > 0
+        ? provider.totalCategoryBudgetLimit
+        : provider.monthlyBudgetLimit;
+    final double spend = provider.totalCategoryBudgetLimit > 0
+        ? provider.totalCategoryBudgetSpend
+        : provider.monthlySpend;
+    final double monthlySavings = budgetLimit > 0
+        ? (budgetLimit - spend).clamp(
             0.0,
             double.infinity,
           )

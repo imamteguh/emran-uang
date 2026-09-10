@@ -112,6 +112,28 @@ class DashboardUpdateMonthlyBudgetRequested extends DashboardEvent {
   });
 }
 
+class DashboardSetCategoryBudgetRequested extends DashboardEvent {
+  final String categoryId;
+  final double amount;
+  final Completer<bool> completer;
+
+  const DashboardSetCategoryBudgetRequested({
+    required this.categoryId,
+    required this.amount,
+    required this.completer,
+  });
+}
+
+class DashboardDeleteCategoryBudgetRequested extends DashboardEvent {
+  final String categoryId;
+  final Completer<bool> completer;
+
+  const DashboardDeleteCategoryBudgetRequested({
+    required this.categoryId,
+    required this.completer,
+  });
+}
+
 class DashboardUpdateWalletCurrencyRequested extends DashboardEvent {
   final String currency;
   final Completer<bool> completer;

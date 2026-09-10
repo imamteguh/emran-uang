@@ -120,7 +120,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 500));
     await tester.pumpAndSettle();
 
-    expect(find.text('Atur Anggaran Bulanan'), findsOneWidget);
+    expect(find.text('Atur Anggaran per Kategori'), findsOneWidget);
     handle.dispose();
   });
 }

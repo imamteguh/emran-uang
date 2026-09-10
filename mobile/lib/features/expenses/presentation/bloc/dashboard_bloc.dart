@@ -6,6 +6,7 @@ import '../../../../core/network/dio_client.dart';
 import '../../domain/entities/expense.dart';
 import '../../domain/entities/wallet.dart';
 import '../../domain/entities/bill_reminder.dart';
+import '../../domain/entities/category_budget.dart';
 import 'dashboard_event.dart';
 import 'dashboard_state.dart';
 
@@ -28,6 +29,8 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
     on<DashboardDeleteExpenseRequested>(_onDeleteExpenseRequested);
     on<DashboardUpdateDailyBudgetRequested>(_onUpdateDailyBudgetRequested);
     on<DashboardUpdateMonthlyBudgetRequested>(_onUpdateMonthlyBudgetRequested);
+    on<DashboardSetCategoryBudgetRequested>(_onSetCategoryBudgetRequested);
+    on<DashboardDeleteCategoryBudgetRequested>(_onDeleteCategoryBudgetRequested);
     on<DashboardUpdateWalletCurrencyRequested>(
       _onUpdateWalletCurrencyRequested,
     );
@@ -612,6 +615,117 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
       }
     } catch (e) {
       debugPrint('DashboardBloc: Failed to update monthly budget ($e)');
+      _updateLocalWalletInState(backup, emit);
+      event.completer.complete(false);
+    }
+  }
+
+  Future<void> _onSetCategoryBudgetRequested(
+    DashboardSetCategoryBudgetRequested event,
+    Emitter<DashboardState> emit,
+  ) async {
+    final wallet = state.selectedWallet;
+    if (wallet == null) {
+      event.completer.complete(false);
+      return;
+    }
+    final backup = wallet;
+
+    // Optimistic update
+    final currentList = List<CategoryBudgetEntity>.from(wallet.categoryBudgets);
+    final idx = currentList.indexWhere(
+      (cb) => cb.categoryId == event.categoryId,
+    );
+
+    if (event.amount <= 0) {
+      if (idx != -1) currentList.removeAt(idx);
+    } else {
+      final updatedItem = CategoryBudgetEntity(
+        id: idx != -1
+            ? currentList[idx].id
+            : 'temp_cb_${DateTime.now().millisecondsSinceEpoch}',
+        categoryId: event.categoryId,
+        walletId: wallet.id,
+        amount: event.amount,
+      );
+      if (idx != -1) {
+        currentList[idx] = updatedItem;
+      } else {
+        currentList.add(updatedItem);
+      }
+    }
+
+    final updatedWallet = _copyWallet(wallet, categoryBudgets: currentList);
+    _updateLocalWalletInState(updatedWallet, emit);
+
+    try {
+      final response = await _client.dio.put(
+        '/wallets/${wallet.id}/category-budgets',
+        data: {
+          'categoryId': event.categoryId,
+          'amount': event.amount,
+        },
+      );
+
+      if (response.data != null && response.data['success'] == true) {
+        final walletsResult = await _fetchWalletsHelper(state.selectedWallet);
+        emit(
+          state.copyWith(
+            personalWallets: walletsResult.personal,
+            sharedWallets: walletsResult.shared,
+            selectedWallet: walletsResult.selected,
+          ),
+        );
+        event.completer.complete(true);
+      } else {
+        _updateLocalWalletInState(backup, emit);
+        event.completer.complete(false);
+      }
+    } catch (e) {
+      debugPrint('DashboardBloc: Failed to set category budget ($e)');
+      _updateLocalWalletInState(backup, emit);
+      event.completer.complete(false);
+    }
+  }
+
+  Future<void> _onDeleteCategoryBudgetRequested(
+    DashboardDeleteCategoryBudgetRequested event,
+    Emitter<DashboardState> emit,
+  ) async {
+    final wallet = state.selectedWallet;
+    if (wallet == null) {
+      event.completer.complete(false);
+      return;
+    }
+    final backup = wallet;
+
+    // Optimistic delete
+    final currentList = List<CategoryBudgetEntity>.from(wallet.categoryBudgets)
+      ..removeWhere((cb) => cb.categoryId == event.categoryId);
+    final updatedWallet = _copyWallet(wallet, categoryBudgets: currentList);
+    _updateLocalWalletInState(updatedWallet, emit);
+
+    try {
+      final response = await _client.dio.delete(
+        '/wallets/${wallet.id}/category-budgets/${event.categoryId}',
+      );
+
+      if (response.data != null && response.data['success'] == true) {
+        final walletsResult = await _fetchWalletsHelper(state.selectedWallet);
+        emit(
+          state.copyWith(
+            personalWallets: walletsResult.personal,
+            sharedWallets: walletsResult.shared,
+            selectedWallet: walletsResult.selected,
+          ),
+        );
+        event.completer.complete(true);
+      } else {
+        _updateLocalWalletInState(backup, emit);
+        event.completer.complete(false);
+      }
+    } catch (e) {
+      debugPrint('DashboardBloc: Failed to delete category budget ($e)');
       _updateLocalWalletInState(backup, emit);
       event.completer.complete(false);
     }
@@ -1645,6 +1759,7 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
     double? dailyBudget,
     double? monthlyBudget,
     String? currency,
+    List<CategoryBudgetEntity>? categoryBudgets,
   }) {
     return WalletEntity(
       id: w.id,
@@ -1654,6 +1769,7 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
       dailyBudget: dailyBudget ?? w.dailyBudget,
       monthlyBudget: monthlyBudget ?? w.monthlyBudget,
       groupMembers: w.groupMembers,
+      categoryBudgets: categoryBudgets ?? w.categoryBudgets,
     );
   }
 

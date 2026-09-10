@@ -198,8 +198,9 @@ model Wallet {
   updatedAt DateTime @updatedAt
 
   // ── Relations ────────────────────────────────────────────────────────────
-  expenses      Expense[]
-  billReminders BillReminder[]
+  expenses        Expense[]
+  billReminders   BillReminder[]
+  categoryBudgets CategoryBudget[]
 
   @@index([userId])
   @@index([groupId])
@@ -230,11 +231,36 @@ model Category {
   updatedAt DateTime @updatedAt
 
   // ── Relations ────────────────────────────────────────────────────────────
-  expenses      Expense[]
-  billReminders BillReminder[]
+  expenses        Expense[]
+  billReminders   BillReminder[]
+  categoryBudgets CategoryBudget[]
 
   @@unique([userId, name]) // no duplicate names per user (or per system set)
   @@map("categories")
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// 5B. CATEGORY BUDGETS
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/// Monthly budget allocated to a specific category within a wallet.
+model CategoryBudget {
+  id         String   @id @default(cuid())
+  amount     Decimal  @db.Decimal(15, 2)
+
+  walletId   String
+  wallet     Wallet   @relation(fields: [walletId], references: [id], onDelete: Cascade)
+
+  categoryId String
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([walletId, categoryId])
+  @@index([walletId])
+  @@index([categoryId])
+  @@map("category_budgets")
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════

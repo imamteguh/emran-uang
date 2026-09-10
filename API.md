@@ -23,6 +23,9 @@ Selamat datang di dokumentasi API resmi untuk aplikasi **WalletShare**. API ini 
 | | `/auth/me` | `GET` | Ambil data profil user yang aktif saat ini | JWT |
 | **Wallets** | `/wallets` | `GET` | List semua dompet (Personal & Shared) | JWT |
 | | `/wallets/:id` | `PATCH` | Perbarui properti wallet (nama, limit budget) | JWT |
+| | `/wallets/:id/category-budgets` | `GET` | List anggaran per kategori pada wallet | JWT |
+| | `/wallets/:id/category-budgets` | `PUT` | Atur/perbarui anggaran bulanan kategori | JWT |
+| | `/wallets/:id/category-budgets/:categoryId` | `DELETE` | Hapus anggaran bulanan kategori | JWT |
 | **Expenses** | `/expenses` | `GET` | List pengeluaran dengan filter | JWT + Wallet |
 | | `/expenses/:id` | `GET` | Dapatkan detail satu pengeluaran | JWT + Wallet |
 | | `/expenses` | `POST` | Catat pengeluaran baru | JWT + Wallet |
@@ -285,6 +288,68 @@ Memperbarui detail dompet (seperti nama, limit budget harian, atau limit budget 
     "monthlyBudget": 2250000.00,
     "createdAt": "2026-06-29T10:00:00.000Z",
     "updatedAt": "2026-06-29T10:30:00.000Z"
+  }
+}
+```
+
+#### `GET /wallets/:id/category-budgets`
+Mengambil daftar seluruh anggaran per kategori untuk dompet tertentu.
+- **Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": "budget-cuid-1",
+      "amount": "1500000.00",
+      "walletId": "personal-wallet-id",
+      "categoryId": "cat-food-id",
+      "category": {
+        "id": "cat-food-id",
+        "name": "Makanan & Minuman",
+        "icon": "🍔",
+        "color": "#FF8A00",
+        "isDefault": true
+      }
+    }
+  ]
+}
+```
+
+#### `PUT /wallets/:id/category-budgets`
+Mengatur atau memperbarui anggaran bulanan untuk kategori tertentu pada dompet. Jika nominal `0`, anggaran kategori dihapus.
+- **Body Request:**
+```json
+{
+  "categoryId": "cat-food-id",
+  "amount": 2000000
+}
+```
+- **Response (200 OK):**
+```json
+{
+  "success": true,
+  "message": "Category budget saved",
+  "data": {
+    "id": "budget-cuid-1",
+    "amount": "2000000.00",
+    "walletId": "personal-wallet-id",
+    "categoryId": "cat-food-id"
+  }
+}
+```
+
+#### `DELETE /wallets/:id/category-budgets/:categoryId`
+Menghapus anggaran bulanan untuk kategori tertentu pada dompet.
+- **Response (200 OK):**
+```json
+{
+  "success": true,
+  "message": "Category budget deleted",
+  "data": {
+    "categoryId": "cat-food-id",
+    "amount": 0,
+    "walletId": "personal-wallet-id"
   }
 }
 ```

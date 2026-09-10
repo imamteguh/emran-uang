@@ -159,6 +159,106 @@ class DashboardState {
       (monthlySpend / monthlyBudgetLimit) >= 0.8 &&
       !isOverMonthlyBudget;
 
+  // ── Category Monthly Budget Getters ───────────────────────────────────────
+
+  /// Current month spending for a specific category in active wallet
+  double categorySpendInCurrentMonth(String categoryId) {
+    final now = DateTime.now();
+    return expenses
+        .where(
+          (item) =>
+              item.category.id == categoryId &&
+              item.date.year == now.year &&
+              item.date.month == now.month,
+        )
+        .fold(0.0, (sum, item) => sum + item.amount);
+  }
+
+  /// List of category budget statuses for categories configured in the active wallet
+  List<CategoryBudgetStatus> get categoryBudgetStatuses {
+    final wallet = activeWallet;
+    if (wallet == null || wallet.categoryBudgets.isEmpty) return const [];
+
+    final list = <CategoryBudgetStatus>[];
+    for (final cb in wallet.categoryBudgets) {
+      if (cb.amount <= 0) continue;
+
+      ExpenseCategory? cat = cb.category;
+      if (cat == null) {
+        final idx = categories.indexWhere((c) => c.id == cb.categoryId);
+        if (idx != -1) {
+          cat = categories[idx];
+        }
+      }
+      cat ??= ExpenseCategory(
+        id: cb.categoryId,
+        name: 'Kategori',
+        icon: 'category',
+        color: '#4F46E5',
+      );
+
+      final spend = categorySpendInCurrentMonth(cb.categoryId);
+      final limit = cb.amount;
+      final rawPct = limit > 0 ? spend / limit : 0.0;
+      final pct = rawPct.clamp(0.0, 1.0);
+      final rem = limit - spend;
+      final isOver = spend > limit;
+      final isNear = rawPct >= 0.8 && !isOver;
+
+      list.add(
+        CategoryBudgetStatus(
+          category: cat,
+          budgetLimit: limit,
+          monthlySpend: spend,
+          remaining: rem,
+          percent: pct,
+          rawPercent: rawPct,
+          isOver: isOver,
+          isNear: isNear,
+        ),
+      );
+    }
+    return list;
+  }
+
+  double get totalCategoryBudgetLimit {
+    return categoryBudgetStatuses.fold(
+      0.0,
+      (sum, item) => sum + item.budgetLimit,
+    );
+  }
+
+  double get totalCategoryBudgetSpend {
+    return categoryBudgetStatuses.fold(
+      0.0,
+      (sum, item) => sum + item.monthlySpend,
+    );
+  }
+
+  double get totalCategoryBudgetRemaining {
+    if (totalCategoryBudgetLimit <= 0) return 0.0;
+    return totalCategoryBudgetLimit - totalCategoryBudgetSpend;
+  }
+
+  double get totalCategoryBudgetPercent {
+    if (totalCategoryBudgetLimit <= 0) return 0.0;
+    return (totalCategoryBudgetSpend / totalCategoryBudgetLimit).clamp(0.0, 1.0);
+  }
+
+  double get rawTotalCategoryBudgetPercent {
+    if (totalCategoryBudgetLimit <= 0) return 0.0;
+    return totalCategoryBudgetSpend / totalCategoryBudgetLimit;
+  }
+
+  bool get isOverTotalCategoryBudget =>
+      totalCategoryBudgetLimit > 0 &&
+      totalCategoryBudgetSpend > totalCategoryBudgetLimit;
+
+  bool get isNearTotalCategoryBudget =>
+      totalCategoryBudgetLimit > 0 &&
+      (totalCategoryBudgetSpend / totalCategoryBudgetLimit) >= 0.8 &&
+      !isOverTotalCategoryBudget;
+
   String get topCategory {
     if (expenses.isEmpty) return 'None';
     final Map<String, double> categorySums = {};
@@ -228,3 +328,26 @@ class DashboardState {
     );
   }
 }
+
+class CategoryBudgetStatus {
+  final ExpenseCategory category;
+  final double budgetLimit;
+  final double monthlySpend;
+  final double remaining;
+  final double percent;
+  final double rawPercent;
+  final bool isOver;
+  final bool isNear;
+
+  const CategoryBudgetStatus({
+    required this.category,
+    required this.budgetLimit,
+    required this.monthlySpend,
+    required this.remaining,
+    required this.percent,
+    required this.rawPercent,
+    required this.isOver,
+    required this.isNear,
+  });
+}
+
