@@ -234,7 +234,7 @@ class AppTheme {
           backgroundColor: primary,
           foregroundColor: onPrimary,
           elevation: 0,
-          minimumSize: const Size.fromHeight(56),
+          minimumSize: const Size(64, 56),
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
           shape: const StadiumBorder(), // Pill-shaped button
           textStyle: GoogleFonts.plusJakartaSans(
@@ -249,7 +249,7 @@ class AppTheme {
           foregroundColor: onSurface,
           backgroundColor: surfaceContainerLowest,
           side: const BorderSide(color: outlineVariant, width: 2.0),
-          minimumSize: const Size.fromHeight(56),
+          minimumSize: const Size(64, 56),
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
           shape: const StadiumBorder(),
           textStyle: GoogleFonts.beVietnamPro(

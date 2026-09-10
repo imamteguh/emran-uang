@@ -221,6 +221,7 @@ class MonthlyBudgetCard extends StatelessWidget {
                                 backgroundColor: AppTheme.primary,
                                 foregroundColor: Colors.white,
                                 elevation: 0,
+                                minimumSize: const Size(60, 36),
                                 padding: const EdgeInsets.symmetric(
                                   horizontal: 14,
                                   vertical: 8,
@@ -244,33 +245,32 @@ class MonthlyBudgetCard extends StatelessWidget {
                       // Main metrics: Spending vs Limit
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        crossAxisAlignment: CrossAxisAlignment.baseline,
-                        textBaseline: TextBaseline.alphabetic,
+                        crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.baseline,
-                            textBaseline: TextBaseline.alphabetic,
-                            children: [
-                              Text(
-                                formatter.format(monthlySpend),
-                                style: GoogleFonts.plusJakartaSans(
-                                  fontSize: responsive.scaleFont(22),
-                                  fontWeight: FontWeight.w800,
-                                  color: isOver
-                                      ? AppTheme.error
-                                      : AppTheme.darkSlate,
+                          Text.rich(
+                            TextSpan(
+                              children: [
+                                TextSpan(
+                                  text: formatter.format(monthlySpend),
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: responsive.scaleFont(22),
+                                    fontWeight: FontWeight.w800,
+                                    color: isOver
+                                        ? AppTheme.error
+                                        : AppTheme.darkSlate,
+                                  ),
                                 ),
-                              ),
-                              const SizedBox(width: 6),
-                              Text(
-                                '/ ${formatter.format(budgetLimit)}',
-                                style: GoogleFonts.beVietnamPro(
-                                  fontSize: responsive.scaleFont(13),
-                                  fontWeight: FontWeight.w500,
-                                  color: AppTheme.darkSlateVariant,
+                                const TextSpan(text: ' '),
+                                TextSpan(
+                                  text: '/ ${formatter.format(budgetLimit)}',
+                                  style: GoogleFonts.beVietnamPro(
+                                    fontSize: responsive.scaleFont(13),
+                                    fontWeight: FontWeight.w500,
+                                    color: AppTheme.darkSlateVariant,
+                                  ),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
                           Text(
                             '${(provider.rawMonthlyBudgetPercent * 100).toStringAsFixed(0)}%',
@@ -296,9 +296,7 @@ class MonthlyBudgetCard extends StatelessWidget {
                         child: FractionallySizedBox(
                           alignment: Alignment.centerLeft,
                           widthFactor: budgetPercent,
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 600),
-                            curve: Curves.easeOutCubic,
+                          child: Container(
                             decoration: BoxDecoration(
                               color: statusColor,
                               borderRadius: BorderRadius.circular(6),

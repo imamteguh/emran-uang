@@ -59,6 +59,7 @@ void main() {
 
     testWidgets('displays budget stats when monthly budget is configured',
         (tester) async {
+      final handle = tester.ensureSemantics();
       final wallet = WalletEntity(
         id: 'w1',
         name: 'Dompet Utama',
@@ -109,6 +110,7 @@ void main() {
       expect(find.text('Sisa Anggaran'), findsOneWidget);
       expect(find.text('Sisa Waktu'), findsOneWidget);
       expect(find.text('Batas Harian'), findsOneWidget);
+      handle.dispose();
     });
 
     testWidgets('SetMonthlyBudgetDialog preset chip updates text field',
