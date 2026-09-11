@@ -33,7 +33,7 @@ class ExpenseEntryAppBar extends StatelessWidget implements PreferredSizeWidget 
         onPressed: () => Navigator.of(context).pop(),
       ),
       title: Text(
-        'Add Transaction',
+        'Catat Pengeluaran',
         style: GoogleFonts.plusJakartaSans(
           fontWeight: FontWeight.bold,
           color: AppTheme.darkSlate,
@@ -67,7 +67,7 @@ class ExpenseEntryAppBar extends StatelessWidget implements PreferredSizeWidget 
                 size: 18,
               ),
             ),
-            tooltip: 'AI Chat Transaction',
+            tooltip: 'Catat Cepat via Chat AI',
             onPressed: () {
               Navigator.of(context).pushReplacement(
                 MaterialPageRoute(builder: (_) => const AiChatScreen()),
@@ -97,7 +97,7 @@ class ExpenseEntryAppBar extends StatelessWidget implements PreferredSizeWidget 
                         child: Padding(
                           padding: EdgeInsets.symmetric(horizontal: 8.0),
                           child: Text(
-                            'PERSONAL WALLETS',
+                            'DOMPET PRIBADI',
                             style: TextStyle(
                               fontSize: 10,
                               fontWeight: FontWeight.bold,
@@ -149,7 +149,7 @@ class ExpenseEntryAppBar extends StatelessWidget implements PreferredSizeWidget 
                         child: Padding(
                           padding: EdgeInsets.symmetric(horizontal: 8.0),
                           child: Text(
-                            'GROUP WALLETS',
+                            'DOMPET BERSAMA',
                             style: TextStyle(
                               fontSize: 10,
                               fontWeight: FontWeight.bold,
@@ -218,7 +218,7 @@ class ExpenseEntryAppBar extends StatelessWidget implements PreferredSizeWidget 
                       ConstrainedBox(
                         constraints: const BoxConstraints(maxWidth: 100),
                         child: Text(
-                          activeWallet?.name ?? 'Select Wallet',
+                          activeWallet?.name ?? 'Pilih Dompet',
                           style: GoogleFonts.plusJakartaSans(
                             fontWeight: FontWeight.bold,
                             fontSize: 12,

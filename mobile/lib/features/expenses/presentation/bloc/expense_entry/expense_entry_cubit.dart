@@ -164,7 +164,7 @@ class ExpenseEntryCubit extends Cubit<ExpenseEntryState> {
     if (amount == null) {
       emit(state.copyWith(
         status: ExpenseEntryStatus.failure,
-        errorMessage: 'Please enter a valid positive amount',
+        errorMessage: 'Masukkan nominal pengeluaran yang valid',
       ));
       return false;
     }
@@ -172,7 +172,7 @@ class ExpenseEntryCubit extends Cubit<ExpenseEntryState> {
     if (state.selectedCategory == null) {
       emit(state.copyWith(
         status: ExpenseEntryStatus.failure,
-        errorMessage: 'Please select a category',
+        errorMessage: 'Silakan pilih kategori pengeluaran',
       ));
       return false;
     }
@@ -210,14 +210,14 @@ class ExpenseEntryCubit extends Cubit<ExpenseEntryState> {
       } else {
         emit(state.copyWith(
           status: ExpenseEntryStatus.failure,
-          errorMessage: 'Failed to save transaction. Please try again.',
+          errorMessage: 'Gagal menyimpan transaksi. Silakan coba lagi.',
         ));
         return false;
       }
     } catch (e) {
       emit(state.copyWith(
         status: ExpenseEntryStatus.failure,
-        errorMessage: 'An error occurred: $e',
+        errorMessage: 'Terjadi kesalahan: $e',
       ));
       return false;
     }

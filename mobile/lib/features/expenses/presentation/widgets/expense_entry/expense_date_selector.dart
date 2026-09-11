@@ -26,41 +26,53 @@ class ExpenseDateSelector extends StatelessWidget {
     final TimeOfDay? picked = await showTimePicker(
       context: context,
       initialTime: initialTime,
+      initialEntryMode: TimePickerEntryMode.dialOnly,
       builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.light(
-              primary: AppTheme.primary,
-              onPrimary: Colors.white,
-              surface: Colors.white,
-              onSurface: AppTheme.darkSlate,
+        final mediaQuery = MediaQuery.of(context);
+        return MediaQuery(
+          data: mediaQuery.copyWith(
+            viewInsets: EdgeInsets.zero,
+          ),
+          child: Theme(
+            data: Theme.of(context).copyWith(
+              colorScheme: const ColorScheme.light(
+                primary: AppTheme.primary,
+                onPrimary: Colors.white,
+                surface: Colors.white,
+                onSurface: AppTheme.darkSlate,
+              ),
+              timePickerTheme: TimePickerThemeData(
+                backgroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(24),
+                ),
+                hourMinuteColor: WidgetStateColor.resolveWith(
+                  (states) => states.contains(WidgetState.selected)
+                      ? AppTheme.primary.withAlpha(35)
+                      : const Color(0xFFF1F5F9),
+                ),
+                hourMinuteTextColor: WidgetStateColor.resolveWith(
+                  (states) => states.contains(WidgetState.selected)
+                      ? AppTheme.primary
+                      : AppTheme.darkSlate,
+                ),
+                dialHandColor: AppTheme.primary,
+                dialBackgroundColor: const Color(0xFFF1F5F9),
+                dialTextColor: WidgetStateColor.resolveWith(
+                  (states) => states.contains(WidgetState.selected)
+                      ? Colors.white
+                      : AppTheme.darkSlate,
+                ),
+                entryModeIconColor: AppTheme.primary,
+              ),
             ),
-            timePickerTheme: TimePickerThemeData(
-              backgroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(24),
+            child: SingleChildScrollView(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(minHeight: 250),
+                child: child!,
               ),
-              hourMinuteColor: WidgetStateColor.resolveWith(
-                (states) => states.contains(WidgetState.selected)
-                    ? AppTheme.primary.withAlpha(35)
-                    : const Color(0xFFF1F5F9),
-              ),
-              hourMinuteTextColor: WidgetStateColor.resolveWith(
-                (states) => states.contains(WidgetState.selected)
-                    ? AppTheme.primary
-                    : AppTheme.darkSlate,
-              ),
-              dialHandColor: AppTheme.primary,
-              dialBackgroundColor: const Color(0xFFF1F5F9),
-              dialTextColor: WidgetStateColor.resolveWith(
-                (states) => states.contains(WidgetState.selected)
-                    ? Colors.white
-                    : AppTheme.darkSlate,
-              ),
-              entryModeIconColor: AppTheme.primary,
             ),
           ),
-          child: child!,
         );
       },
     );
@@ -68,7 +80,6 @@ class ExpenseDateSelector extends StatelessWidget {
     if (picked != null) {
       onTimeChanged(picked, targetDate: baseDate);
     } else if (targetDate != null) {
-      // User picked date but cancelled time picker dialog, preserve current time
       onTimeChanged(
         TimeOfDay(hour: selectedDate.hour, minute: selectedDate.minute),
         targetDate: baseDate,
@@ -86,7 +97,7 @@ class ExpenseDateSelector extends StatelessWidget {
       borderRadius: BorderRadius.circular(16),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(vertical: 14),
+        padding: const EdgeInsets.symmetric(vertical: 13),
         decoration: BoxDecoration(
           color: isSelected ? AppTheme.primary.withAlpha(20) : Colors.white,
           borderRadius: BorderRadius.circular(16),
@@ -94,7 +105,8 @@ class ExpenseDateSelector extends StatelessWidget {
             color: isSelected ? AppTheme.primary : const Color(0xFFE2E8F0),
             width: isSelected ? 2.0 : 1.0,
           ),
-          boxShadow: isSelected ? AppTheme.interactiveShadow : AppTheme.softShadow,
+          boxShadow:
+              isSelected ? AppTheme.interactiveShadow : AppTheme.softShadow,
         ),
         alignment: Alignment.center,
         child: Text(
@@ -110,21 +122,35 @@ class ExpenseDateSelector extends StatelessWidget {
   }
 
   Widget _buildCustomDateButton(BuildContext context) {
-    final isToday = _isSameDay(selectedDate, DateTime.now());
+    final now = DateTime.now();
+    final isToday = _isSameDay(selectedDate, now);
     final isYesterday = _isSameDay(
       selectedDate,
-      DateTime.now().subtract(const Duration(days: 1)),
+      now.subtract(const Duration(days: 1)),
     );
     final isQuickSelect = isToday || isYesterday;
-    final String formattedDate = DateFormat('EEE, d MMM yyyy').format(selectedDate);
+
+    String formattedDate;
+    try {
+      formattedDate = DateFormat('d MMM yyyy', 'id').format(selectedDate);
+    } catch (_) {
+      formattedDate = DateFormat('d MMM yyyy').format(selectedDate);
+    }
 
     return InkWell(
       onTap: () async {
+        final now = DateTime.now();
+        final firstDate = DateTime(2020);
+        final lastDate = now.add(const Duration(days: 365));
+        final initial = selectedDate.isBefore(firstDate)
+            ? firstDate
+            : (selectedDate.isAfter(lastDate) ? lastDate : selectedDate);
+
         final DateTime? picked = await showDatePicker(
           context: context,
-          initialDate: selectedDate,
-          firstDate: DateTime(2020),
-          lastDate: DateTime.now().add(const Duration(days: 365)),
+          initialDate: initial,
+          firstDate: firstDate,
+          lastDate: lastDate,
           builder: (context, child) {
             return Theme(
               data: Theme.of(context).copyWith(
@@ -140,14 +166,13 @@ class ExpenseDateSelector extends StatelessWidget {
           },
         );
         if (picked != null) {
-          if (!context.mounted) return;
-          await _selectTime(context, targetDate: picked);
+          onDateChanged(picked);
         }
       },
       borderRadius: BorderRadius.circular(16),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
+        padding: const EdgeInsets.symmetric(vertical: 13, horizontal: 10),
         decoration: BoxDecoration(
           color: !isQuickSelect ? AppTheme.primary.withAlpha(20) : Colors.white,
           borderRadius: BorderRadius.circular(16),
@@ -155,7 +180,8 @@ class ExpenseDateSelector extends StatelessWidget {
             color: !isQuickSelect ? AppTheme.primary : const Color(0xFFE2E8F0),
             width: !isQuickSelect ? 2.0 : 1.0,
           ),
-          boxShadow: !isQuickSelect ? AppTheme.interactiveShadow : AppTheme.softShadow,
+          boxShadow:
+              !isQuickSelect ? AppTheme.interactiveShadow : AppTheme.softShadow,
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -163,16 +189,20 @@ class ExpenseDateSelector extends StatelessWidget {
             Icon(
               Icons.calendar_today_rounded,
               size: 14,
-              color: !isQuickSelect ? AppTheme.primary : AppTheme.darkSlateVariant,
+              color:
+                  !isQuickSelect ? AppTheme.primary : AppTheme.darkSlateVariant,
             ),
             const SizedBox(width: 6),
-            Expanded(
+            Flexible(
               child: Text(
-                isQuickSelect ? 'Other Date...' : formattedDate,
+                isQuickSelect ? 'Pilih Tanggal' : formattedDate,
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 12,
-                  fontWeight: !isQuickSelect ? FontWeight.bold : FontWeight.normal,
-                  color: !isQuickSelect ? AppTheme.primary : AppTheme.darkSlateVariant,
+                  fontWeight:
+                      !isQuickSelect ? FontWeight.bold : FontWeight.normal,
+                  color: !isQuickSelect
+                      ? AppTheme.primary
+                      : AppTheme.darkSlateVariant,
                 ),
                 textAlign: TextAlign.center,
                 overflow: TextOverflow.ellipsis,
@@ -185,14 +215,27 @@ class ExpenseDateSelector extends StatelessWidget {
   }
 
   Widget _buildTimeSelectorCard(BuildContext context) {
+    final now = DateTime.now();
+    final isToday = _isSameDay(selectedDate, now);
     final isYesterday = _isSameDay(
       selectedDate,
-      DateTime.now().subtract(const Duration(days: 1)),
+      now.subtract(const Duration(days: 1)),
     );
-    final dateLabel = isYesterday
-        ? 'Yesterday'
-        : DateFormat('EEE, d MMM').format(selectedDate);
-    final timeFormatted = DateFormat('hh:mm a').format(selectedDate);
+
+    String dateLabel;
+    if (isToday) {
+      dateLabel = 'Hari Ini';
+    } else if (isYesterday) {
+      dateLabel = 'Kemarin';
+    } else {
+      try {
+        dateLabel = DateFormat('EEEE, d MMM yyyy', 'id').format(selectedDate);
+      } catch (_) {
+        dateLabel = DateFormat('EEE, d MMM yyyy').format(selectedDate);
+      }
+    }
+
+    final timeFormatted = DateFormat('HH:mm').format(selectedDate);
 
     return InkWell(
       onTap: () => _selectTime(context),
@@ -203,7 +246,7 @@ class ExpenseDateSelector extends StatelessWidget {
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: AppTheme.primary.withAlpha(50),
+            color: const Color(0xFFE2E8F0),
             width: 1.5,
           ),
           boxShadow: AppTheme.softShadow,
@@ -230,7 +273,7 @@ class ExpenseDateSelector extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Transaction Time ($dateLabel)',
+                    'Waktu Transaksi ($dateLabel)',
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 11,
                       fontWeight: FontWeight.w600,
@@ -238,13 +281,26 @@ class ExpenseDateSelector extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 2),
-                  Text(
-                    timeFormatted,
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w800,
-                      color: AppTheme.primary,
-                    ),
+                  Row(
+                    children: [
+                      Text(
+                        timeFormatted,
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w800,
+                          color: AppTheme.primary,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        'WIB',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: AppTheme.darkSlateVariant,
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -266,7 +322,7 @@ class ExpenseDateSelector extends StatelessWidget {
                   ),
                   const SizedBox(width: 4),
                   Text(
-                    'Change',
+                    'Ubah Waktu',
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
@@ -284,25 +340,48 @@ class ExpenseDateSelector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isToday = _isSameDay(selectedDate, DateTime.now());
+    final now = DateTime.now();
+    final isToday = _isSameDay(selectedDate, now);
+    final isYesterday = _isSameDay(
+      selectedDate,
+      now.subtract(const Duration(days: 1)),
+    );
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Transaction Date',
-          style: GoogleFonts.plusJakartaSans(
-            fontWeight: FontWeight.bold,
-            fontSize: 13,
-            color: AppTheme.darkSlateVariant,
-          ),
+        Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(5),
+              decoration: BoxDecoration(
+                color: AppTheme.primary.withAlpha(20),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(
+                Icons.calendar_month_rounded,
+                size: 14,
+                color: AppTheme.primary,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              'WAKTU & TANGGAL TRANSAKSI',
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 11,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 1.1,
+                color: AppTheme.darkSlateVariant,
+              ),
+            ),
+          ],
         ),
         const SizedBox(height: 12),
         Row(
           children: [
             Expanded(
               child: _buildDateChip(
-                label: 'Today',
+                label: 'Hari Ini',
                 isSelected: isToday,
                 onTap: () {
                   onDateChanged(DateTime.now());
@@ -312,15 +391,12 @@ class ExpenseDateSelector extends StatelessWidget {
             const SizedBox(width: 8),
             Expanded(
               child: _buildDateChip(
-                label: 'Yesterday',
-                isSelected: _isSameDay(
-                  selectedDate,
-                  DateTime.now().subtract(const Duration(days: 1)),
-                ),
-                onTap: () async {
-                  final now = DateTime.now();
-                  final yesterday = now.subtract(const Duration(days: 1));
-                  await _selectTime(context, targetDate: yesterday);
+                label: 'Kemarin',
+                isSelected: isYesterday,
+                onTap: () {
+                  onDateChanged(
+                    DateTime.now().subtract(const Duration(days: 1)),
+                  );
                 },
               ),
             ),
@@ -331,10 +407,8 @@ class ExpenseDateSelector extends StatelessWidget {
             ),
           ],
         ),
-        if (!isToday) ...[
-          const SizedBox(height: 10),
-          _buildTimeSelectorCard(context),
-        ],
+        const SizedBox(height: 10),
+        _buildTimeSelectorCard(context),
       ],
     );
   }

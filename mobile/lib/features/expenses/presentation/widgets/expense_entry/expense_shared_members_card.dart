@@ -109,17 +109,29 @@ class ExpenseSharedMembersCard extends StatelessWidget {
                   ),
                 ),
               const SizedBox(width: 12),
-              Text(
-                'Shared with Group',
-                style: GoogleFonts.plusJakartaSans(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 14,
-                  color: AppTheme.darkSlate,
-                ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Dibagikan ke Grup',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                      color: AppTheme.darkSlate,
+                    ),
+                  ),
+                  Text(
+                    'Semua anggota dapat melihat transaksi ini',
+                    style: GoogleFonts.beVietnamPro(
+                      fontSize: 11,
+                      color: AppTheme.darkSlateVariant,
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
-          const Icon(Icons.chevron_right, color: Colors.grey),
+          const Icon(Icons.groups_rounded, color: Color(0xFF94A3B8), size: 20),
         ],
       ),
     );

@@ -129,8 +129,8 @@ class _ExpenseEntryScreenState extends State<ExpenseEntryScreen> {
                 Expanded(
                   child: Text(
                     result.wallet != null
-                        ? 'Receipt data applied for ${result.wallet!.name}!'
-                        : 'Receipt data applied! Review and save.',
+                        ? 'Data struk berhasil diterapkan untuk ${result.wallet!.name}!'
+                        : 'Data struk berhasil diterapkan! Periksa dan simpan.',
                   ),
                 ),
               ],
@@ -167,7 +167,7 @@ class _ExpenseEntryScreenState extends State<ExpenseEntryScreen> {
               children: [
                 Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
                 SizedBox(width: 8),
-                Text('Transaction saved successfully!'),
+                Text('Transaksi berhasil disimpan!'),
               ],
             ),
             backgroundColor: AppTheme.secondary,
@@ -182,7 +182,7 @@ class _ExpenseEntryScreenState extends State<ExpenseEntryScreen> {
         MainShellScreen.navigateToDashboard(context);
       } else {
         final error = _cubit.state.errorMessage ??
-            'Failed to save transaction. Please try again.';
+            'Gagal menyimpan transaksi. Silakan coba lagi.';
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(error),
@@ -236,13 +236,13 @@ class _ExpenseEntryScreenState extends State<ExpenseEntryScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          // Amount Input Card
+                          // Amount Input Card with Presets
                           ExpenseAmountCard(
                             controller: _amountController,
                             currencyCode: currencyCode,
                             currencySymbol: currencySymbol,
                           ),
-                          const SizedBox(height: 32),
+                          const SizedBox(height: 20),
 
                           // Category Selector Grid
                           ExpenseCategorySelector(
@@ -250,7 +250,7 @@ class _ExpenseEntryScreenState extends State<ExpenseEntryScreen> {
                             selectedCategory: state.selectedCategory,
                             onCategorySelected: _cubit.updateCategory,
                           ),
-                          const SizedBox(height: 32),
+                          const SizedBox(height: 20),
 
                           // Date & Time Selector
                           ExpenseDateSelector(
@@ -259,13 +259,13 @@ class _ExpenseEntryScreenState extends State<ExpenseEntryScreen> {
                             onTimeChanged: (time, {targetDate}) =>
                                 _cubit.updateTime(time, targetDate: targetDate),
                           ),
-                          const SizedBox(height: 32),
+                          const SizedBox(height: 20),
 
                           // Transaction Note / Description Field
                           ExpenseNoteField(
                             controller: _descController,
                           ),
-                          const SizedBox(height: 24),
+                          const SizedBox(height: 16),
 
                           // Routine Expense Toggle
                           ExpenseRoutineToggle(
@@ -281,14 +281,45 @@ class _ExpenseEntryScreenState extends State<ExpenseEntryScreen> {
                             ),
                             const SizedBox(height: 16),
                           ],
-                          const SizedBox(height: 20),
-
-                          // Save Action Button
-                          ExpenseSaveButton(
-                            isSaving: state.isSubmitting,
-                            onPressed: _handleSubmit,
-                          ),
+                          const SizedBox(height: 32),
                         ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            bottomNavigationBar: Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.06),
+                    blurRadius: 16,
+                    offset: const Offset(0, -4),
+                  ),
+                ],
+              ),
+              child: SafeArea(
+                top: false,
+                child: Center(
+                  heightFactor: 1.0,
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                      maxWidth: responsive.isTablet || responsive.isDesktop
+                          ? 480
+                          : double.infinity,
+                    ),
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: responsive.isTablet || responsive.isDesktop
+                            ? 24
+                            : 20,
+                        vertical: 12,
+                      ),
+                      child: ExpenseSaveButton(
+                        isSaving: state.isSubmitting,
+                        onPressed: _handleSubmit,
                       ),
                     ),
                   ),

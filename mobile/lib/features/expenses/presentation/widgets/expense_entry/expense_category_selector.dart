@@ -22,7 +22,9 @@ class ExpenseCategorySelector extends StatelessWidget {
     final List<ExpenseCategory> gridCategories = [];
     if (categories.length > 8) {
       final otherCat = categories.firstWhere(
-        (c) => c.name.toLowerCase() == 'other',
+        (c) =>
+            c.name.toLowerCase() == 'other' ||
+            c.name.toLowerCase() == 'lainnya',
         orElse: () => categories[7],
       );
 
@@ -59,15 +61,33 @@ class ExpenseCategorySelector extends StatelessWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(
-              'Select Category',
-              style: GoogleFonts.plusJakartaSans(
-                fontWeight: FontWeight.bold,
-                fontSize: 13,
-                color: AppTheme.darkSlateVariant,
-              ),
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(5),
+                  decoration: BoxDecoration(
+                    color: AppTheme.primary.withAlpha(20),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(
+                    Icons.grid_view_rounded,
+                    size: 14,
+                    color: AppTheme.primary,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'KATEGORI PENGELUARAN',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 1.1,
+                    color: AppTheme.darkSlateVariant,
+                  ),
+                ),
+              ],
             ),
-            TextButton(
+            TextButton.icon(
               onPressed: () {
                 Navigator.push(
                   context,
@@ -76,12 +96,19 @@ class ExpenseCategorySelector extends StatelessWidget {
                   ),
                 );
               },
-              child: const Text(
-                'Manage Category',
+              icon: const Icon(Icons.tune_rounded, size: 13),
+              label: const Text(
+                'Kelola',
                 style: TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.bold,
                 ),
+              ),
+              style: TextButton.styleFrom(
+                foregroundColor: AppTheme.primary,
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                minimumSize: Size.zero,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),
             ),
           ],
@@ -101,10 +128,13 @@ class ExpenseCategorySelector extends StatelessWidget {
             final cat = gridCategories[index];
             final isSelected = selectedCategory?.id == cat.id;
             final color = AppTheme.parseHexColor(cat.color);
+            final isOther = cat.name.toLowerCase() == 'other' ||
+                cat.name.toLowerCase() == 'lainnya';
+            final displayName = isOther ? 'Lainnya' : cat.name;
 
             return GestureDetector(
               onTap: () {
-                if (cat.name.toLowerCase() == 'other') {
+                if (isOther) {
                   ExpenseCategoryPickerSheet.show(
                     context: context,
                     categories: categories,
@@ -159,7 +189,7 @@ class ExpenseCategorySelector extends StatelessWidget {
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 4.0),
                           child: Text(
-                            cat.name,
+                            displayName,
                             style: GoogleFonts.beVietnamPro(
                               fontSize: 10,
                               fontWeight: isSelected

@@ -20,11 +20,25 @@ class ExpenseNoteField extends StatelessWidget {
           children: [
             Row(
               children: [
+                Container(
+                  padding: const EdgeInsets.all(5),
+                  decoration: BoxDecoration(
+                    color: AppTheme.primary.withAlpha(20),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(
+                    Icons.edit_note_rounded,
+                    size: 14,
+                    color: AppTheme.primary,
+                  ),
+                ),
+                const SizedBox(width: 8),
                 Text(
-                  'Transaction Note',
+                  'CATATAN TRANSAKSI',
                   style: GoogleFonts.plusJakartaSans(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 13,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 1.1,
                     color: AppTheme.darkSlateVariant,
                   ),
                 ),
@@ -39,7 +53,7 @@ class ExpenseNoteField extends StatelessWidget {
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: Text(
-                    'Optional',
+                    'Opsional',
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 10,
                       fontWeight: FontWeight.w600,
@@ -60,8 +74,8 @@ class ExpenseNoteField extends StatelessWidget {
           ),
           child: TextFormField(
             controller: controller,
-            minLines: 3,
-            maxLines: 5,
+            minLines: 2,
+            maxLines: 4,
             keyboardType: TextInputType.multiline,
             style: GoogleFonts.beVietnamPro(
               fontSize: 14,
@@ -70,40 +84,40 @@ class ExpenseNoteField extends StatelessWidget {
             decoration: InputDecoration(
               alignLabelWithHint: true,
               hintText:
-                  'What was this expense for? (e.g. Lunch with team, monthly groceries)',
+                  'Catatan pengeluaran (misal: Makan siang kantor, belanja bulanan...)',
               hintStyle: GoogleFonts.beVietnamPro(
                 color: Colors.grey[400],
                 fontSize: 13,
               ),
               prefixIcon: const Padding(
-                padding: EdgeInsets.only(left: 14, right: 10, bottom: 44),
+                padding: EdgeInsets.only(left: 14, right: 10, bottom: 32),
                 child: Icon(
-                  Icons.edit_note_rounded,
+                  Icons.notes_rounded,
                   color: AppTheme.primary,
-                  size: 24,
+                  size: 22,
                 ),
               ),
               prefixIconConstraints: const BoxConstraints(
-                minWidth: 48,
-                minHeight: 48,
+                minWidth: 46,
+                minHeight: 46,
               ),
               filled: true,
               fillColor: Colors.white,
               contentPadding: const EdgeInsets.symmetric(
                 horizontal: 16,
-                vertical: 16,
+                vertical: 14,
               ),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(16),
                 borderSide: const BorderSide(
-                  color: Color(0xFFCBD5E1),
+                  color: Color(0xFFE2E8F0),
                   width: 1.5,
                 ),
               ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(16),
                 borderSide: const BorderSide(
-                  color: Color(0xFFCBD5E1),
+                  color: Color(0xFFE2E8F0),
                   width: 1.5,
                 ),
               ),

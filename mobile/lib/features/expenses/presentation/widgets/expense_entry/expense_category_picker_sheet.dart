@@ -66,7 +66,7 @@ class ExpenseCategoryPickerSheet extends StatelessWidget {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Text(
-                              'All Categories',
+                              'Semua Kategori',
                               style: GoogleFonts.plusJakartaSans(
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,
@@ -98,7 +98,7 @@ class ExpenseCategoryPickerSheet extends StatelessWidget {
                           },
                           style: GoogleFonts.beVietnamPro(fontSize: 14),
                           decoration: InputDecoration(
-                            hintText: 'Search categories...',
+                            hintText: 'Cari nama kategori...',
                             prefixIcon: const Icon(
                               Icons.search_rounded,
                               size: 20,
@@ -154,7 +154,7 @@ class ExpenseCategoryPickerSheet extends StatelessWidget {
                                       ),
                                       const SizedBox(height: 16),
                                       Text(
-                                        'No categories found',
+                                        'Kategori tidak ditemukan',
                                         style: GoogleFonts.beVietnamPro(
                                           color: Colors.grey[600],
                                           fontSize: 14,
@@ -179,6 +179,9 @@ class ExpenseCategoryPickerSheet extends StatelessWidget {
                                   final cat = filteredCategories[index];
                                   final isSelected = selectedCategory?.id == cat.id;
                                   final color = AppTheme.parseHexColor(cat.color);
+                                  final isOther = cat.name.toLowerCase() == 'other' ||
+                                      cat.name.toLowerCase() == 'lainnya';
+                                  final displayName = isOther ? 'Lainnya' : cat.name;
 
                                   return GestureDetector(
                                     onTap: () {
@@ -234,7 +237,7 @@ class ExpenseCategoryPickerSheet extends StatelessWidget {
                                                   horizontal: 4.0,
                                                 ),
                                                 child: Text(
-                                                  cat.name,
+                                                  displayName,
                                                   style: GoogleFonts.beVietnamPro(
                                                     fontSize: 10,
                                                     fontWeight: isSelected

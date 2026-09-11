@@ -15,13 +15,13 @@ class ExpenseRoutineToggle extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: AppTheme.roundedBorder,
-        boxShadow: AppTheme.softShadow,
+        boxShadow: AppTheme.cardShadow,
         border: Border.all(
-          color: const Color(0xFFF1F5F9),
+          color: const Color(0xFFE2E8F0),
           width: 1.5,
         ),
       ),
@@ -30,31 +30,35 @@ class ExpenseRoutineToggle extends StatelessWidget {
           Container(
             width: 40,
             height: 40,
-            decoration: const BoxDecoration(
-              color: AppTheme.secondaryContainer,
+            decoration: BoxDecoration(
+              color: isRoutine
+                  ? AppTheme.primary.withAlpha(20)
+                  : const Color(0xFFF1F5F9),
               shape: BoxShape.circle,
             ),
             alignment: Alignment.center,
-            child: const Icon(
-              Icons.sync,
-              color: AppTheme.secondary,
+            child: Icon(
+              Icons.autorenew_rounded,
+              color: isRoutine ? AppTheme.primary : AppTheme.darkSlateVariant,
+              size: 22,
             ),
           ),
-          const SizedBox(width: 16),
+          const SizedBox(width: 14),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Routine Expense',
+                  'Pengeluaran Rutin',
                   style: GoogleFonts.plusJakartaSans(
                     fontWeight: FontWeight.bold,
                     fontSize: 14,
                     color: AppTheme.darkSlate,
                   ),
                 ),
+                const SizedBox(height: 2),
                 Text(
-                  'Set as recurring monthly',
+                  'Tandai sebagai pengeluaran berulang bulanan',
                   style: GoogleFonts.beVietnamPro(
                     fontSize: 11,
                     color: AppTheme.darkSlateVariant,
@@ -63,7 +67,7 @@ class ExpenseRoutineToggle extends StatelessWidget {
               ],
             ),
           ),
-          Switch(
+          Switch.adaptive(
             value: isRoutine,
             onChanged: onChanged,
             activeThumbColor: AppTheme.primary,
