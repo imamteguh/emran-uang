@@ -132,6 +132,7 @@ void main() {
       expect(find.text('Pengeluaran Rutin & Non-Rutin'), findsOneWidget);
       expect(find.text('Belum Ada Pengeluaran Bulan Ini'), findsOneWidget);
       expect(find.byIcon(Icons.donut_large_rounded), findsOneWidget);
+      expect(find.text('Detail'), findsNothing);
     });
 
     testWidgets('renders routine and non-routine metrics with insight when data is present',
@@ -182,6 +183,7 @@ void main() {
       expect(find.byIcon(Icons.repeat_rounded), findsOneWidget);
       expect(find.byIcon(Icons.shopping_bag_outlined), findsOneWidget);
       expect(find.byIcon(Icons.lightbulb_outline_rounded), findsOneWidget);
+      expect(find.text('Detail'), findsNothing);
     });
   });
 }

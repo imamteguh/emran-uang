@@ -8,8 +8,6 @@ import '../bloc/dashboard_bloc.dart';
 import '../bloc/dashboard_event.dart';
 import '../widgets/dashboard/dashboard.dart';
 import '../widgets/dashboard_skeleton.dart';
-import 'activity_list_screen.dart';
-import 'transaction_history_screen.dart';
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
@@ -138,33 +136,17 @@ class DashboardScreen extends StatelessWidget {
                                     ),
                                     const SizedBox(height: 24),
 
-                                    // Today activity section header
+                                    // Today transaction section header
                                     Row(
                                       mainAxisAlignment:
                                           MainAxisAlignment.spaceBetween,
                                       children: [
                                         Text(
-                                          'Aktivitas Hari Ini',
+                                          'Transaksi Hari Ini',
                                           style: AppTheme.headlineSm.copyWith(
                                             fontSize: responsive.scaleFont(18),
                                             fontWeight: FontWeight.w700,
                                             color: AppTheme.darkSlate,
-                                          ),
-                                        ),
-                                        TextButton(
-                                          onPressed: () =>
-                                              Navigator.of(context).push(
-                                                MaterialPageRoute(
-                                                  builder: (_) =>
-                                                      const TransactionHistoryScreen(),
-                                                ),
-                                              ),
-                                          child: Text(
-                                            'Lihat semua',
-                                            style: AppTheme.labelMd.copyWith(
-                                              color: AppTheme.primary,
-                                              fontWeight: FontWeight.w600,
-                                            ),
                                           ),
                                         ),
                                       ],

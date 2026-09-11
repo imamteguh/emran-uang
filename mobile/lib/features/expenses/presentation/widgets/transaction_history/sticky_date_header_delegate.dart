@@ -46,32 +46,15 @@ class StickyDateHeaderDelegate extends SliverPersistentHeaderDelegate {
     double shrinkOffset,
     bool overlapsContent,
   ) {
-    final isStuck = shrinkOffset > 0 || overlapsContent;
-
     return Container(
       height: 42.0,
       padding: const EdgeInsets.symmetric(horizontal: 16.0),
-      decoration: BoxDecoration(
-        color: isStuck ? const Color(0xFFF1F5F9) : const Color(0xFFF8FAFC),
+      decoration: const BoxDecoration(
+        color: Color(0xFFF8FAFC),
         border: Border(
-          bottom: BorderSide(
-            color: isStuck ? const Color(0xFFCBD5E1) : const Color(0xFFE2E8F0),
-            width: 1,
-          ),
-          top: BorderSide(
-            color: const Color(0xFFE2E8F0),
-            width: isStuck ? 0.5 : 1,
-          ),
+          bottom: BorderSide(color: Color(0xFFE2E8F0), width: 1),
+          top: BorderSide(color: Color(0xFFE2E8F0), width: 0.5),
         ),
-        boxShadow: isStuck
-            ? [
-                BoxShadow(
-                  color: Colors.black.withAlpha(10),
-                  blurRadius: 4,
-                  offset: const Offset(0, 2),
-                ),
-              ]
-            : null,
       ),
       child: Row(
         children: [
@@ -98,7 +81,7 @@ class StickyDateHeaderDelegate extends SliverPersistentHeaderDelegate {
           ),
           const SizedBox(width: 8),
           Text(
-            '$count transaksi • -${currencyFormatter.format(totalAmount)}',
+            '-${currencyFormatter.format(totalAmount)}',
             style: GoogleFonts.plusJakartaSans(
               fontSize: 12,
               fontWeight: FontWeight.w600,
@@ -113,7 +96,6 @@ class StickyDateHeaderDelegate extends SliverPersistentHeaderDelegate {
   @override
   bool shouldRebuild(covariant StickyDateHeaderDelegate oldDelegate) {
     return oldDelegate.date != date ||
-        oldDelegate.count != count ||
         oldDelegate.totalAmount != totalAmount ||
         oldDelegate.currencyFormatter != currencyFormatter;
   }

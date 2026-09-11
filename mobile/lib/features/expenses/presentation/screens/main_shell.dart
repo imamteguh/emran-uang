@@ -3,7 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/network/push_notification_service.dart';
 import 'dashboard_screen.dart';
-import 'analytics_screen.dart';
+import 'transaction_history_screen.dart';
 import 'bills_screen.dart';
 import 'profile_screen.dart';
 import 'expense_entry_screen.dart';
@@ -22,9 +22,7 @@ class MainShellScreen extends StatefulWidget {
   /// Navigates directly to the Dashboard screen, clearing any routes above it.
   static void navigateToDashboard(BuildContext context) {
     Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute(
-        builder: (_) => const MainShellScreen(initialIndex: 0),
-      ),
+      MaterialPageRoute(builder: (_) => const MainShellScreen(initialIndex: 0)),
       (route) => false,
     );
   }
@@ -47,7 +45,7 @@ class _MainShellScreenState extends State<MainShellScreen> {
 
   final List<Widget> _screens = [
     const DashboardScreen(),
-    const AnalyticsScreen(),
+    const TransactionHistoryScreen(),
     const BillsScreen(),
     const ProfileScreen(),
   ];
@@ -135,9 +133,8 @@ class _MainShellScreenState extends State<MainShellScreen> {
                   Navigator.of(ctx).pop();
                   Navigator.of(context).push(
                     MaterialPageRoute(
-                      builder: (_) => ExpenseEntryScreen(
-                        initialDate: DateTime.now(),
-                      ),
+                      builder: (_) =>
+                          ExpenseEntryScreen(initialDate: DateTime.now()),
                     ),
                   );
                 },
@@ -183,9 +180,7 @@ class _MainShellScreenState extends State<MainShellScreen> {
                 onTap: () {
                   Navigator.of(ctx).pop();
                   Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => const OcrScanScreen(),
-                    ),
+                    MaterialPageRoute(builder: (_) => const OcrScanScreen()),
                   );
                 },
               ),
@@ -228,8 +223,8 @@ class _MainShellScreenState extends State<MainShellScreen> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
-                  _buildNavItem(0, Icons.account_balance_wallet_rounded, 'Dompet'),
-                  _buildNavItem(1, Icons.insights_rounded, 'Analisis'),
+                  _buildNavItem(0, Icons.home_rounded, 'Beranda'),
+                  _buildNavItem(1, Icons.history_rounded, 'Transaksi'),
                   _buildAddButton(),
                   _buildNavItem(2, Icons.receipt_long_rounded, 'Tagihan'),
                   _buildNavItem(3, Icons.person_rounded, 'Profil'),
@@ -263,11 +258,7 @@ class _MainShellScreenState extends State<MainShellScreen> {
             ),
           ],
         ),
-        child: const Icon(
-          Icons.add_rounded,
-          color: Colors.white,
-          size: 30,
-        ),
+        child: const Icon(Icons.add_rounded, color: Colors.white, size: 30),
       ),
     );
   }
@@ -305,7 +296,9 @@ class _MainShellScreenState extends State<MainShellScreen> {
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 10,
                 fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                color: isSelected ? AppTheme.primary : AppTheme.darkSlateVariant,
+                color: isSelected
+                    ? AppTheme.primary
+                    : AppTheme.darkSlateVariant,
               ),
             ),
           ],
@@ -314,4 +307,3 @@ class _MainShellScreenState extends State<MainShellScreen> {
     );
   }
 }
-

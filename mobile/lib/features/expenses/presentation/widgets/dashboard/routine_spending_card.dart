@@ -4,7 +4,6 @@ import 'package:intl/intl.dart';
 import '../../../../../core/theme/app_theme.dart';
 import '../../../../../core/utils/responsive_helper.dart';
 import '../../bloc/dashboard_state.dart';
-import '../../screens/analytics_screen.dart';
 
 class RoutineSpendingCard extends StatelessWidget {
   final DashboardState provider;
@@ -61,81 +60,47 @@ class RoutineSpendingCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // ── HEADER ROW ─────────────────────────────────────────────────────
-          InkWell(
-            onTap: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const AnalyticsScreen()),
-              );
-            },
-            borderRadius: BorderRadius.circular(12),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 2),
-              child: Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(7),
-                    decoration: BoxDecoration(
-                      color: AppTheme.primary.withValues(alpha: 0.08),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: const Icon(
-                      Icons.sync_alt_rounded,
-                      color: AppTheme.primary,
-                      size: 18,
-                    ),
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 2),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(7),
+                  decoration: BoxDecoration(
+                    color: AppTheme.primary.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(10),
                   ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Pengeluaran Rutin & Non-Rutin',
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: responsive.scaleFont(15),
-                            fontWeight: FontWeight.w700,
-                            color: AppTheme.darkSlate,
-                          ),
-                        ),
-                        Text(
-                          'Bulan Ini',
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: responsive.scaleFont(11),
-                            fontWeight: FontWeight.w500,
-                            color: AppTheme.darkSlateVariant,
-                          ),
-                        ),
-                      ],
-                    ),
+                  child: const Icon(
+                    Icons.sync_alt_rounded,
+                    color: AppTheme.primary,
+                    size: 18,
                   ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF1F5F9),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          'Detail',
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: responsive.scaleFont(11),
-                            fontWeight: FontWeight.w600,
-                            color: AppTheme.primary,
-                          ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Pengeluaran Rutin & Non-Rutin',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: responsive.scaleFont(15),
+                          fontWeight: FontWeight.w700,
+                          color: AppTheme.darkSlate,
                         ),
-                        const SizedBox(width: 2),
-                        const Icon(
-                          Icons.chevron_right_rounded,
-                          size: 16,
-                          color: AppTheme.primary,
+                      ),
+                      Text(
+                        'Bulan Ini',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: responsive.scaleFont(11),
+                          fontWeight: FontWeight.w500,
+                          color: AppTheme.darkSlateVariant,
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
           const SizedBox(height: 16),

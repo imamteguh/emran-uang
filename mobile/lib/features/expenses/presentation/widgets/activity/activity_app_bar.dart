@@ -129,23 +129,27 @@ class ActivityAppBar extends StatelessWidget implements PreferredSizeWidget {
 
   @override
   Widget build(BuildContext context) {
+    final canPop = Navigator.of(context).canPop();
     return AppBar(
       backgroundColor: AppTheme.background,
       elevation: 0,
       scrolledUnderElevation: 0,
-      leading: IconButton(
-        onPressed: () => Navigator.of(context).pop(),
-        icon: const Icon(
-          Icons.arrow_back_rounded,
-          color: AppTheme.onBackground,
-        ),
-      ),
+      automaticallyImplyLeading: false,
+      leading: canPop
+          ? IconButton(
+              onPressed: () => Navigator.of(context).pop(),
+              icon: const Icon(
+                Icons.arrow_back_rounded,
+                color: AppTheme.onBackground,
+              ),
+            )
+          : null,
       title: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(
-            'Activity List',
+            'Aktivitas',
             style: GoogleFonts.plusJakartaSans(
               color: AppTheme.onBackground,
               fontWeight: FontWeight.bold,

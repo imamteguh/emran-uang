@@ -33,9 +33,7 @@ class DashboardActivityFeed extends StatelessWidget {
     return showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(24),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
         backgroundColor: Colors.white,
         title: Row(
           children: [
@@ -53,7 +51,7 @@ class DashboardActivityFeed extends StatelessWidget {
             ),
             const SizedBox(width: 12),
             Text(
-              'Delete Activity',
+              'Hapus Transaksi',
               style: GoogleFonts.plusJakartaSans(
                 fontWeight: FontWeight.bold,
                 fontSize: 18,
@@ -63,7 +61,7 @@ class DashboardActivityFeed extends StatelessWidget {
           ],
         ),
         content: Text(
-          'Are you sure you want to delete this activity? This action cannot be undone.',
+          'Apakah Anda yakin ingin menghapus transaksi ini? Tindakan ini tidak dapat dibatalkan.',
           style: GoogleFonts.plusJakartaSans(
             fontSize: 14,
             color: AppTheme.darkSlateVariant,
@@ -85,7 +83,7 @@ class DashboardActivityFeed extends StatelessWidget {
                     ),
                   ),
                   child: Text(
-                    'Cancel',
+                    'Batal',
                     style: GoogleFonts.plusJakartaSans(
                       color: AppTheme.darkSlateVariant,
                       fontSize: 13,
@@ -108,7 +106,7 @@ class DashboardActivityFeed extends StatelessWidget {
                     ),
                   ),
                   child: Text(
-                    'Delete',
+                    'Hapus',
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 13,
                       fontWeight: FontWeight.bold,
@@ -134,10 +132,7 @@ class DashboardActivityFeed extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: const Color(0xFFE2E8F0),
-          width: 1,
-        ),
+        border: Border.all(color: const Color(0xFFE2E8F0), width: 1),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.04),
@@ -168,12 +163,14 @@ class DashboardActivityFeed extends StatelessWidget {
                 provider.activeWallet?.type == WalletType.personal;
             final isCreator =
                 currentUserId != null && expense.userId == currentUserId;
-            final isOwner = isPersonalWallet || isCreator || expense.userId.isEmpty;
+            final isOwner =
+                isPersonalWallet || isCreator || expense.userId.isEmpty;
 
             return Dismissible(
               key: Key(expense.id),
-              direction:
-                  isOwner ? DismissDirection.endToStart : DismissDirection.none,
+              direction: isOwner
+                  ? DismissDirection.endToStart
+                  : DismissDirection.none,
               background: Container(
                 padding: const EdgeInsets.only(right: 20),
                 alignment: Alignment.centerRight,
@@ -200,13 +197,13 @@ class DashboardActivityFeed extends StatelessWidget {
               },
               onDismissed: (_) {
                 context.read<DashboardBloc>().add(
-                      DashboardDeleteExpenseRequested(
-                        expense.id,
-                        Completer<bool>(),
-                      ),
-                    );
+                  DashboardDeleteExpenseRequested(
+                    expense.id,
+                    Completer<bool>(),
+                  ),
+                );
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Expense deleted')),
+                  const SnackBar(content: Text('Transaksi berhasil dihapus')),
                 );
               },
               child: Padding(
@@ -293,7 +290,8 @@ class DashboardActivityFeed extends StatelessWidget {
                             fontSize: 14,
                           ),
                         ),
-                        if (provider.isSharedMode || expense.userId.isNotEmpty) ...[
+                        if (provider.isSharedMode ||
+                            expense.userId.isNotEmpty) ...[
                           const SizedBox(height: 3),
                           Container(
                             padding: const EdgeInsets.symmetric(
@@ -310,12 +308,13 @@ class DashboardActivityFeed extends StatelessWidget {
                               expense.userId == currentUserId
                                   ? 'ME'
                                   : (expense.creatorName.length >= 2
-                                      ? expense.creatorName
-                                          .substring(0, 2)
-                                          .toUpperCase()
-                                      : (expense.creatorName.isNotEmpty
-                                          ? expense.creatorName.toUpperCase()
-                                          : 'SO')),
+                                        ? expense.creatorName
+                                              .substring(0, 2)
+                                              .toUpperCase()
+                                        : (expense.creatorName.isNotEmpty
+                                              ? expense.creatorName
+                                                    .toUpperCase()
+                                              : 'SO')),
                               style: GoogleFonts.plusJakartaSans(
                                 fontSize: 9,
                                 fontWeight: FontWeight.w700,
@@ -352,10 +351,7 @@ class DashboardEmptyState extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: const Color(0xFFE2E8F0),
-          width: 1,
-        ),
+        border: Border.all(color: const Color(0xFFE2E8F0), width: 1),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.04),
@@ -380,7 +376,7 @@ class DashboardEmptyState extends StatelessWidget {
           ),
           const SizedBox(height: 14),
           Text(
-            'No activity recorded yet',
+            'Belum ada transaksi',
             style: GoogleFonts.plusJakartaSans(
               fontWeight: FontWeight.bold,
               fontSize: 16,
@@ -390,7 +386,7 @@ class DashboardEmptyState extends StatelessWidget {
           const SizedBox(height: 6),
           Text(
             isSharedMode
-                ? 'No expenses recorded in the shared wallet yet.'
+                ? 'Belum ada transaksi di dompet bersama.'
                 : 'Ketik pesan ke AI atau tap tombol "+" untuk mencatat.',
             textAlign: TextAlign.center,
             style: GoogleFonts.beVietnamPro(
@@ -401,9 +397,9 @@ class DashboardEmptyState extends StatelessWidget {
           const SizedBox(height: 16),
           OutlinedButton.icon(
             onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const AiChatScreen()),
-              );
+              Navigator.of(
+                context,
+              ).push(MaterialPageRoute(builder: (_) => const AiChatScreen()));
             },
             icon: const Icon(
               Icons.smart_toy_rounded,

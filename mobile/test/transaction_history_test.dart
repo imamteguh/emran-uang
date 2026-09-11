@@ -179,8 +179,9 @@ void main() {
       expect(find.text('Nama Dompet'), findsOneWidget);
       expect(find.text('Total Pengeluaran'), findsOneWidget);
 
-      // 2. Verify Eye Toggle icon
-      expect(find.byIcon(Icons.visibility_outlined), findsOneWidget);
+      // 2. Verify Eye Toggle icon is removed (amount is always visible)
+      expect(find.byIcon(Icons.visibility_outlined), findsNothing);
+      expect(find.byIcon(Icons.visibility_off_outlined), findsNothing);
 
       // 3. Verify Transactions (and NO DB badge)
       expect(find.text('Kopi Kenangan'), findsOneWidget);

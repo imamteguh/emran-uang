@@ -225,8 +225,8 @@ void main() {
     await tester.pumpAndSettle();
 
     // Verify bottom nav items
-    expect(find.text('Dompet'), findsWidgets);
-    expect(find.text('Analisis'), findsOneWidget);
+    expect(find.text('Beranda'), findsOneWidget);
+    expect(find.text('Aktivitas'), findsOneWidget);
     expect(find.text('Tagihan'), findsOneWidget);
     expect(find.text('Profil'), findsOneWidget);
 
