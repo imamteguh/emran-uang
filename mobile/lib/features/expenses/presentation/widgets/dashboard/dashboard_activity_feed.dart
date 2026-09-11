@@ -129,184 +129,212 @@ class DashboardActivityFeed extends StatelessWidget {
       return DashboardEmptyState(isSharedMode: provider.isSharedMode);
     }
 
-    return ListView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      itemCount: expenses.length,
-      itemBuilder: (context, index) {
-        final expense = expenses[index];
-        final catColor = AppTheme.parseHexColor(expense.category.color);
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: const Color(0xFFE2E8F0),
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            offset: const Offset(0, 4),
+            blurRadius: 16,
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(20),
+        child: ListView.separated(
+          shrinkWrap: true,
+          padding: EdgeInsets.zero,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: expenses.length,
+          separatorBuilder: (context, index) => const Divider(
+            height: 1,
+            thickness: 1,
+            indent: 72,
+            endIndent: 16,
+            color: Color(0xFFF1F5F9),
+          ),
+          itemBuilder: (context, index) {
+            final expense = expenses[index];
+            final catColor = AppTheme.parseHexColor(expense.category.color);
 
-        final isPersonalWallet =
-            provider.activeWallet?.type == WalletType.personal;
-        final isCreator =
-            currentUserId != null && expense.userId == currentUserId;
-        final isOwner = isPersonalWallet || isCreator || expense.userId.isEmpty;
+            final isPersonalWallet =
+                provider.activeWallet?.type == WalletType.personal;
+            final isCreator =
+                currentUserId != null && expense.userId == currentUserId;
+            final isOwner = isPersonalWallet || isCreator || expense.userId.isEmpty;
 
-        return Padding(
-          padding: const EdgeInsets.only(bottom: 12),
-          child: Dismissible(
-            key: Key(expense.id),
-            direction:
-                isOwner ? DismissDirection.endToStart : DismissDirection.none,
-            background: Container(
-              padding: const EdgeInsets.only(right: 20),
-              alignment: Alignment.centerRight,
-              decoration: BoxDecoration(
+            return Dismissible(
+              key: Key(expense.id),
+              direction:
+                  isOwner ? DismissDirection.endToStart : DismissDirection.none,
+              background: Container(
+                padding: const EdgeInsets.only(right: 20),
+                alignment: Alignment.centerRight,
                 color: AppTheme.error,
-                borderRadius: BorderRadius.circular(16),
+                child: const Icon(
+                  Icons.delete_outline_rounded,
+                  color: Colors.white,
+                  size: 22,
+                ),
               ),
-              child: const Icon(Icons.delete, color: Colors.white),
-            ),
-            confirmDismiss: (direction) async {
-              if (!isOwner) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text(
-                      'Hanya pembuat transaksi yang dapat menghapus transaksi ini',
-                    ),
-                    backgroundColor: AppTheme.error,
-                  ),
-                );
-                return false;
-              }
-              return await _showDeleteConfirmationDialog(context);
-            },
-            onDismissed: (_) {
-              context.read<DashboardBloc>().add(
-                    DashboardDeleteExpenseRequested(
-                      expense.id,
-                      Completer<bool>(),
+              confirmDismiss: (direction) async {
+                if (!isOwner) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text(
+                        'Hanya pembuat transaksi yang dapat menghapus transaksi ini',
+                      ),
+                      backgroundColor: AppTheme.error,
                     ),
                   );
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Expense deleted')),
-              );
-            },
-            child: Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: AppTheme.softShadow,
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    width: 48,
-                    height: 48,
-                    decoration: BoxDecoration(
-                      color: catColor.withAlpha(30),
-                      shape: BoxShape.circle,
+                  return false;
+                }
+                return await _showDeleteConfirmationDialog(context);
+              },
+              onDismissed: (_) {
+                context.read<DashboardBloc>().add(
+                      DashboardDeleteExpenseRequested(
+                        expense.id,
+                        Completer<bool>(),
+                      ),
+                    );
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Expense deleted')),
+                );
+              },
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 14,
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: catColor.withValues(alpha: 0.12),
+                        shape: BoxShape.circle,
+                      ),
+                      alignment: Alignment.center,
+                      child: CategoryIcon(
+                        icon: expense.category.icon,
+                        color: catColor,
+                        size: 20,
+                      ),
                     ),
-                    alignment: Alignment.center,
-                    child: CategoryIcon(
-                      icon: expense.category.icon,
-                      color: catColor,
-                      size: 22,
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          expense.description ?? expense.category.name,
-                          style: GoogleFonts.plusJakartaSans(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 15,
-                            color: AppTheme.darkSlate,
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            expense.description?.isNotEmpty == true
+                                ? expense.description!
+                                : expense.category.name,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: GoogleFonts.plusJakartaSans(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 14,
+                              color: AppTheme.darkSlate,
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: 4),
-                        Row(
-                          children: [
-                            Text(
-                              DateFormat('hh:mm a').format(expense.date),
-                              style: GoogleFonts.beVietnamPro(
-                                fontSize: 11,
-                                color: AppTheme.darkSlateVariant,
-                              ),
-                            ),
-                            const SizedBox(width: 6),
-                            const Text(
-                              '•',
-                              style: TextStyle(
-                                color: Colors.grey,
-                                fontSize: 10,
-                              ),
-                            ),
-                            const SizedBox(width: 6),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 2,
-                              ),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFF1F5F9),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Text(
-                                expense.category.name,
-                                style: const TextStyle(
-                                  fontSize: 9,
-                                  fontWeight: FontWeight.bold,
+                          const SizedBox(height: 3),
+                          Row(
+                            children: [
+                              Text(
+                                DateFormat('hh:mm a').format(expense.date),
+                                style: GoogleFonts.beVietnamPro(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w500,
+                                  color: const Color(0xFF94A3B8),
                                 ),
                               ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Text(
-                        '-${formatter.format(expense.amount)}',
-                        style: GoogleFonts.plusJakartaSans(
-                          fontWeight: FontWeight.w800,
-                          color: AppTheme.darkSlate,
-                          fontSize: 15,
-                        ),
+                              const SizedBox(width: 6),
+                              const Text(
+                                '•',
+                                style: TextStyle(
+                                  color: Color(0xFFCBD5E1),
+                                  fontSize: 10,
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                              Text(
+                                expense.category.name,
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w500,
+                                  color: const Color(0xFF64748B),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 4),
-                      Container(
-                        width: 20,
-                        height: 20,
-                        decoration: BoxDecoration(
-                          color: expense.userId == currentUserId
-                              ? Colors.blue[100]
-                              : Colors.pink[100],
-                          shape: BoxShape.circle,
-                          border: Border.all(color: Colors.white, width: 1),
-                        ),
-                        alignment: Alignment.center,
-                        child: Text(
-                          expense.userId == currentUserId
-                              ? 'ME'
-                              : (expense.creatorName.length >= 2
-                                  ? expense.creatorName
-                                      .substring(0, 2)
-                                      .toUpperCase()
-                                  : (expense.creatorName.isNotEmpty
-                                      ? expense.creatorName.toUpperCase()
-                                      : 'SO')),
-                          style: const TextStyle(
-                            fontSize: 7,
-                            fontWeight: FontWeight.bold,
+                    ),
+                    const SizedBox(width: 12),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          '-${formatter.format(expense.amount)}',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontWeight: FontWeight.w700,
+                            color: AppTheme.darkSlate,
+                            fontSize: 14,
                           ),
                         ),
-                      ),
-                    ],
-                  ),
-                ],
+                        if (provider.isSharedMode || expense.userId.isNotEmpty) ...[
+                          const SizedBox(height: 3),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 1.5,
+                            ),
+                            decoration: BoxDecoration(
+                              color: expense.userId == currentUserId
+                                  ? const Color(0xFFEFF6FF)
+                                  : const Color(0xFFFDF2F8),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              expense.userId == currentUserId
+                                  ? 'ME'
+                                  : (expense.creatorName.length >= 2
+                                      ? expense.creatorName
+                                          .substring(0, 2)
+                                          .toUpperCase()
+                                      : (expense.creatorName.isNotEmpty
+                                          ? expense.creatorName.toUpperCase()
+                                          : 'SO')),
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 9,
+                                fontWeight: FontWeight.w700,
+                                color: expense.userId == currentUserId
+                                    ? const Color(0xFF2563EB)
+                                    : const Color(0xFFDB2777),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ),
-        );
-      },
+            );
+          },
+        ),
+      ),
     );
   }
 }
@@ -323,27 +351,52 @@ class DashboardEmptyState extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: AppTheme.roundedBorder,
-        boxShadow: AppTheme.softShadow,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: const Color(0xFFE2E8F0),
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            offset: const Offset(0, 4),
+            blurRadius: 16,
+          ),
+        ],
       ),
       child: Column(
         children: [
-          const Text('🐷', style: TextStyle(fontSize: 48)),
-          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: AppTheme.primary.withValues(alpha: 0.08),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.receipt_long_rounded,
+              color: AppTheme.primary,
+              size: 32,
+            ),
+          ),
+          const SizedBox(height: 14),
           Text(
             'No activity recorded yet',
             style: GoogleFonts.plusJakartaSans(
               fontWeight: FontWeight.bold,
               fontSize: 16,
+              color: AppTheme.darkSlate,
             ),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 6),
           Text(
             isSharedMode
                 ? 'No expenses recorded in the shared wallet yet.'
                 : 'Ketik pesan ke AI atau tap tombol "+" untuk mencatat.',
             textAlign: TextAlign.center,
-            style: const TextStyle(color: Colors.grey, fontSize: 13),
+            style: GoogleFonts.beVietnamPro(
+              color: const Color(0xFF64748B),
+              fontSize: 13,
+            ),
           ),
           const SizedBox(height: 16),
           OutlinedButton.icon(
@@ -366,7 +419,7 @@ class DashboardEmptyState extends StatelessWidget {
               ),
             ),
             style: OutlinedButton.styleFrom(
-              side: BorderSide(color: AppTheme.primary.withAlpha(80)),
+              side: BorderSide(color: AppTheme.primary.withValues(alpha: 0.4)),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(10),
               ),

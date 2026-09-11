@@ -9,7 +9,6 @@ import '../bloc/dashboard_event.dart';
 import '../widgets/dashboard/dashboard.dart';
 import '../widgets/dashboard_skeleton.dart';
 import 'activity_list_screen.dart';
-import 'ocr_scan_screen.dart';
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
@@ -26,6 +25,7 @@ class DashboardScreen extends StatelessWidget {
     final currencyFormatter = CurrencyHelper.getFormatter(currencyCode);
 
     return Scaffold(
+      backgroundColor: const Color(0xFF0F172A), // Top background color (Navy)
       appBar: DashboardAppBar(
         provider: provider,
         responsive: responsive,
@@ -34,7 +34,10 @@ class DashboardScreen extends StatelessWidget {
         },
       ),
       body: SafeArea(
+        bottom: false,
         child: RefreshIndicator(
+          color: AppTheme.primary,
+          backgroundColor: Colors.white,
           onRefresh: () async {
             bloc.add(const DashboardRefreshRequested());
           },
@@ -51,85 +54,124 @@ class DashboardScreen extends StatelessWidget {
 
                         return SingleChildScrollView(
                           physics: const AlwaysScrollableScrollPhysics(),
-                          padding: EdgeInsets.symmetric(
-                            horizontal: horizontalPadding,
-                            vertical: 16,
-                          ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              // Daily Spending Hero Card
-                              DailySpendingHeroCard(
-                                provider: provider,
-                                responsive: responsive,
-                                formatter: currencyFormatter,
-                              ),
-                              const SizedBox(height: 16),
-
-                              // Category Monthly Budget Card
-                              CategoryMonthlyBudgetCard(
-                                provider: provider,
-                                responsive: responsive,
-                                formatter: currencyFormatter,
-                              ),
-                              const SizedBox(height: 20),
-
-                              // Bill Alert Banner
-                              DashboardBillAlertBanner(
-                                provider: provider,
-                                responsive: responsive,
-                                currencyFormatter: currencyFormatter,
+                              // ── TOP SECTION (Dark Navy Background) ─────────────────
+                              Container(
+                                color: const Color(0xFF0F172A),
+                                padding: EdgeInsets.fromLTRB(
+                                  horizontalPadding,
+                                  8,
+                                  horizontalPadding,
+                                  20,
+                                ),
+                                child: MonthlySpendingLineChartHero(
+                                  provider: provider,
+                                  responsive: responsive,
+                                  formatter: currencyFormatter,
+                                ),
                               ),
 
-                              // Bento Stats Grid (Monthly Savings & Top Category)
-                              DashboardBentoGrid(
-                                provider: provider,
-                                responsive: responsive,
-                                formatter: currencyFormatter,
-                              ),
-                              const SizedBox(height: 20),
-
-                              // AI Chat Quick Input Card
-                              DashboardAiQuickCard(responsive: responsive),
-                              const SizedBox(height: 24),
-
-                              // Today activity section header
-                              Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Text(
-                                    'Today Activity',
-                                    style: AppTheme.headlineSm.copyWith(
-                                      fontSize: responsive.scaleFont(20),
-                                      color: AppTheme.darkSlate,
-                                    ),
+                              // ── BOTTOM SECTION (Modern Light Surface) ──────────────
+                              Container(
+                                width: double.infinity,
+                                decoration: const BoxDecoration(
+                                  color: Color(
+                                    0xFFF8FAFC,
+                                  ), // Second background color
+                                  borderRadius: BorderRadius.vertical(
+                                    top: Radius.circular(28),
                                   ),
-                                  TextButton(
-                                    onPressed: () => Navigator.of(context).push(
-                                      MaterialPageRoute(
-                                        builder: (_) =>
-                                            const ActivityListScreen(),
-                                      ),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black12,
+                                      offset: Offset(0, -3),
+                                      blurRadius: 10,
                                     ),
-                                    child: Text(
-                                      'See all',
-                                      style: AppTheme.labelMd.copyWith(
-                                        color: AppTheme.primary,
-                                      ),
+                                  ],
+                                ),
+                                padding: EdgeInsets.fromLTRB(
+                                  horizontalPadding,
+                                  20,
+                                  horizontalPadding,
+                                  36,
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    // Alert Tagihan Jatuh Tempo (Overdue, Today, Soon)
+                                    DashboardBillAlertBanner(
+                                      provider: provider,
+                                      responsive: responsive,
+                                      currencyFormatter: currencyFormatter,
                                     ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 8),
 
-                              // Today Expenses Feed
-                              DashboardActivityFeed(
-                                expenses: provider.todayExpenses,
-                                responsive: responsive,
-                                formatter: currencyFormatter,
-                                currentUserId: user?.id,
-                                provider: provider,
+                                    // Pengeluaran per Kategori Donat Chart (Top 6)
+                                    CategoryDonutChartCard(
+                                      provider: provider,
+                                      responsive: responsive,
+                                      formatter: currencyFormatter,
+                                    ),
+                                    const SizedBox(height: 16),
+
+                                    // Anggaran Bulanan per Kategori
+                                    CategoryMonthlyBudgetCard(
+                                      provider: provider,
+                                      responsive: responsive,
+                                      formatter: currencyFormatter,
+                                    ),
+                                    const SizedBox(height: 16),
+
+                                    // AI Chat Quick Input Card
+                                    DashboardAiQuickCard(
+                                      responsive: responsive,
+                                    ),
+                                    const SizedBox(height: 24),
+
+                                    // Today activity section header
+                                    Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Text(
+                                          'Aktivitas Hari Ini',
+                                          style: AppTheme.headlineSm.copyWith(
+                                            fontSize: responsive.scaleFont(18),
+                                            fontWeight: FontWeight.w700,
+                                            color: AppTheme.darkSlate,
+                                          ),
+                                        ),
+                                        TextButton(
+                                          onPressed: () =>
+                                              Navigator.of(context).push(
+                                                MaterialPageRoute(
+                                                  builder: (_) =>
+                                                      const ActivityListScreen(),
+                                                ),
+                                              ),
+                                          child: Text(
+                                            'Lihat semua',
+                                            style: AppTheme.labelMd.copyWith(
+                                              color: AppTheme.primary,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 8),
+
+                                    // Today Expenses Feed
+                                    DashboardActivityFeed(
+                                      expenses: provider.todayExpenses,
+                                      responsive: responsive,
+                                      formatter: currencyFormatter,
+                                      currentUserId: user?.id,
+                                      provider: provider,
+                                    ),
+                                  ],
+                                ),
                               ),
                             ],
                           ),
@@ -144,32 +186,12 @@ class DashboardScreen extends StatelessWidget {
                         right: 0,
                         child: LinearProgressIndicator(
                           backgroundColor: Colors.transparent,
-                          color: AppTheme.primary.withAlpha(120),
+                          color: const Color(0xFF38BDF8),
                           minHeight: 2,
                         ),
                       ),
                   ],
                 ),
-        ),
-      ),
-      floatingActionButton: Padding(
-        padding: const EdgeInsets.only(bottom: 12.0),
-        child: FloatingActionButton(
-          onPressed: () {
-            Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) =>
-                    OcrScanScreen(initialWallet: provider.activeWallet),
-              ),
-            );
-          },
-          backgroundColor: AppTheme.primary,
-          foregroundColor: Colors.white,
-          tooltip: 'Scan Receipt with AI',
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: const Icon(Icons.document_scanner_rounded, size: 26),
         ),
       ),
     );

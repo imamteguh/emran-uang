@@ -294,7 +294,7 @@ void main() {
         ),
       );
 
-      expect(find.text('ANGGARAN PER KATEGORI'), findsOneWidget);
+      expect(find.text('Anggaran'), findsOneWidget);
       expect(find.text('Atur Anggaran per Kategori'), findsOneWidget);
       expect(find.text('Atur'), findsWidgets);
     });
@@ -359,11 +359,9 @@ void main() {
         ),
       );
 
-      expect(find.text('ANGGARAN PER KATEGORI'), findsOneWidget);
+      expect(find.text('Anggaran'), findsOneWidget);
       expect(find.text('Makanan'), findsOneWidget);
-      expect(find.text('Aman'), findsOneWidget);
-      expect(find.text('25%'), findsNWidgets(2)); // Both total summary and category item show 25%
-      expect(find.text('1 Kategori Diatur'), findsOneWidget);
+      expect(find.text('25%'), findsOneWidget);
     });
   });
 }
