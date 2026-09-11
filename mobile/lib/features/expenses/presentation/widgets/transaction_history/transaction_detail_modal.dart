@@ -75,7 +75,7 @@ class TransactionDetailModal extends StatelessWidget {
           ),
         ),
         content: Text(
-          'Transaksi ini akan dihapus permanen dari riwayat mutasi.',
+          'Transaksi ini akan dihapus permanen dari riwayat aktivitas.',
           style: GoogleFonts.plusJakartaSans(
             fontSize: 14,
             color: const Color(0xFF64748B),
@@ -152,9 +152,9 @@ class TransactionDetailModal extends StatelessWidget {
               ),
               const SizedBox(height: 16),
 
-              // Title MyBCA style
+              // Title
               Text(
-                'Detail Mutasi Rekening',
+                'Detail Transaksi',
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 16,
                   fontWeight: FontWeight.w700,
@@ -192,39 +192,16 @@ class TransactionDetailModal extends StatelessWidget {
               ),
               const SizedBox(height: 14),
 
-              // Amount MyBCA style
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.baseline,
-                textBaseline: TextBaseline.alphabetic,
-                children: [
-                  Text(
-                    '- ${currencyFormatter.format(expense.amount)}',
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 26,
-                      fontWeight: FontWeight.w800,
-                      color: const Color(0xFFDC2626), // DB Red
-                      letterSpacing: -0.5,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFEE2E2),
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: Text(
-                      'DB',
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w800,
-                        color: const Color(0xFFDC2626),
-                      ),
-                    ),
-                  ),
-                ],
+              // Amount
+              Text(
+                '- ${currencyFormatter.format(expense.amount)}',
+                textAlign: TextAlign.center,
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 26,
+                  fontWeight: FontWeight.w800,
+                  color: const Color(0xFFDC2626),
+                  letterSpacing: -0.5,
+                ),
               ),
               const SizedBox(height: 20),
 
@@ -306,12 +283,12 @@ class TransactionDetailModal extends StatelessWidget {
                     ],
                     const Divider(color: Color(0xFFE2E8F0), height: 20),
                     _buildRow(
-                      label: 'ID Mutasi / Ref',
+                      label: 'ID Transaksi',
                       child: InkWell(
                         onTap: () => _copyToClipboard(
                           context,
                           expense.id,
-                          'ID Mutasi',
+                          'ID Transaksi',
                         ),
                         borderRadius: BorderRadius.circular(4),
                         child: Row(

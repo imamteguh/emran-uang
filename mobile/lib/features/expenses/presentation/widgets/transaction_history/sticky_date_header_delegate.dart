@@ -74,35 +74,35 @@ class StickyDateHeaderDelegate extends SliverPersistentHeaderDelegate {
             : null,
       ),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Row(
-            children: [
-              Container(
-                width: 7,
-                height: 7,
-                decoration: const BoxDecoration(
-                  color: AppTheme.primary,
-                  shape: BoxShape.circle,
-                ),
-              ),
-              const SizedBox(width: 8),
-              Text(
-                _formatDateHeader(date),
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 12.5,
-                  fontWeight: FontWeight.w700,
-                  color: AppTheme.darkSlate,
-                ),
-              ),
-            ],
+          Container(
+            width: 7,
+            height: 7,
+            decoration: const BoxDecoration(
+              color: AppTheme.primary,
+              shape: BoxShape.circle,
+            ),
           ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              _formatDateHeader(date),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 12.5,
+                fontWeight: FontWeight.w700,
+                color: AppTheme.darkSlate,
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
           Text(
-            '$count TRX • -${currencyFormatter.format(totalAmount)}',
+            '$count transaksi • -${currencyFormatter.format(totalAmount)}',
             style: GoogleFonts.plusJakartaSans(
               fontSize: 12,
               fontWeight: FontWeight.w600,
-              color: const Color(0xFFDC2626), // DB Red
+              color: const Color(0xFFDC2626),
             ),
           ),
         ],

@@ -173,28 +173,25 @@ void main() {
 
       await tester.pumpAndSettle();
 
-      // 1. Verify AppBar and MyBCA Header Card
-      expect(find.text('Mutasi Rekening'), findsOneWidget);
+      // 1. Verify AppBar and Top Card
+      expect(find.text('Riwayat Aktivitas'), findsOneWidget);
       expect(find.text('Tahapan BCA'), findsOneWidget);
-      expect(find.text('TABUNGAN'), findsOneWidget);
-      expect(find.text('TOTAL MUTASI (DEBIT)'), findsOneWidget);
-      expect(find.text('2 Transaksi'), findsOneWidget);
+      expect(find.text('Nama Dompet'), findsOneWidget);
+      expect(find.text('Total Pengeluaran'), findsOneWidget);
 
-      // 2. Verify Filter Bar Chips
-      expect(find.text('Semua'), findsOneWidget);
-      expect(find.text('Rutin'), findsWidgets);
-      expect(find.text('Non-Rutin'), findsOneWidget);
+      // 2. Verify Eye Toggle icon
+      expect(find.byIcon(Icons.visibility_outlined), findsOneWidget);
 
-      // 3. Verify Transactions
+      // 3. Verify Transactions (and NO DB badge)
       expect(find.text('Kopi Kenangan'), findsOneWidget);
       expect(find.text('Grab Car'), findsOneWidget);
-      expect(find.text('DB'), findsWidgets);
+      expect(find.text('DB'), findsNothing);
 
       // 4. Test opening Transaction Detail Modal
       await tester.tap(find.text('Kopi Kenangan'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Detail Mutasi Rekening'), findsOneWidget);
+      expect(find.text('Detail Transaksi'), findsOneWidget);
       expect(find.text('Transaksi Berhasil'), findsOneWidget);
       expect(find.text('Pengeluaran Rutin'), findsOneWidget);
 
@@ -202,12 +199,20 @@ void main() {
       await tester.tap(find.text('Tutup'));
       await tester.pumpAndSettle();
 
-      // 5. Test opening Calendar Filter Sheet
+      // 5. Test opening Wallet Picker
+      await tester.tap(find.text('Tahapan BCA'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Pilih Dompet'), findsOneWidget);
+      expect(find.text('DOMPET PRIBADI'), findsOneWidget);
+      Navigator.of(tester.element(find.text('Pilih Dompet'))).pop();
+      await tester.pumpAndSettle();
+
+      // 6. Test opening Calendar Filter Sheet
       await tester.tap(find.byIcon(Icons.calendar_month_rounded).first);
       await tester.pumpAndSettle();
 
-      expect(find.text('Filter Mutasi Rekening'), findsOneWidget);
-      expect(find.text('Rentang mutasi maksimal 31 hari untuk melihat rincian transaksi.'), findsOneWidget);
+      expect(find.text('Filter Tanggal Aktivitas'), findsOneWidget);
       expect(find.text('Hari Ini'), findsOneWidget);
       expect(find.text('7 Hari'), findsOneWidget);
       expect(find.text('30 Hari'), findsOneWidget);
@@ -220,11 +225,11 @@ void main() {
       expect(find.text('1 Hari dipilih'), findsOneWidget);
 
       // Apply filter
-      await tester.tap(find.text('Tampilkan Mutasi (1 Hari)'));
+      await tester.tap(find.text('Tampilkan (1 Hari)'));
       await tester.pumpAndSettle();
 
       // Filter is closed and applied
-      expect(find.text('Filter Mutasi Rekening'), findsNothing);
+      expect(find.text('Filter Tanggal Aktivitas'), findsNothing);
     });
   });
 }

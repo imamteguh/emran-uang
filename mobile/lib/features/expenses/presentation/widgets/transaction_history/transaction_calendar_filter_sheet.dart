@@ -79,8 +79,6 @@ class _TransactionCalendarFilterSheetState
     extends State<TransactionCalendarFilterSheet> {
   late DateTime _startDate;
   late DateTime _endDate;
-  ExpenseType? _selectedType;
-  String? _selectedCategoryId;
 
   late DateTime _displayedMonth;
   String? _errorMessage;
@@ -100,8 +98,6 @@ class _TransactionCalendarFilterSheetState
       widget.initialCriteria.endDate.month,
       widget.initialCriteria.endDate.day,
     );
-    _selectedType = widget.initialCriteria.type;
-    _selectedCategoryId = widget.initialCriteria.categoryId;
 
     _displayedMonth = DateTime(_endDate.year, _endDate.month, 1);
   }
@@ -197,8 +193,6 @@ class _TransactionCalendarFilterSheetState
     setState(() {
       _startDate = today.subtract(const Duration(days: 30));
       _endDate = today;
-      _selectedType = null;
-      _selectedCategoryId = null;
       _errorMessage = null;
       _displayedMonth = DateTime(today.year, today.month, 1);
     });
@@ -216,8 +210,6 @@ class _TransactionCalendarFilterSheetState
       TransactionFilterCriteria(
         startDate: _startDate,
         endDate: _endDate,
-        type: _selectedType,
-        categoryId: _selectedCategoryId,
       ),
     );
     Navigator.of(context).pop();
@@ -259,7 +251,7 @@ class _TransactionCalendarFilterSheetState
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        'Filter Mutasi Rekening',
+                        'Filter Tanggal Aktivitas',
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 18,
                           fontWeight: FontWeight.w700,
@@ -286,7 +278,7 @@ class _TransactionCalendarFilterSheetState
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Max 31 Days Notification Banner (MyBCA Style)
+                    // Max 31 Days Notification Banner
                     Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 14,
@@ -307,7 +299,7 @@ class _TransactionCalendarFilterSheetState
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
-                              'Rentang mutasi maksimal 31 hari untuk melihat rincian transaksi.',
+                              'Rentang tanggal maksimal 31 hari untuk menampilkan riwayat aktivitas.',
                               style: GoogleFonts.plusJakartaSans(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w600,
@@ -351,7 +343,7 @@ class _TransactionCalendarFilterSheetState
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          'Pilih Tanggal Mutasi',
+                          'Pilih Tanggal',
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 13,
                             fontWeight: FontWeight.w700,
@@ -531,54 +523,6 @@ class _TransactionCalendarFilterSheetState
                         ],
                       ),
                     ),
-
-                    const SizedBox(height: 24),
-
-                    // Filter Jenis Transaksi
-                    Text(
-                      'Jenis Transaksi',
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                        color: AppTheme.darkSlate,
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: Row(
-                        children: [
-                          _buildTypeChip('Semua', null),
-                          const SizedBox(width: 8),
-                          _buildTypeChip('Rutin', ExpenseType.routine),
-                          const SizedBox(width: 8),
-                          _buildTypeChip('Non-Rutin', ExpenseType.nonRoutine),
-                        ],
-                      ),
-                    ),
-
-                    if (widget.categories.isNotEmpty) ...[
-                      const SizedBox(height: 24),
-                      Text(
-                        'Kategori (Opsional)',
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w700,
-                          color: AppTheme.darkSlate,
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: [
-                          _buildCategoryChip('Semua Kategori', null),
-                          ...widget.categories.map(
-                            (c) => _buildCategoryChip(c.name, c.id),
-                          ),
-                        ],
-                      ),
-                    ],
                   ],
                 ),
               ),
@@ -630,7 +574,7 @@ class _TransactionCalendarFilterSheetState
                         ),
                       ),
                       child: Text(
-                        'Tampilkan Mutasi ($_selectedRangeCount Hari)',
+                        'Tampilkan ($_selectedRangeCount Hari)',
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 14,
                           fontWeight: FontWeight.bold,
@@ -664,66 +608,6 @@ class _TransactionCalendarFilterSheetState
         borderRadius: BorderRadius.circular(20),
       ),
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-    );
-  }
-
-  Widget _buildTypeChip(String label, ExpenseType? type) {
-    final isSelected = _selectedType == type;
-    return ChoiceChip(
-      label: Text(
-        label,
-        style: GoogleFonts.plusJakartaSans(
-          fontSize: 12,
-          fontWeight: FontWeight.w600,
-          color: isSelected ? Colors.white : AppTheme.darkSlate,
-        ),
-      ),
-      selected: isSelected,
-      selectedColor: AppTheme.primary,
-      backgroundColor: const Color(0xFFF1F5F9),
-      side: BorderSide(
-        color: isSelected ? AppTheme.primary : const Color(0xFFE2E8F0),
-      ),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20),
-      ),
-      onSelected: (selected) {
-        if (selected) {
-          setState(() {
-            _selectedType = type;
-          });
-        }
-      },
-    );
-  }
-
-  Widget _buildCategoryChip(String label, String? categoryId) {
-    final isSelected = _selectedCategoryId == categoryId;
-    return ChoiceChip(
-      label: Text(
-        label,
-        style: GoogleFonts.plusJakartaSans(
-          fontSize: 12,
-          fontWeight: FontWeight.w600,
-          color: isSelected ? Colors.white : AppTheme.darkSlate,
-        ),
-      ),
-      selected: isSelected,
-      selectedColor: AppTheme.primary,
-      backgroundColor: const Color(0xFFF1F5F9),
-      side: BorderSide(
-        color: isSelected ? AppTheme.primary : const Color(0xFFE2E8F0),
-      ),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20),
-      ),
-      onSelected: (selected) {
-        if (selected) {
-          setState(() {
-            _selectedCategoryId = categoryId;
-          });
-        }
-      },
     );
   }
 
