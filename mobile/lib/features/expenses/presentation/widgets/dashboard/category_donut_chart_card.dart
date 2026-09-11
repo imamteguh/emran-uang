@@ -160,7 +160,7 @@ class _CategoryDonutChartCardState extends State<CategoryDonutChartCard> {
                         width: 116,
                         height: 116,
                         child: CustomPaint(
-                          painter: ModernDonutChartPainter(
+                          painter: _ModernDonutChartPainter(
                             categories: top6Categories,
                             totalSpend: totalMonthSpend,
                             selectedCategoryId: _selectedCategoryId,
@@ -394,13 +394,13 @@ class _CategorySpendItem {
   });
 }
 
-class ModernDonutChartPainter extends CustomPainter {
+class _ModernDonutChartPainter extends CustomPainter {
   final List<_CategorySpendItem> categories;
   final double totalSpend;
   final String? selectedCategoryId;
   final Color Function(String) parseHexColor;
 
-  ModernDonutChartPainter({
+  _ModernDonutChartPainter({
     required this.categories,
     required this.totalSpend,
     required this.selectedCategoryId,
@@ -451,7 +451,7 @@ class ModernDonutChartPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant ModernDonutChartPainter oldDelegate) {
+  bool shouldRepaint(covariant _ModernDonutChartPainter oldDelegate) {
     return oldDelegate.categories != categories ||
         oldDelegate.totalSpend != totalSpend ||
         oldDelegate.selectedCategoryId != selectedCategoryId;

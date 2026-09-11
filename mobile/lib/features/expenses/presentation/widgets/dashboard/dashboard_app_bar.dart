@@ -42,7 +42,7 @@ class DashboardAppBar extends StatelessWidget implements PreferredSizeWidget {
               width: 32,
               height: 32,
               fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => Container(
+              errorBuilder: (context, error, stackTrace) => Container(
                 width: 32,
                 height: 32,
                 decoration: BoxDecoration(

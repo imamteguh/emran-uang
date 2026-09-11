@@ -107,8 +107,16 @@ class DashboardScreen extends StatelessWidget {
                                       currencyFormatter: currencyFormatter,
                                     ),
 
-                                    // Pengeluaran per Kategori Donat Chart (Top 6)
+                                    // Pengeluaran per Kategori Donat Chart (Top 5)
                                     CategoryDonutChartCard(
+                                      provider: provider,
+                                      responsive: responsive,
+                                      formatter: currencyFormatter,
+                                    ),
+                                    const SizedBox(height: 16),
+
+                                    // Pengeluaran Rutin & Non-Rutin Card
+                                    RoutineSpendingCard(
                                       provider: provider,
                                       responsive: responsive,
                                       formatter: currencyFormatter,

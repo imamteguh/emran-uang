@@ -82,6 +82,98 @@ class DashboardState {
         .fold(0.0, (sum, item) => sum + item.amount);
   }
 
+  double get monthlyRoutineSpend {
+    final now = DateTime.now();
+    final fromExpenses = expenses
+        .where(
+          (item) =>
+              item.type == ExpenseType.routine &&
+              item.date.year == now.year &&
+              item.date.month == now.month,
+        )
+        .fold(0.0, (sum, item) => sum + item.amount);
+    if (fromExpenses > 0 || expenses.isNotEmpty) return fromExpenses;
+
+    final months = compareData?['months'] as List?;
+    if (months != null && months.isNotEmpty) {
+      final currentMonth = months[0] as Map<String, dynamic>?;
+      final byType = currentMonth?['byType'] as List?;
+      if (byType != null) {
+        for (final t in byType) {
+          if (t is Map && t['type'] == 'ROUTINE') {
+            final val = t['total'];
+            if (val is num) return val.toDouble();
+            if (val is String) return double.tryParse(val) ?? 0.0;
+          }
+        }
+      }
+    }
+    return 0.0;
+  }
+
+  double get monthlyNonRoutineSpend {
+    final now = DateTime.now();
+    final fromExpenses = expenses
+        .where(
+          (item) =>
+              item.type == ExpenseType.nonRoutine &&
+              item.date.year == now.year &&
+              item.date.month == now.month,
+        )
+        .fold(0.0, (sum, item) => sum + item.amount);
+    if (fromExpenses > 0 || expenses.isNotEmpty) return fromExpenses;
+
+    final months = compareData?['months'] as List?;
+    if (months != null && months.isNotEmpty) {
+      final currentMonth = months[0] as Map<String, dynamic>?;
+      final byType = currentMonth?['byType'] as List?;
+      if (byType != null) {
+        for (final t in byType) {
+          if (t is Map && t['type'] == 'NON_ROUTINE') {
+            final val = t['total'];
+            if (val is num) return val.toDouble();
+            if (val is String) return double.tryParse(val) ?? 0.0;
+          }
+        }
+      }
+    }
+    return 0.0;
+  }
+
+  int get monthlyRoutineCount {
+    final now = DateTime.now();
+    return expenses
+        .where(
+          (item) =>
+              item.type == ExpenseType.routine &&
+              item.date.year == now.year &&
+              item.date.month == now.month,
+        )
+        .length;
+  }
+
+  int get monthlyNonRoutineCount {
+    final now = DateTime.now();
+    return expenses
+        .where(
+          (item) =>
+              item.type == ExpenseType.nonRoutine &&
+              item.date.year == now.year &&
+              item.date.month == now.month,
+        )
+        .length;
+  }
+
+  double get monthlyRoutinePercent {
+    final total = monthlyRoutineSpend + monthlyNonRoutineSpend;
+    return total > 0 ? (monthlyRoutineSpend / total) : 0.0;
+  }
+
+  double get monthlyNonRoutinePercent {
+    final total = monthlyRoutineSpend + monthlyNonRoutineSpend;
+    return total > 0 ? (monthlyNonRoutineSpend / total) : 0.0;
+  }
+
   double get todaySpend {
     final now = DateTime.now();
     return expenses

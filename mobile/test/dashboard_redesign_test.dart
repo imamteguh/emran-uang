@@ -181,19 +181,23 @@ void main() {
     // 3. Verify Bill Alert Banner
     expect(find.byType(DashboardBillAlertBanner), findsOneWidget);
 
-    // 4. Verify Category Donut Chart Card (Top 6 Kategori)
-    expect(find.text('Top 6 Kategori'), findsOneWidget);
+    // 4. Verify Category Donut Chart Card (Top 5 Kategori)
+    expect(find.text('Top 5 Kategori'), findsOneWidget);
     expect(find.byType(CategoryDonutChartCard), findsOneWidget);
     expect(find.text('Makanan'), findsWidgets);
     expect(find.text('Transportasi'), findsWidgets);
     expect(find.text('Tagihan'), findsWidgets);
 
-    // 5. Verify Category Monthly Budget Card (Anggaran)
+    // 5. Verify Routine Spending Card (Pengeluaran Rutin & Non-Rutin)
+    expect(find.text('Pengeluaran Rutin & Non-Rutin'), findsOneWidget);
+    expect(find.byType(RoutineSpendingCard), findsOneWidget);
+
+    // 6. Verify Category Monthly Budget Card (Anggaran)
     expect(find.text('Anggaran'), findsOneWidget);
     expect(find.byType(CategoryMonthlyBudgetCard), findsOneWidget);
 
-    // 6. Verify Redesigned Today Activity Feed
-    expect(find.text('Today Activity'), findsOneWidget);
+    // 7. Verify Redesigned Today Activity Feed
+    expect(find.text('Aktivitas Hari Ini'), findsOneWidget);
     expect(find.byType(DashboardActivityFeed), findsOneWidget);
     expect(find.text('Makan Siang'), findsOneWidget);
     expect(find.text('Bensin Motor'), findsOneWidget);

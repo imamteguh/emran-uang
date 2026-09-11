@@ -10,5 +10,6 @@ export 'dashboard_bill_alert_banner.dart';
 export 'dashboard_bento_grid.dart';
 export 'dashboard_ai_quick_card.dart';
 export 'dashboard_activity_feed.dart';
+export 'routine_spending_card.dart';
 
 
