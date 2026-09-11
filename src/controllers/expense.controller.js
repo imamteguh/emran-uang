@@ -106,7 +106,7 @@ async function createExpense(req, res) {
 // ─── List Expenses (with filters) ───────────────────────────────────────────
 
 async function getExpenses(req, res) {
-  const { timeframe, date, type, categoryId } = req.query;
+  const { timeframe, date, type, categoryId, startDate, endDate } = req.query;
   const { page, limit, skip } = parsePagination(req.query);
 
   // Build the where clause
@@ -114,8 +114,24 @@ async function getExpenses(req, res) {
     walletId: req.wallet.id,
   };
 
-  // Timeframe filter (daily / monthly / yearly / all) - default to monthly if not specified
-  if (timeframe === 'all') {
+  // Date range filter (custom date range with max 31 days check, like MyBCA)
+  if (startDate || endDate) {
+    where.date = {};
+    if (startDate) {
+      where.date.gte = startOfDay(startDate);
+    }
+    if (endDate) {
+      where.date.lte = endOfDay(endDate);
+    }
+    if (startDate && endDate) {
+      const s = new Date(startDate);
+      const e = new Date(endDate);
+      const diffDays = Math.ceil((e.getTime() - s.getTime()) / (1000 * 60 * 60 * 24));
+      if (diffDays > 31) {
+        return error(res, 'Rentang tanggal maksimal 31 hari', 400);
+      }
+    }
+  } else if (timeframe === 'all') {
     // Return all transactions for this wallet without date constraints
   } else {
     const targetTimeframe = timeframe || (date ? null : 'monthly');

@@ -9,6 +9,7 @@ import '../bloc/dashboard_event.dart';
 import '../widgets/dashboard/dashboard.dart';
 import '../widgets/dashboard_skeleton.dart';
 import 'activity_list_screen.dart';
+import 'transaction_history_screen.dart';
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
@@ -155,7 +156,7 @@ class DashboardScreen extends StatelessWidget {
                                               Navigator.of(context).push(
                                                 MaterialPageRoute(
                                                   builder: (_) =>
-                                                      const ActivityListScreen(),
+                                                      const TransactionHistoryScreen(),
                                                 ),
                                               ),
                                           child: Text(
