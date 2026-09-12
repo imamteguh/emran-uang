@@ -32,43 +32,113 @@ class BillActionsHelper {
     if (reminder.isPaidForCurrentPeriod) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('This bill has already been paid for the current period.'),
+          content: Text('Tagihan ini sudah lunas untuk periode saat ini.'),
         ),
       );
       return;
     }
 
-    final confirm = await showDialog<bool>(
+    final confirm = await showModalBottomSheet<bool>(
       context: context,
       useRootNavigator: true,
-      builder: (dialogCtx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text(
-          'Pay Bill',
-          style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.bold),
+      backgroundColor: Colors.transparent,
+      builder: (bCtx) => Container(
+        padding: const EdgeInsets.all(24),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
         ),
-        content: Text(
-          'Do you want to record a regular expense of ${formatter.format(reminder.amount)} for "${reminder.title}"?',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogCtx).pop(false),
-            child: const Text(
-              'Cancel',
-              style: TextStyle(color: AppTheme.outline),
-            ),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(dialogCtx).pop(true),
-            child: const Text(
-              'Pay',
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                color: AppTheme.primary,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 40,
+              height: 4,
+              margin: const EdgeInsets.only(bottom: 20),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade300,
+                borderRadius: BorderRadius.circular(2),
               ),
             ),
-          ),
-        ],
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppTheme.primary.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.receipt_long_rounded,
+                color: AppTheme.primary,
+                size: 32,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Bayar Tagihan',
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: AppTheme.darkSlate,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Apakah Anda ingin mencatat pengeluaran rutin sebesar ${formatter.format(reminder.amount)} untuk "${reminder.title}"?',
+              textAlign: TextAlign.center,
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 14,
+                color: AppTheme.outline,
+                height: 1.4,
+              ),
+            ),
+            const SizedBox(height: 24),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.of(bCtx).pop(false),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      side: BorderSide(color: Colors.grey.shade300),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: Text(
+                      'Batal',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontWeight: FontWeight.w600,
+                        color: AppTheme.outline,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: () => Navigator.of(bCtx).pop(true),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.primary,
+                      elevation: 0,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: Text(
+                      'Bayar Sekarang',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+          ],
+        ),
       ),
     );
 
@@ -78,14 +148,35 @@ class BillActionsHelper {
     final rootNavigator = Navigator.of(context, rootNavigator: true);
     BuildContext? loadingDialogContext;
 
-    showDialog(
+    showModalBottomSheet(
       context: context,
-      barrierDismissible: false,
+      isDismissible: false,
+      enableDrag: false,
       useRootNavigator: true,
+      backgroundColor: Colors.transparent,
       builder: (dCtx) {
         loadingDialogContext = dCtx;
-        return const Center(
-          child: CircularProgressIndicator(color: AppTheme.primary),
+        return Container(
+          padding: const EdgeInsets.all(32),
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const CircularProgressIndicator(color: AppTheme.primary),
+              const SizedBox(height: 16),
+              Text(
+                'Memproses pembayaran...',
+                style: GoogleFonts.plusJakartaSans(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 14,
+                  color: AppTheme.darkSlate,
+                ),
+              ),
+            ],
+          ),
         );
       },
     );
@@ -114,14 +205,14 @@ class BillActionsHelper {
       scaffoldMessenger.showSnackBar(
         SnackBar(
           content: Text(
-            'Payment for "${reminder.title}" successfully recorded as an expense!',
+            'Pembayaran tagihan "${reminder.title}" berhasil dicatat!',
           ),
           backgroundColor: AppTheme.secondary,
         ),
       );
     } else {
       scaffoldMessenger.showSnackBar(
-        const SnackBar(content: Text('Failed to record payment.')),
+        const SnackBar(content: Text('Gagal mencatat pembayaran tagihan.')),
       );
     }
   }
@@ -130,41 +221,107 @@ class BillActionsHelper {
     required BuildContext context,
     required BillReminderEntity reminder,
   }) async {
-    final confirm = await showDialog<bool>(
+    final confirm = await showModalBottomSheet<bool>(
       context: context,
       useRootNavigator: true,
-      builder: (dialogCtx) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
+      backgroundColor: Colors.transparent,
+      builder: (bCtx) => Container(
+        padding: const EdgeInsets.all(24),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
         ),
-        title: Text(
-          'Delete Bill',
-          style: GoogleFonts.plusJakartaSans(
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        content: Text(
-          'Are you sure you want to delete the bill reminder "${reminder.title}"?',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogCtx).pop(false),
-            child: const Text(
-              'Cancel',
-              style: TextStyle(color: AppTheme.outline),
-            ),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(dialogCtx).pop(true),
-            child: const Text(
-              'Delete',
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                color: AppTheme.error,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 40,
+              height: 4,
+              margin: const EdgeInsets.only(bottom: 20),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade300,
+                borderRadius: BorderRadius.circular(2),
               ),
             ),
-          ),
-        ],
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppTheme.error.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.delete_outline_rounded,
+                color: AppTheme.error,
+                size: 32,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Hapus Pengingat Tagihan',
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: AppTheme.darkSlate,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Apakah Anda yakin ingin menghapus pengingat tagihan "${reminder.title}"?',
+              textAlign: TextAlign.center,
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 14,
+                color: AppTheme.outline,
+                height: 1.4,
+              ),
+            ),
+            const SizedBox(height: 24),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.of(bCtx).pop(false),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      side: BorderSide(color: Colors.grey.shade300),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: Text(
+                      'Batal',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontWeight: FontWeight.w600,
+                        color: AppTheme.outline,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: () => Navigator.of(bCtx).pop(true),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.error,
+                      elevation: 0,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: Text(
+                      'Hapus',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+          ],
+        ),
       ),
     );
 
@@ -174,14 +331,35 @@ class BillActionsHelper {
     final rootNavigator = Navigator.of(context, rootNavigator: true);
     BuildContext? loadingDialogContext;
 
-    showDialog(
+    showModalBottomSheet(
       context: context,
-      barrierDismissible: false,
+      isDismissible: false,
+      enableDrag: false,
       useRootNavigator: true,
+      backgroundColor: Colors.transparent,
       builder: (dCtx) {
         loadingDialogContext = dCtx;
-        return const Center(
-          child: CircularProgressIndicator(color: AppTheme.primary),
+        return Container(
+          padding: const EdgeInsets.all(32),
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const CircularProgressIndicator(color: AppTheme.primary),
+              const SizedBox(height: 16),
+              Text(
+                'Menghapus tagihan...',
+                style: GoogleFonts.plusJakartaSans(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 14,
+                  color: AppTheme.darkSlate,
+                ),
+              ),
+            ],
+          ),
         );
       },
     );
@@ -214,17 +392,18 @@ class BillActionsHelper {
     if (success) {
       scaffoldMessenger.showSnackBar(
         const SnackBar(
-          content: Text('Bill successfully deleted'),
+          content: Text('Pengingat tagihan berhasil dihapus'),
         ),
       );
     } else {
       scaffoldMessenger.showSnackBar(
         const SnackBar(
-          content: Text('Failed to delete bill'),
+          content: Text('Gagal menghapus pengingat tagihan'),
         ),
       );
     }
   }
+
 
   static void showReminderOptions({
     required BuildContext context,
@@ -352,7 +531,7 @@ class BillOptionsSheet extends StatelessWidget {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      '${reminder.periodicity.name.toUpperCase()} • ${formatter.format(reminder.amount)}',
+                      '${reminder.periodicity == Periodicity.yearly ? 'TAHUNAN' : 'BULANAN'} • ${formatter.format(reminder.amount)}',
                       style: GoogleFonts.beVietnamPro(
                         fontSize: 13,
                         color: AppTheme.darkSlateVariant,
@@ -373,7 +552,7 @@ class BillOptionsSheet extends StatelessWidget {
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
-                  isPaid ? 'Paid' : 'Unpaid',
+                  isPaid ? 'Lunas' : 'Belum Bayar',
                   style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.bold,
@@ -401,7 +580,7 @@ class BillOptionsSheet extends StatelessWidget {
                 ),
               ),
               title: Text(
-                'Pay Bill',
+                'Bayar Tagihan',
                 style: GoogleFonts.plusJakartaSans(
                   fontWeight: FontWeight.bold,
                   fontSize: 15,
@@ -409,7 +588,7 @@ class BillOptionsSheet extends StatelessWidget {
                 ),
               ),
               subtitle: Text(
-                'Record expense of ${formatter.format(reminder.amount)} and mark as paid',
+                'Catat pengeluaran sebesar ${formatter.format(reminder.amount)} dan tandai lunas',
                 style: GoogleFonts.beVietnamPro(
                   fontSize: 12,
                   color: AppTheme.darkSlateVariant,
@@ -432,7 +611,7 @@ class BillOptionsSheet extends StatelessWidget {
                 ),
               ),
               title: Text(
-                'Already Paid',
+                'Sudah Lunas',
                 style: GoogleFonts.plusJakartaSans(
                   fontWeight: FontWeight.bold,
                   fontSize: 15,
@@ -440,7 +619,7 @@ class BillOptionsSheet extends StatelessWidget {
                 ),
               ),
               subtitle: Text(
-                'Payment recorded for the current period',
+                'Pembayaran sudah tercatat untuk periode aktif ini',
                 style: GoogleFonts.beVietnamPro(
                   fontSize: 12,
                   color: AppTheme.darkSlateVariant,
@@ -462,7 +641,7 @@ class BillOptionsSheet extends StatelessWidget {
               ),
             ),
             title: Text(
-              'Edit Bill',
+              'Ubah Tagihan',
               style: GoogleFonts.plusJakartaSans(
                 fontWeight: FontWeight.w600,
                 fontSize: 15,
@@ -470,7 +649,7 @@ class BillOptionsSheet extends StatelessWidget {
               ),
             ),
             subtitle: Text(
-              'Modify amount, due date, or periodicity',
+              'Perbarui nominal, tanggal jatuh tempo, atau periode',
               style: GoogleFonts.beVietnamPro(
                 fontSize: 12,
                 color: AppTheme.darkSlateVariant,
@@ -492,7 +671,7 @@ class BillOptionsSheet extends StatelessWidget {
               ),
             ),
             title: Text(
-              'Delete Bill',
+              'Hapus Tagihan',
               style: GoogleFonts.plusJakartaSans(
                 fontWeight: FontWeight.w600,
                 fontSize: 15,
@@ -500,7 +679,7 @@ class BillOptionsSheet extends StatelessWidget {
               ),
             ),
             subtitle: Text(
-              'Remove this reminder from your wallet',
+              'Hapus pengingat tagihan ini dari dompet Anda',
               style: GoogleFonts.beVietnamPro(
                 fontSize: 12,
                 color: AppTheme.darkSlateVariant,
@@ -511,5 +690,6 @@ class BillOptionsSheet extends StatelessWidget {
         ],
       ),
     );
+
   }
 }

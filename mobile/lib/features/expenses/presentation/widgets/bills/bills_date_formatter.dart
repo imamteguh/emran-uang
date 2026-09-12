@@ -1,17 +1,17 @@
 class BillsDateFormatter {
   static const List<String> _monthsFull = [
-    'January',
-    'February',
-    'March',
+    'Januari',
+    'Februari',
+    'Maret',
     'April',
-    'May',
-    'June',
-    'July',
-    'August',
+    'Mei',
+    'Juni',
+    'Juli',
+    'Agustus',
     'September',
-    'October',
+    'Oktober',
     'November',
-    'December',
+    'Desember',
   ];
 
   static const List<String> _monthsShort = [
@@ -19,15 +19,16 @@ class BillsDateFormatter {
     'Feb',
     'Mar',
     'Apr',
-    'May',
+    'Mei',
     'Jun',
     'Jul',
-    'Aug',
+    'Agu',
     'Sep',
-    'Oct',
+    'Okt',
     'Nov',
-    'Dec',
+    'Des',
   ];
+
 
   static String formatMonthYear(DateTime date) {
     return '${_monthsFull[date.month - 1]} ${date.year}';

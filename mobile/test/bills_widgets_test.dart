@@ -87,7 +87,7 @@ void main() {
         ),
       );
 
-      expect(find.text('ESTIMATED MONTHLY OUTFLOW'), findsOneWidget);
+      expect(find.text('ESTIMASI TAGIHAN BULANAN'), findsOneWidget);
       expect(find.text('Rp1.500.000'), findsOneWidget);
     });
 
@@ -102,9 +102,9 @@ void main() {
         ),
       );
 
-      expect(find.text('PAID'), findsOneWidget);
+      expect(find.text('SUDAH DIBAYAR'), findsOneWidget);
       expect(find.text('Rp500.000'), findsOneWidget);
-      expect(find.text('PENDING'), findsOneWidget);
+      expect(find.text('BELUM DIBAYAR'), findsOneWidget);
       expect(find.text('Rp1.000.000'), findsOneWidget);
     });
 

@@ -45,34 +45,35 @@ class BillCardItem extends StatelessWidget {
       dueText = reminder.periodicity == Periodicity.yearly
           ? 'Lunas tahun ini (berikutnya ${BillsDateFormatter.formatDayMonth(effectiveDue)})'
           : 'Lunas bulan ini (berikutnya ${BillsDateFormatter.formatDayMonth(effectiveDue)})';
-      statusBadgeLabel = 'Paid';
+      statusBadgeLabel = 'Lunas';
       statusBadgeColor = AppTheme.secondary;
       statusBadgeBgColor = AppTheme.secondaryContainer;
     } else if (isOverdue) {
       dueText =
           'Lewat ${daysUntilDue.abs()} hari (${BillsDateFormatter.formatDayMonth(effectiveDue)})';
-      statusBadgeLabel = 'Overdue';
+      statusBadgeLabel = 'Lewat Tempo';
       statusBadgeColor = AppTheme.error;
       statusBadgeBgColor = AppTheme.errorContainer;
     } else if (isDueToday) {
       dueText = 'Jatuh tempo HARI INI';
-      statusBadgeLabel = 'Due Today';
+      statusBadgeLabel = 'Hari Ini';
       statusBadgeColor = const Color(0xFFEA580C);
       statusBadgeBgColor = const Color(0xFFFFEDD5);
     } else if (isDueSoon) {
       dueText =
           'Jatuh tempo dlm $daysUntilDue hari (${BillsDateFormatter.formatDayMonth(effectiveDue)})';
-      statusBadgeLabel = 'Due Soon';
+      statusBadgeLabel = 'Segera Tiba';
       statusBadgeColor = const Color(0xFFD97706);
       statusBadgeBgColor = const Color(0xFFFEF3C7);
     } else {
       dueText = reminder.periodicity == Periodicity.yearly
           ? 'Jatuh tempo ${BillsDateFormatter.formatMonthYear(effectiveDue)}'
           : 'Jatuh tempo ${BillsDateFormatter.formatDayMonth(effectiveDue)}';
-      statusBadgeLabel = 'Unpaid';
+      statusBadgeLabel = 'Belum Bayar';
       statusBadgeColor = AppTheme.darkSlateVariant;
       statusBadgeBgColor = const Color(0xFFF1F5F9);
     }
+
 
     final String periodicityLabel = reminder.periodicity == Periodicity.yearly
         ? 'Tahunan'

@@ -24,14 +24,14 @@ class BillsAppBar extends StatelessWidget implements PreferredSizeWidget {
   Widget build(BuildContext context) {
     return AppBar(
       automaticallyImplyLeading: false,
-      backgroundColor: AppTheme.background,
+      backgroundColor: const Color(0xFF0F172A),
       elevation: 0,
       scrolledUnderElevation: 0,
       title: Row(
         children: [
           Container(
-            width: 40,
-            height: 40,
+            width: 38,
+            height: 38,
             decoration: BoxDecoration(
               color: AppTheme.primary,
               borderRadius: BorderRadius.circular(12),
@@ -46,20 +46,20 @@ class BillsAppBar extends StatelessWidget implements PreferredSizeWidget {
             alignment: Alignment.center,
             child: Icon(
               dashboardState.activeWallet == null
-                  ? Icons.account_balance_wallet
+                  ? Icons.account_balance_wallet_rounded
                   : (dashboardState.isSharedMode
                       ? Icons.groups_rounded
                       : Icons.person_rounded),
               color: Colors.white,
-              size: 22,
+              size: 20,
             ),
           ),
           const SizedBox(width: 12),
           if (dashboardState.allWallets.isEmpty)
             Text(
-              'WalletShare',
+              'Emran Uang',
               style: GoogleFonts.plusJakartaSans(
-                color: AppTheme.primary,
+                color: Colors.white,
                 fontWeight: FontWeight.bold,
                 fontSize: responsive.scaleFont(18),
               ),
@@ -83,7 +83,7 @@ class BillsAppBar extends StatelessWidget implements PreferredSizeWidget {
                       child: Padding(
                         padding: EdgeInsets.symmetric(horizontal: 8.0),
                         child: Text(
-                          'PERSONAL WALLETS',
+                          'DOMPET PRIBADI',
                           style: TextStyle(
                             fontSize: 10,
                             fontWeight: FontWeight.bold,
@@ -136,7 +136,7 @@ class BillsAppBar extends StatelessWidget implements PreferredSizeWidget {
                       child: Padding(
                         padding: EdgeInsets.symmetric(horizontal: 8.0),
                         child: Text(
-                          'GROUP WALLETS',
+                          'DOMPET BERSAMA',
                           style: TextStyle(
                             fontSize: 10,
                             fontWeight: FontWeight.bold,
@@ -191,11 +191,11 @@ class BillsAppBar extends StatelessWidget implements PreferredSizeWidget {
                       maxWidth: responsive.scale(150),
                     ),
                     child: Text(
-                      dashboardState.activeWallet?.name ?? 'Select Wallet',
+                      dashboardState.activeWallet?.name ?? 'Pilih Dompet',
                       style: GoogleFonts.plusJakartaSans(
-                        color: AppTheme.primary,
+                        color: Colors.white,
                         fontWeight: FontWeight.bold,
-                        fontSize: responsive.scaleFont(18),
+                        fontSize: responsive.scaleFont(17),
                       ),
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -203,7 +203,7 @@ class BillsAppBar extends StatelessWidget implements PreferredSizeWidget {
                   const SizedBox(width: 4),
                   const Icon(
                     Icons.keyboard_arrow_down_rounded,
-                    color: AppTheme.primary,
+                    color: Color(0xFF94A3B8),
                     size: 20,
                   ),
                 ],
@@ -212,5 +212,6 @@ class BillsAppBar extends StatelessWidget implements PreferredSizeWidget {
         ],
       ),
     );
+
   }
 }
