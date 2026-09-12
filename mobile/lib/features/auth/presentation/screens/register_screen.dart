@@ -1,13 +1,17 @@
-import 'dart:ui';
 import 'dart:async';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/theme/app_theme.dart';
-import '../../../../core/utils/responsive_helper.dart';
+import '../../../expenses/presentation/screens/main_shell.dart';
 import '../bloc/auth_bloc.dart';
 import '../bloc/auth_event.dart';
-import '../../../expenses/presentation/screens/main_shell.dart';
+import '../widgets/auth_action_button.dart';
+import '../widgets/auth_brand_header.dart';
+import '../widgets/auth_card_container.dart';
+import '../widgets/auth_text_field.dart';
+import '../widgets/password_strength_indicator.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -23,8 +27,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
 
-  bool _obscurePassword = true;
-  bool _obscureConfirmPassword = true;
+  bool _agreeTerms = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _passwordController.addListener(() => setState(() {}));
+    _confirmPasswordController.addListener(() => setState(() {}));
+  }
 
   @override
   void dispose() {
@@ -36,6 +46,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   void _handleRegister() async {
+    if (!_agreeTerms) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Harap setujui Syarat & Ketentuan untuk melanjutkan'),
+          backgroundColor: AppTheme.error,
+        ),
+      );
+      return;
+    }
+
     if (_formKey.currentState!.validate()) {
       final authBloc = context.read<AuthBloc>();
       final completer = Completer<bool>();
@@ -51,7 +71,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       if (success && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Registration successful!'),
+            content: Text('Pendaftaran berhasil! Selamat datang di WalletShare.'),
             backgroundColor: Colors.green,
           ),
         );
@@ -62,7 +82,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       } else if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(authBloc.state.errorMessage ?? 'Registration failed'),
+            content: Text(authBloc.state.errorMessage ?? 'Pendaftaran gagal. Silakan coba lagi.'),
             backgroundColor: AppTheme.error,
           ),
         );
@@ -72,26 +92,20 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final responsive = ResponsiveHelper(context);
     final authState = context.watch<AuthBloc>().state;
-
-    // Responsive width for content card
-    final double cardWidth = responsive.isTablet || responsive.isDesktop
-        ? 450
-        : double.infinity;
 
     return Scaffold(
       backgroundColor: AppTheme.background,
       body: SafeArea(
         child: Stack(
           children: [
-            // ── Background Decorative Blur Circles (Stitch Style) ───────────
+            // Ambient Decorative Blurred Circles
             Positioned(
               top: -80,
               left: -80,
               child: Container(
-                width: 250,
-                height: 250,
+                width: 240,
+                height: 240,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   color: AppTheme.secondaryContainer.withAlpha(120),
@@ -99,306 +113,236 @@ class _RegisterScreenState extends State<RegisterScreen> {
               ),
             ),
             Positioned(
-              bottom: 80,
-              right: -100,
+              bottom: 60,
+              right: -80,
               child: Container(
-                width: 300,
-                height: 300,
+                width: 280,
+                height: 280,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: AppTheme.primaryFixed.withAlpha(100),
+                  color: AppTheme.primaryFixed.withAlpha(110),
                 ),
               ),
             ),
-            // Backdrop blur layer overlay
             Positioned.fill(
               child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 70.0, sigmaY: 70.0),
+                filter: ImageFilter.blur(sigmaX: 65, sigmaY: 65),
                 child: Container(color: Colors.transparent),
               ),
             ),
 
-            // Back button at top-left
+            // Back Button at Top Left
             Positioned(
               top: 16,
               left: 16,
               child: ClipOval(
                 child: Material(
-                  color: Colors.white.withAlpha(150),
+                  color: Colors.white.withAlpha(190),
                   child: InkWell(
                     onTap: () => Navigator.of(context).pop(),
-                    child: const Padding(
-                      padding: EdgeInsets.all(8.0),
-                      child: Icon(Icons.arrow_back, color: AppTheme.primary),
+                    child: Container(
+                      width: 42,
+                      height: 42,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(color: const Color(0xFFE2E8F0)),
+                      ),
+                      child: const Icon(
+                        Icons.arrow_back_rounded,
+                        color: AppTheme.darkSlate,
+                        size: 20,
+                      ),
                     ),
                   ),
                 ),
               ),
             ),
 
-            // ── Main Scroll Content ──────────────────────────────────────────
+            // Main Scrollable Form
             Center(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 20,
-                  vertical: 16,
-                ),
-                child: SizedBox(
-                  width: cardWidth,
-                  child: Form(
-                    key: _formKey,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        const SizedBox(height: 20),
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    children: [
+                      const SizedBox(height: 36),
 
-                        // Header Brand Icon & Name
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
+                      // Brand Header
+                      const AuthBrandHeader(
+                        title: 'Buat Akun Baru',
+                        subtitle:
+                            'Bergabung dengan WalletShare untuk mengelola dan mencapai target finansial bersama.',
+                      ),
+                      const SizedBox(height: 28),
+
+                      // Card Container
+                      AuthCardContainer(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                            Container(
-                              width: 40,
-                              height: 40,
-                              decoration: BoxDecoration(
-                                color: AppTheme.primary,
-                                borderRadius: BorderRadius.circular(12),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: AppTheme.primary.withAlpha(51),
-                                    blurRadius: 8,
-                                    offset: const Offset(0, 4),
-                                  ),
-                                ],
-                              ),
-                              alignment: Alignment.center,
-                              child: const Icon(
-                                Icons.account_balance_wallet,
-                                color: Colors.white,
-                                size: 22,
-                              ),
+                            // Display Name Field
+                            AuthTextField(
+                              controller: _nameController,
+                              labelText: 'Nama Lengkap',
+                              hintText: 'Sarah Connor',
+                              prefixIcon: Icons.person_outline_rounded,
+                              keyboardType: TextInputType.name,
+                              validator: (val) {
+                                if (val == null || val.trim().isEmpty) {
+                                  return 'Nama lengkap wajib diisi';
+                                }
+                                return null;
+                              },
                             ),
-                            const SizedBox(width: 8),
-                            Text(
-                              'WalletShare',
-                              style: GoogleFonts.plusJakartaSans(
-                                fontSize: responsive.scaleFont(24),
-                                fontWeight: FontWeight.bold,
-                                color: AppTheme.primary,
-                              ),
+                            const SizedBox(height: 16),
+
+                            // Email Field
+                            AuthTextField(
+                              controller: _emailController,
+                              labelText: 'Alamat Email',
+                              hintText: 'sarah@walletshare.com',
+                              prefixIcon: Icons.mail_outline_rounded,
+                              keyboardType: TextInputType.emailAddress,
+                              validator: (val) {
+                                if (val == null || val.trim().isEmpty) {
+                                  return 'Email tidak boleh kosong';
+                                }
+                                if (!val.contains('@') || !val.contains('.')) {
+                                  return 'Masukkan format email yang valid';
+                                }
+                                return null;
+                              },
+                            ),
+                            const SizedBox(height: 16),
+
+                            // Password Field
+                            AuthTextField(
+                              controller: _passwordController,
+                              labelText: 'Kata Sandi',
+                              hintText: 'Minimal 8 karakter',
+                              prefixIcon: Icons.lock_outline_rounded,
+                              isPassword: true,
+                              validator: (val) {
+                                if (val == null || val.isEmpty) {
+                                  return 'Kata sandi wajib diisi';
+                                }
+                                if (val.length < 8) {
+                                  return 'Kata sandi minimal 8 karakter';
+                                }
+                                return null;
+                              },
+                            ),
+                            const SizedBox(height: 12),
+
+                            // Live Password Strength Indicator
+                            PasswordStrengthIndicator(
+                              password: _passwordController.text,
+                              confirmPassword: _confirmPasswordController.text,
+                            ),
+                            const SizedBox(height: 16),
+
+                            // Confirm Password Field
+                            AuthTextField(
+                              controller: _confirmPasswordController,
+                              labelText: 'Konfirmasi Kata Sandi',
+                              hintText: 'Ketik ulang kata sandi',
+                              prefixIcon: Icons.lock_reset_rounded,
+                              isPassword: true,
+                              textInputAction: TextInputAction.done,
+                              validator: (val) {
+                                if (val == null || val.isEmpty) {
+                                  return 'Konfirmasi kata sandi wajib diisi';
+                                }
+                                if (val != _passwordController.text) {
+                                  return 'Kata sandi tidak cocok';
+                                }
+                                return null;
+                              },
+                            ),
+                            const SizedBox(height: 16),
+
+                            // Terms and Conditions Checkbox
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                SizedBox(
+                                  width: 22,
+                                  height: 22,
+                                  child: Checkbox(
+                                    value: _agreeTerms,
+                                    onChanged: (val) {
+                                      setState(() {
+                                        _agreeTerms = val ?? false;
+                                      });
+                                    },
+                                    activeColor: AppTheme.primary,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(6),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: GestureDetector(
+                                    onTap: () {
+                                      setState(() {
+                                        _agreeTerms = !_agreeTerms;
+                                      });
+                                    },
+                                    child: Text(
+                                      'Saya menyetujui Syarat Layanan & Kebijakan Privasi WalletShare',
+                                      style: GoogleFonts.beVietnamPro(
+                                        fontSize: 12,
+                                        color: AppTheme.darkSlateVariant,
+                                        height: 1.35,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 24),
+
+                            // Submit Button
+                            AuthActionButton(
+                              text: 'Daftar Sekarang',
+                              onPressed: _handleRegister,
+                              isLoading: authState.isLoading,
                             ),
                           ],
                         ),
-                        const SizedBox(height: 24),
+                      ),
+                      const SizedBox(height: 24),
 
-                        // Welcome Headers
-                        Center(
-                          child: Text(
-                            'Create Account',
-                            style: GoogleFonts.plusJakartaSans(
-                              fontSize: responsive.scaleFont(26),
-                              fontWeight: FontWeight.w800,
-                              color: AppTheme.darkSlate,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Center(
-                          child: Text(
-                            'Join WalletShare to manage, track, and save together with your partner.',
-                            textAlign: TextAlign.center,
+                      // Login Switch Prompt
+                      Wrap(
+                        alignment: WrapAlignment.center,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        children: [
+                          Text(
+                            'Sudah memiliki akun? ',
                             style: GoogleFonts.beVietnamPro(
-                              fontSize: responsive.scaleFont(14),
                               color: AppTheme.darkSlateVariant,
-                              height: 1.4,
+                              fontSize: 14,
                             ),
                           ),
-                        ),
-                        const SizedBox(height: 28),
-
-                        // Register Card Container
-                        Container(
-                          padding: const EdgeInsets.all(24),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: AppTheme.roundedBorder,
-                            boxShadow: AppTheme.cardShadow,
-                            border: Border.all(
-                              color: AppTheme.outlineVariant,
-                              width: 1.0,
+                          GestureDetector(
+                            onTap: () => Navigator.of(context).pop(),
+                            child: Text(
+                              'Masuk di sini',
+                              style: GoogleFonts.plusJakartaSans(
+                                color: AppTheme.primary,
+                                fontWeight: FontWeight.w700,
+                                fontSize: 14,
+                              ),
                             ),
                           ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              // Display Name Field
-                              TextFormField(
-                                controller: _nameController,
-                                keyboardType: TextInputType.name,
-                                decoration: const InputDecoration(
-                                  labelText: 'Display Name',
-                                  hintText: 'Sarah Connor',
-                                ),
-                                validator: (value) {
-                                  if (value == null || value.trim().isEmpty) {
-                                    return 'Please enter your display name';
-                                  }
-                                  return null;
-                                },
-                              ),
-                              const SizedBox(height: 20),
-
-                              // Email Address Field
-                              TextFormField(
-                                controller: _emailController,
-                                keyboardType: TextInputType.emailAddress,
-                                decoration: const InputDecoration(
-                                  labelText: 'Email Address',
-                                  hintText: 'sarah@walletshare.com',
-                                ),
-                                validator: (value) {
-                                  if (value == null ||
-                                      value.isEmpty ||
-                                      !value.contains('@')) {
-                                    return 'Please enter a valid email';
-                                  }
-                                  return null;
-                                },
-                              ),
-                              const SizedBox(height: 20),
-
-                              // Password Field
-                              TextFormField(
-                                controller: _passwordController,
-                                obscureText: _obscurePassword,
-                                decoration: InputDecoration(
-                                  labelText: 'Password',
-                                  hintText: '••••••••',
-                                  suffixIcon: IconButton(
-                                    icon: Icon(
-                                      _obscurePassword
-                                          ? Icons.visibility_off
-                                          : Icons.visibility,
-                                      color: AppTheme.darkSlateVariant,
-                                    ),
-                                    onPressed: () {
-                                      setState(() {
-                                        _obscurePassword = !_obscurePassword;
-                                      });
-                                    },
-                                  ),
-                                ),
-                                validator: (value) {
-                                  if (value == null || value.length < 8) {
-                                    return 'Password must be at least 8 characters';
-                                  }
-                                  return null;
-                                },
-                              ),
-                              const SizedBox(height: 20),
-
-                              // Confirm Password Field
-                              TextFormField(
-                                controller: _confirmPasswordController,
-                                obscureText: _obscureConfirmPassword,
-                                decoration: InputDecoration(
-                                  labelText: 'Confirm Password',
-                                  hintText: '••••••••',
-                                  suffixIcon: IconButton(
-                                    icon: Icon(
-                                      _obscureConfirmPassword
-                                          ? Icons.visibility_off
-                                          : Icons.visibility,
-                                      color: AppTheme.darkSlateVariant,
-                                    ),
-                                    onPressed: () {
-                                      setState(() {
-                                        _obscureConfirmPassword =
-                                            !_obscureConfirmPassword;
-                                      });
-                                    },
-                                  ),
-                                ),
-                                validator: (value) {
-                                  if (value != _passwordController.text) {
-                                    return 'Passwords do not match';
-                                  }
-                                  return null;
-                                },
-                              ),
-                              const SizedBox(height: 28),
-
-                              // Register Button
-                              Container(
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(9999),
-                                  boxShadow: AppTheme.interactiveShadow,
-                                ),
-                                child: ElevatedButton(
-                                  onPressed: authState.isLoading
-                                      ? null
-                                      : _handleRegister,
-                                  child: authState.isLoading
-                                      ? const SizedBox(
-                                          height: 20,
-                                          width: 20,
-                                          child: CircularProgressIndicator(
-                                            color: Colors.white,
-                                            strokeWidth: 2,
-                                          ),
-                                        )
-                                      : Row(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.center,
-                                          children: [
-                                            Text(
-                                              'Sign Up',
-                                              style: GoogleFonts.plusJakartaSans(
-                                                fontWeight: FontWeight.bold,
-                                                fontSize: 16,
-                                              ),
-                                            ),
-                                            const SizedBox(width: 8),
-                                            const Icon(
-                                              Icons.arrow_forward,
-                                              size: 18,
-                                            ),
-                                          ],
-                                        ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 28),
-
-                        // Back to Login Prompt Row
-                        Center(
-                          child: Wrap(
-                            alignment: WrapAlignment.center,
-                            crossAxisAlignment: WrapCrossAlignment.center,
-                            children: [
-                              Text(
-                                'Already have an account? ',
-                                style: GoogleFonts.beVietnamPro(
-                                  color: AppTheme.darkSlateVariant,
-                                ),
-                              ),
-                              GestureDetector(
-                                onTap: () => Navigator.of(context).pop(),
-                                child: Text(
-                                  'Login',
-                                  style: GoogleFonts.beVietnamPro(
-                                    color: AppTheme.primary,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 40),
-                      ],
-                    ),
+                        ],
+                      ),
+                      const SizedBox(height: 32),
+                    ],
                   ),
                 ),
               ),
