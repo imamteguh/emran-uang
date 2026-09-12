@@ -288,7 +288,8 @@ void main() {
 
     testWidgets('LoginScreen renders header, social button, form inputs and submit button', (tester) async {
       await tester.pumpWidget(createTestApp(const LoginScreen()));
-      await tester.pumpAndSettle();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
 
       expect(find.text('Selamat Datang Kembali'), findsOneWidget);
       expect(find.text('Lanjutkan dengan Google'), findsOneWidget);

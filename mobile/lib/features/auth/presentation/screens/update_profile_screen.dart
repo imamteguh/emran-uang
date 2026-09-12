@@ -361,20 +361,25 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
             color: AppTheme.darkSlateVariant,
           ),
         ),
-        const Spacer(),
-        Text(
-          value,
-          style: isMonospace
-              ? GoogleFonts.jetBrainsMono(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                  color: AppTheme.darkSlate,
-                )
-              : GoogleFonts.plusJakartaSans(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                  color: AppTheme.darkSlate,
-                ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Text(
+            value,
+            textAlign: TextAlign.end,
+            overflow: TextOverflow.ellipsis,
+            maxLines: 1,
+            style: isMonospace
+                ? GoogleFonts.jetBrainsMono(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: AppTheme.darkSlate,
+                  )
+                : GoogleFonts.plusJakartaSans(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: AppTheme.darkSlate,
+                  ),
+          ),
         ),
       ],
     );
