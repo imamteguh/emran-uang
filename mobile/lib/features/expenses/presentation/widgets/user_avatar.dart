@@ -1,3 +1,5 @@
+import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import '../../../../core/theme/app_theme.dart';
 
@@ -17,15 +19,17 @@ class UserAvatar extends StatelessWidget {
   Widget build(BuildContext context) {
     final double fontSize = size * 0.38;
     final String fallbackLetter =
-        displayName.isNotEmpty ? displayName[0].toUpperCase() : 'U';
+        displayName.trim().isNotEmpty ? displayName.trim()[0].toUpperCase() : 'U';
 
-    if (avatarUrl != null && avatarUrl!.isNotEmpty) {
-      if (avatarUrl!.startsWith('http://') ||
-          avatarUrl!.startsWith('https://')) {
+    if (avatarUrl != null && avatarUrl!.trim().isNotEmpty) {
+      final cleanUrl = avatarUrl!.trim();
+
+      // 1. Network image
+      if (cleanUrl.startsWith('http://') || cleanUrl.startsWith('https://')) {
         return Container(
           width: size,
           height: size,
-          decoration: BoxDecoration(
+          decoration: const BoxDecoration(
             shape: BoxShape.circle,
             color: AppTheme.primaryFixed,
           ),
@@ -35,22 +39,84 @@ class UserAvatar extends StatelessWidget {
           ),
           child: ClipOval(
             child: Image.network(
-              avatarUrl!,
+              cleanUrl,
               fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) {
-                return _buildDefaultFallback(fallbackLetter, fontSize);
-              },
+              errorBuilder: (_, _, _) =>
+                  _buildDefaultFallback(fallbackLetter, fontSize),
             ),
           ),
         );
-      } else if (avatarUrl!.length <= 2) {
-        // It's an emoji representation
+      }
+
+      // 2. Base64 data image
+      if (cleanUrl.startsWith('data:image')) {
+        try {
+          final base64Str = cleanUrl.split(',').last;
+          final bytes = base64Decode(base64Str);
+          return Container(
+            width: size,
+            height: size,
+            decoration: const BoxDecoration(
+              shape: BoxShape.circle,
+              color: AppTheme.primaryFixed,
+            ),
+            foregroundDecoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(color: Colors.white, width: 2),
+            ),
+            child: ClipOval(
+              child: Image.memory(
+                bytes,
+                fit: BoxFit.cover,
+                errorBuilder: (_, _, _) =>
+                    _buildDefaultFallback(fallbackLetter, fontSize),
+              ),
+            ),
+          );
+        } catch (_) {}
+      }
+
+      // 3. Local file path
+      if (cleanUrl.startsWith('/') ||
+          cleanUrl.startsWith('file:') ||
+          cleanUrl.contains(':\\') ||
+          cleanUrl.contains(':/')) {
+        try {
+          final filePath = cleanUrl.replaceFirst('file://', '');
+          final file = File(filePath);
+          if (file.existsSync()) {
+            return Container(
+              width: size,
+              height: size,
+              decoration: const BoxDecoration(
+                shape: BoxShape.circle,
+                color: AppTheme.primaryFixed,
+              ),
+              foregroundDecoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.white, width: 2),
+              ),
+              child: ClipOval(
+                child: Image.file(
+                  file,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, _, _) =>
+                      _buildDefaultFallback(fallbackLetter, fontSize),
+                ),
+              ),
+            );
+          }
+        } catch (_) {}
+      }
+
+      // 4. Emoji representation (check runes length to support complex emojis)
+      if (cleanUrl.runes.length <= 4 && !cleanUrl.contains('.')) {
         return Container(
           width: size,
           height: size,
-          decoration: BoxDecoration(
+          decoration: const BoxDecoration(
             shape: BoxShape.circle,
-            gradient: const LinearGradient(
+            gradient: LinearGradient(
               colors: [AppTheme.primaryContainer, AppTheme.primary],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
@@ -62,8 +128,8 @@ class UserAvatar extends StatelessWidget {
           ),
           alignment: Alignment.center,
           child: Text(
-            avatarUrl!,
-            style: TextStyle(fontSize: size * 0.5),
+            cleanUrl,
+            style: TextStyle(fontSize: size * 0.48),
           ),
         );
       }
@@ -77,9 +143,13 @@ class UserAvatar extends StatelessWidget {
     return Container(
       width: size,
       height: size,
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         shape: BoxShape.circle,
-        color: AppTheme.primary,
+        gradient: LinearGradient(
+          colors: [AppTheme.primaryContainer, AppTheme.primary],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
       ),
       foregroundDecoration: BoxDecoration(
         shape: BoxShape.circle,

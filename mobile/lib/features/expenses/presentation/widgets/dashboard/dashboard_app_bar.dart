@@ -13,12 +13,14 @@ class DashboardAppBar extends StatelessWidget implements PreferredSizeWidget {
   final DashboardState provider;
   final ResponsiveHelper responsive;
   final ValueChanged<WalletEntity> onWalletSelected;
+  final VoidCallback? onManageGroups;
 
   const DashboardAppBar({
     super.key,
     required this.provider,
     required this.responsive,
     required this.onWalletSelected,
+    this.onManageGroups,
   });
 
   @override
@@ -88,8 +90,14 @@ class DashboardAppBar extends StatelessWidget implements PreferredSizeWidget {
       ),
       actions: [
         // Wallet Selector Pill
-        PopupMenuButton<WalletEntity>(
-          onSelected: onWalletSelected,
+        PopupMenuButton<dynamic>(
+          onSelected: (val) {
+            if (val is WalletEntity) {
+              onWalletSelected(val);
+            } else if (val == 'manage_groups') {
+              onManageGroups?.call();
+            }
+          },
           offset: const Offset(0, 46),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
@@ -100,7 +108,7 @@ class DashboardAppBar extends StatelessWidget implements PreferredSizeWidget {
           itemBuilder: (context) {
             return [
               if (provider.personalWallets.isNotEmpty) ...[
-                const PopupMenuItem<WalletEntity>(
+                const PopupMenuItem<dynamic>(
                   enabled: false,
                   height: 24,
                   child: Padding(
@@ -117,7 +125,7 @@ class DashboardAppBar extends StatelessWidget implements PreferredSizeWidget {
                   ),
                 ),
                 ...provider.personalWallets.map(
-                  (wallet) => PopupMenuItem<WalletEntity>(
+                  (wallet) => PopupMenuItem<dynamic>(
                     value: wallet,
                     child: Row(
                       children: [
@@ -154,7 +162,7 @@ class DashboardAppBar extends StatelessWidget implements PreferredSizeWidget {
               ],
               if (provider.sharedWallets.isNotEmpty) ...[
                 const PopupMenuDivider(),
-                const PopupMenuItem<WalletEntity>(
+                const PopupMenuItem<dynamic>(
                   enabled: false,
                   height: 24,
                   child: Padding(
@@ -171,7 +179,7 @@ class DashboardAppBar extends StatelessWidget implements PreferredSizeWidget {
                   ),
                 ),
                 ...provider.sharedWallets.map(
-                  (wallet) => PopupMenuItem<WalletEntity>(
+                  (wallet) => PopupMenuItem<dynamic>(
                     value: wallet,
                     child: Row(
                       children: [
@@ -206,6 +214,44 @@ class DashboardAppBar extends StatelessWidget implements PreferredSizeWidget {
                   ),
                 ),
               ],
+              const PopupMenuDivider(),
+              PopupMenuItem<dynamic>(
+                value: 'manage_groups',
+                child: Row(
+                  children: [
+                    Container(
+                      width: 28,
+                      height: 28,
+                      decoration: BoxDecoration(
+                        color: AppTheme.primary.withAlpha(25),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      alignment: Alignment.center,
+                      child: const Icon(
+                        Icons.group_add_rounded,
+                        color: AppTheme.primary,
+                        size: 16,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        'Kelola Grup',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontWeight: FontWeight.w600,
+                          color: AppTheme.primary,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ),
+                    const Icon(
+                      Icons.chevron_right_rounded,
+                      color: AppTheme.primary,
+                      size: 16,
+                    ),
+                  ],
+                ),
+              ),
             ];
           },
           child: Container(

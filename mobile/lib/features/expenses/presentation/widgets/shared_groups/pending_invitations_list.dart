@@ -31,25 +31,41 @@ class PendingInvitationsList extends StatelessWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(
-              'Pending Invitations',
-              style: AppTheme.headlineSm.copyWith(
-                fontSize: responsive.scaleFont(18),
-                color: AppTheme.darkSlate,
-              ),
+            Row(
+              children: [
+                const Icon(
+                  Icons.mail_outline_rounded,
+                  size: 20,
+                  color: AppTheme.primary,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'Undangan Tertunda',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: responsive.scaleFont(17),
+                    fontWeight: FontWeight.w800,
+                    color: AppTheme.darkSlate,
+                    letterSpacing: -0.3,
+                  ),
+                ),
+              ],
             ),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(
-                color: AppTheme.tertiaryContainer.withAlpha(40),
+                color: const Color(0xFFFEF3C7),
                 borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: const Color(0xFFFDE68A),
+                  width: 1,
+                ),
               ),
               child: Text(
-                '${pendingInvites.length} New',
+                '${pendingInvites.length} Baru',
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 11,
-                  fontWeight: FontWeight.bold,
-                  color: AppTheme.tertiary,
+                  fontWeight: FontWeight.w700,
+                  color: const Color(0xFFB45309),
                 ),
               ),
             ),
@@ -62,21 +78,22 @@ class PendingInvitationsList extends StatelessWidget {
           itemCount: pendingInvites.length,
           itemBuilder: (context, index) {
             final invite = pendingInvites[index];
-            final senderName = invite['sender']?['displayName'] ?? 'Someone';
+            final senderName = invite['sender']?['displayName'] ?? 'Seseorang';
             final isSentByMe = invite['senderId'] == currentUserId;
-            final groupName = invite['group']?['name'] ?? 'Shared Group';
+            final groupName = invite['group']?['name'] ?? 'Grup Bersama';
+            final isProcessing = processingInviteId == invite['id'];
 
             return Container(
               margin: const EdgeInsets.only(bottom: 12),
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(18),
                 boxShadow: AppTheme.softShadow,
-                border: const Border(
-                  left: BorderSide(
-                    color: AppTheme.tertiaryContainer,
-                    width: 4.0,
-                  ),
+                border: Border.all(
+                  color: isSentByMe
+                      ? const Color(0xFFE2E8F0)
+                      : const Color(0xFFBFDBFE),
+                  width: 1.2,
                 ),
               ),
               padding: const EdgeInsets.all(16),
@@ -86,17 +103,23 @@ class PendingInvitationsList extends StatelessWidget {
                     width: 44,
                     height: 44,
                     decoration: BoxDecoration(
-                      color: AppTheme.secondaryContainer.withAlpha(70),
-                      shape: BoxShape.circle,
+                      color: isSentByMe
+                          ? const Color(0xFFF1F5F9)
+                          : const Color(0xFFEFF6FF),
+                      borderRadius: BorderRadius.circular(14),
                     ),
                     alignment: Alignment.center,
-                    child: const Icon(
-                      Icons.celebration,
-                      color: AppTheme.secondary,
-                      size: 20,
+                    child: Icon(
+                      isSentByMe
+                          ? Icons.outgoing_mail
+                          : Icons.mark_email_unread_rounded,
+                      color: isSentByMe
+                          ? const Color(0xFF64748B)
+                          : AppTheme.primary,
+                      size: 22,
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 14),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -104,31 +127,36 @@ class PendingInvitationsList extends StatelessWidget {
                         Text(
                           groupName,
                           style: GoogleFonts.plusJakartaSans(
-                            fontWeight: FontWeight.bold,
+                            fontWeight: FontWeight.w700,
                             fontSize: 15,
                             color: AppTheme.darkSlate,
                           ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
-                        const SizedBox(height: 2),
+                        const SizedBox(height: 3),
                         Text(
                           isSentByMe
-                              ? 'Invited: ${invite['receiverEmail']}'
-                              : 'Invited by $senderName',
+                              ? 'Mengundang: ${invite['receiverEmail']}'
+                              : 'Diundang oleh $senderName',
                           style: GoogleFonts.beVietnamPro(
                             fontSize: 12,
-                            color: AppTheme.darkSlateVariant,
+                            color: const Color(0xFF64748B),
                           ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ],
                     ),
                   ),
+                  const SizedBox(width: 8),
                   if (!isSentByMe)
-                    processingInviteId == invite['id']
+                    isProcessing
                         ? const Padding(
                             padding: EdgeInsets.symmetric(horizontal: 16),
                             child: SizedBox(
-                              width: 24,
-                              height: 24,
+                              width: 22,
+                              height: 22,
                               child: CircularProgressIndicator(
                                 strokeWidth: 2,
                                 color: AppTheme.primary,
@@ -136,36 +164,64 @@ class PendingInvitationsList extends StatelessWidget {
                             ),
                           )
                         : Row(
+                            mainAxisSize: MainAxisSize.min,
                             children: [
-                              IconButton(
-                                onPressed: processingInviteId != null
-                                    ? null
-                                    : () => onReject(invite['id']),
-                                icon: const Icon(
-                                  Icons.close,
-                                  color: Colors.grey,
-                                  size: 20,
-                                ),
-                                style: IconButton.styleFrom(
-                                  backgroundColor: const Color(0xFFF1F5F9),
-                                  shape: const CircleBorder(),
+                              // Reject Button
+                              Material(
+                                color: Colors.transparent,
+                                child: InkWell(
+                                  onTap: () => onReject(invite['id']),
+                                  borderRadius: BorderRadius.circular(12),
+                                  child: Container(
+                                    padding: const EdgeInsets.all(8),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFFEE2E2),
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: const Icon(
+                                      Icons.close_rounded,
+                                      color: Color(0xFFDC2626),
+                                      size: 18,
+                                    ),
+                                  ),
                                 ),
                               ),
-                              const SizedBox(width: 4),
-                              IconButton(
-                                onPressed: processingInviteId != null
-                                    ? null
-                                    : () => onAccept(invite['id']),
-                                icon: const Icon(
-                                  Icons.check,
-                                  color: AppTheme.primary,
-                                  size: 20,
-                                ),
-                                style: IconButton.styleFrom(
-                                  backgroundColor: AppTheme.primary.withAlpha(
-                                    20,
+                              const SizedBox(width: 8),
+                              // Accept Button
+                              Material(
+                                color: Colors.transparent,
+                                child: InkWell(
+                                  onTap: () => onAccept(invite['id']),
+                                  borderRadius: BorderRadius.circular(12),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                      vertical: 8,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: AppTheme.primary,
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        const Icon(
+                                          Icons.check_rounded,
+                                          color: Colors.white,
+                                          size: 16,
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          'Terima',
+                                          style: GoogleFonts.plusJakartaSans(
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.w700,
+                                            fontSize: 12,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
                                   ),
-                                  shape: const CircleBorder(),
                                 ),
                               ),
                             ],
@@ -173,20 +229,31 @@ class PendingInvitationsList extends StatelessWidget {
                   else
                     Container(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
+                        horizontal: 10,
+                        vertical: 5,
                       ),
                       decoration: BoxDecoration(
                         color: const Color(0xFFF1F5F9),
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(10),
                       ),
-                      child: Text(
-                        'Sent Pending',
-                        style: GoogleFonts.beVietnamPro(
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.grey,
-                        ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(
+                            Icons.access_time_rounded,
+                            size: 12,
+                            color: Color(0xFF64748B),
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            'Menunggu',
+                            style: GoogleFonts.beVietnamPro(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: const Color(0xFF64748B),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                 ],

@@ -32,31 +32,48 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
       context: context,
       builder: (context) {
         return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24),
+          ),
           title: Text(
-            'Delete Category',
-            style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.bold),
+            'Hapus Kategori',
+            style: GoogleFonts.plusJakartaSans(
+              fontWeight: FontWeight.w700,
+              color: AppTheme.darkSlate,
+            ),
           ),
           content: Text(
-            'Are you sure you want to delete "${category.name}"? Historical transactions will still keep this category, but you won\'t be able to select it for new entries.',
-            style: GoogleFonts.beVietnamPro(fontSize: 14),
+            'Apakah Anda yakin ingin menghapus kategori "${category.name}"? Transaksi sebelumnya yang menggunakan kategori ini akan tetap tersimpan.',
+            style: GoogleFonts.beVietnamPro(
+              fontSize: 13,
+              color: AppTheme.darkSlateVariant,
+              height: 1.4,
+            ),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(false),
               child: Text(
-                'Cancel',
-                style: GoogleFonts.plusJakartaSans(color: Colors.grey[600]),
+                'Batal',
+                style: GoogleFonts.plusJakartaSans(
+                  color: AppTheme.outline,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ),
             ElevatedButton(
               onPressed: () => Navigator.of(context).pop(true),
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.redAccent,
+                backgroundColor: AppTheme.error,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
               ),
               child: Text(
-                'Delete',
+                'Hapus',
                 style: GoogleFonts.plusJakartaSans(
-                  fontWeight: FontWeight.bold,
+                  fontWeight: FontWeight.w700,
                   color: Colors.white,
                 ),
               ),
@@ -77,10 +94,10 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
           SnackBar(
             content: Text(
               success
-                  ? 'Category deleted successfully'
-                  : 'Failed to delete category',
+                  ? 'Kategori "${category.name}" berhasil dihapus'
+                  : 'Gagal menghapus kategori',
             ),
-            backgroundColor: success ? Colors.green : Colors.redAccent,
+            backgroundColor: success ? Colors.green : AppTheme.error,
           ),
         );
       }
@@ -101,21 +118,24 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
       backgroundColor: AppTheme.background,
       appBar: AppBar(
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: AppTheme.darkSlate),
+          icon: const Icon(Icons.arrow_back_rounded, color: AppTheme.darkSlate),
           onPressed: () => Navigator.of(context).pop(),
         ),
         title: Text(
-          'Manage Categories',
+          'Kelola Kategori',
           style: GoogleFonts.plusJakartaSans(
             color: AppTheme.darkSlate,
-            fontWeight: FontWeight.bold,
+            fontWeight: FontWeight.w700,
+            fontSize: responsive.scaleFont(18),
           ),
         ),
         backgroundColor: Colors.white,
         elevation: 0.5,
+        scrolledUnderElevation: 0,
         actions: [
           IconButton(
-            icon: const Icon(Icons.add, color: AppTheme.primary),
+            icon: const Icon(Icons.add_rounded, color: AppTheme.primary, size: 26),
+            tooltip: 'Tambah Kategori',
             onPressed: () => CategoryFormDialog.show(context),
           ),
           const SizedBox(width: 8),
@@ -128,32 +148,105 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                'Create and manage your own custom categories for more detailed financial tracking.',
-                style: GoogleFonts.beVietnamPro(
-                  fontSize: 13,
-                  color: AppTheme.darkSlateVariant,
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEFF6FF),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: const Color(0xFFBFDBFE)),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.info_outline_rounded,
+                      color: Color(0xFF1D4ED8),
+                      size: 18,
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        'Kategori kustom memudahkan Anda memilah pengeluaran dan memantau anggaran dengan lebih spesifik.',
+                        style: GoogleFonts.beVietnamPro(
+                          fontSize: 12,
+                          color: const Color(0xFF1E40AF),
+                          height: 1.3,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
               const SizedBox(height: 16),
               Expanded(
-                child: categories.isEmpty
+                child: dashboardState.isLoading && categories.isEmpty
                     ? const CategoryShimmerList()
-                    : ListView.builder(
-                        itemCount: categories.length,
-                        itemBuilder: (context, index) {
-                          final cat = categories[index];
-                          return CategoryItemTile(
-                            category: cat,
-                            onEdit: () =>
-                                CategoryFormDialog.show(context, category: cat),
-                            onDelete: () => _handleDeleteCategory(cat),
-                          );
-                        },
-                      ),
+                    : categories.isEmpty
+                        ? Center(
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Container(
+                                  width: 64,
+                                  height: 64,
+                                  decoration: BoxDecoration(
+                                    color: AppTheme.primaryFixed,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  alignment: Alignment.center,
+                                  child: const Icon(
+                                    Icons.category_outlined,
+                                    color: AppTheme.primary,
+                                    size: 32,
+                                  ),
+                                ),
+                                const SizedBox(height: 16),
+                                Text(
+                                  'Belum Ada Kategori',
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w700,
+                                    color: AppTheme.darkSlate,
+                                  ),
+                                ),
+                                const SizedBox(height: 6),
+                                Text(
+                                  'Tekan tombol (+) di atas untuk menambahkan kategori pengeluaran baru.',
+                                  textAlign: TextAlign.center,
+                                  style: GoogleFonts.beVietnamPro(
+                                    fontSize: 13,
+                                    color: AppTheme.darkSlateVariant,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          )
+                        : ListView.builder(
+                            itemCount: categories.length,
+                            itemBuilder: (context, index) {
+                              final cat = categories[index];
+                              return CategoryItemTile(
+                                category: cat,
+                                onEdit: () => CategoryFormDialog.show(
+                                  context,
+                                  category: cat,
+                                ),
+                                onDelete: () => _handleDeleteCategory(cat),
+                              );
+                            },
+                          ),
               ),
             ],
           ),
+        ),
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => CategoryFormDialog.show(context),
+        backgroundColor: AppTheme.primary,
+        foregroundColor: Colors.white,
+        icon: const Icon(Icons.add_rounded),
+        label: Text(
+          'Kategori Baru',
+          style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700),
         ),
       ),
     );

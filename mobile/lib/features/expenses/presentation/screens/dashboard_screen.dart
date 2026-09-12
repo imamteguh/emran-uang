@@ -8,6 +8,7 @@ import '../bloc/dashboard_bloc.dart';
 import '../bloc/dashboard_event.dart';
 import '../widgets/dashboard/dashboard.dart';
 import '../widgets/dashboard_skeleton.dart';
+import 'shared_groups_screen.dart';
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
@@ -30,6 +31,14 @@ class DashboardScreen extends StatelessWidget {
         responsive: responsive,
         onWalletSelected: (wallet) {
           bloc.add(DashboardSelectWalletRequested(wallet));
+        },
+        onManageGroups: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => const SharedGroupsScreen(),
+            ),
+          );
         },
       ),
       body: SafeArea(

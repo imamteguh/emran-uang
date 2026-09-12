@@ -48,11 +48,16 @@ class _SharedGroupsScreenState extends State<SharedGroupsScreen> {
   }
 
   Future<void> _handleLeaveGroup(dynamic group) async {
+    final groupName = group['name'] ?? 'Grup';
     final confirm = await _showConfirmDialog(
-      context,
-      'Leave Group',
-      'Are you sure you want to leave this shared group?',
+      context: context,
+      title: 'Keluar dari Grup',
+      message:
+          'Apakah Anda yakin ingin keluar dari grup "$groupName"? Anda tidak akan lagi memiliki akses ke transaksi dan dompet bersama grup ini.',
+      confirmLabel: 'Ya, Keluar',
+      isDestructive: true,
     );
+
     if (confirm == true && mounted) {
       setState(() {
         _isActionLoading = true;
@@ -68,8 +73,21 @@ class _SharedGroupsScreenState extends State<SharedGroupsScreen> {
         });
         if (success) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Left the group successfully'),
+            SnackBar(
+              content: const Row(
+                children: [
+                  Icon(Icons.check_circle_rounded, color: Colors.white),
+                  SizedBox(width: 10),
+                  Expanded(
+                    child: Text('Berhasil keluar dari grup bersama'),
+                  ),
+                ],
+              ),
+              backgroundColor: AppTheme.success,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
             ),
           );
         }
@@ -78,11 +96,16 @@ class _SharedGroupsScreenState extends State<SharedGroupsScreen> {
   }
 
   Future<void> _handleDeleteGroup(dynamic group) async {
+    final groupName = group['name'] ?? 'Grup';
     final confirm = await _showConfirmDialog(
-      context,
-      'Delete Group',
-      'Are you sure you want to delete this shared group and all its associated data? This action is permanent and cannot be undone.',
+      context: context,
+      title: 'Hapus Grup Permanen',
+      message:
+          'Apakah Anda yakin ingin menghapus grup "$groupName" beserta seluruh data dan dompet bersamanya? Tindakan ini bersifat permanen dan tidak dapat dibatalkan.',
+      confirmLabel: 'Ya, Hapus Permanen',
+      isDestructive: true,
     );
+
     if (confirm == true && mounted) {
       setState(() {
         _isActionLoading = true;
@@ -98,9 +121,22 @@ class _SharedGroupsScreenState extends State<SharedGroupsScreen> {
         });
         if (success) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text(
-                'Group and all associated data deleted successfully',
+            SnackBar(
+              content: const Row(
+                children: [
+                  Icon(Icons.delete_outline_rounded, color: Colors.white),
+                  SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      'Grup dan seluruh data terkait berhasil dihapus',
+                    ),
+                  ),
+                ],
+              ),
+              backgroundColor: AppTheme.darkSlate,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
               ),
             ),
           );
@@ -109,40 +145,126 @@ class _SharedGroupsScreenState extends State<SharedGroupsScreen> {
     }
   }
 
-  Future<bool?> _showConfirmDialog(
-    BuildContext context,
-    String title,
-    String message,
-  ) {
-    return showDialog<bool>(
+  Future<bool?> _showConfirmDialog({
+    required BuildContext context,
+    required String title,
+    required String message,
+    required String confirmLabel,
+    bool isDestructive = false,
+  }) {
+    return showModalBottomSheet<bool>(
       context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: Text(
-            title,
-            style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.bold),
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return Container(
+          padding: const EdgeInsets.fromLTRB(24, 16, 24, 28),
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
           ),
-          content: Text(message, style: GoogleFonts.beVietnamPro(fontSize: 14)),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          backgroundColor: Colors.white,
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
-            ),
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(true),
-              child: const Text(
-                'Confirm',
-                style: TextStyle(
-                  color: AppTheme.primary,
-                  fontWeight: FontWeight.bold,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 44,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 20),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFCBD5E1),
+                  borderRadius: BorderRadius.circular(2),
                 ),
               ),
-            ),
-          ],
+              Container(
+                width: 56,
+                height: 56,
+                decoration: BoxDecoration(
+                  color: isDestructive
+                      ? const Color(0xFFFEE2E2)
+                      : const Color(0xFFEFF6FF),
+                  shape: BoxShape.circle,
+                ),
+                alignment: Alignment.center,
+                child: Icon(
+                  isDestructive
+                      ? Icons.warning_amber_rounded
+                      : Icons.help_outline_rounded,
+                  color: isDestructive
+                      ? const Color(0xFFDC2626)
+                      : AppTheme.primary,
+                  size: 28,
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                title,
+                style: GoogleFonts.plusJakartaSans(
+                  fontWeight: FontWeight.w800,
+                  fontSize: 18,
+                  color: AppTheme.darkSlate,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                message,
+                style: GoogleFonts.beVietnamPro(
+                  fontSize: 13.5,
+                  color: const Color(0xFF64748B),
+                  height: 1.45,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 24),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.of(ctx).pop(false),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        side: const BorderSide(color: Color(0xFFCBD5E1)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                      ),
+                      child: Text(
+                        'Batal',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 14,
+                          color: const Color(0xFF475569),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () => Navigator.of(ctx).pop(true),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: isDestructive
+                            ? const Color(0xFFDC2626)
+                            : AppTheme.primary,
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                      ),
+                      child: Text(
+                        confirmLabel,
+                        style: GoogleFonts.plusJakartaSans(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
         );
       },
     );
@@ -163,8 +285,21 @@ class _SharedGroupsScreenState extends State<SharedGroupsScreen> {
       });
       if (success) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Invitation accepted! Shared wallet active.'),
+          SnackBar(
+            content: const Row(
+              children: [
+                Icon(Icons.check_circle_rounded, color: Colors.white),
+                SizedBox(width: 10),
+                Expanded(
+                  child: Text('Undangan diterima! Dompet bersama kini aktif.'),
+                ),
+              ],
+            ),
+            backgroundColor: AppTheme.success,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
           ),
         );
       }
@@ -186,7 +321,13 @@ class _SharedGroupsScreenState extends State<SharedGroupsScreen> {
       });
       if (success) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Invitation rejected')),
+          SnackBar(
+            content: const Text('Undangan telah ditolak'),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
         );
       }
     }
@@ -202,39 +343,91 @@ class _SharedGroupsScreenState extends State<SharedGroupsScreen> {
     return Stack(
       children: [
         Scaffold(
-          backgroundColor: const Color(0xFFF8FAFC),
+          backgroundColor: const Color(0xFF0F172A), // Top Dark Navy
           appBar: AppBar(
-            backgroundColor: const Color(0xFFF8FAFC),
+            backgroundColor: const Color(0xFF0F172A),
             elevation: 0,
             scrolledUnderElevation: 0,
-            centerTitle: true,
             leading: IconButton(
-              icon: const Icon(Icons.arrow_back, color: AppTheme.primary),
+              icon: const Icon(
+                Icons.arrow_back_ios_new_rounded,
+                color: Colors.white,
+                size: 18,
+              ),
               onPressed: _isActionLoading
                   ? null
                   : () => Navigator.of(context).pop(),
             ),
-            title: Text(
-              'Shared Groups',
-              style: GoogleFonts.plusJakartaSans(
-                color: AppTheme.primary,
-                fontWeight: FontWeight.bold,
-                fontSize: responsive.scaleFont(18),
-              ),
+            title: Row(
+              children: [
+                Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: AppTheme.primary,
+                    borderRadius: BorderRadius.circular(10),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppTheme.primary.withAlpha(80),
+                        blurRadius: 8,
+                        offset: const Offset(0, 3),
+                      ),
+                    ],
+                  ),
+                  alignment: Alignment.center,
+                  child: const Icon(
+                    Icons.groups_rounded,
+                    color: Colors.white,
+                    size: 20,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'Kelola Grup',
+                      style: GoogleFonts.plusJakartaSans(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w800,
+                        fontSize: responsive.scaleFont(17),
+                        letterSpacing: -0.3,
+                      ),
+                    ),
+                    Text(
+                      'Dompet bersama & pembagian tagihan',
+                      style: GoogleFonts.beVietnamPro(
+                        color: const Color(0xFF94A3B8),
+                        fontWeight: FontWeight.w500,
+                        fontSize: responsive.scaleFont(10.5),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
             actions: [
               IconButton(
-                icon: const Icon(Icons.refresh, color: AppTheme.primary),
+                icon: const Icon(Icons.refresh_rounded, color: Colors.white70),
+                tooltip: 'Muat Ulang',
                 onPressed: _isActionLoading
                     ? null
-                    : () => _refreshIndicatorKey.currentState?.show(),
+                    : () {
+                        context.read<DashboardBloc>().add(
+                              const DashboardFetchSharedGroupsRequested(),
+                            );
+                      },
               ),
               const SizedBox(width: 8),
             ],
           ),
           body: SafeArea(
+            bottom: false,
             child: RefreshIndicator(
               key: _refreshIndicatorKey,
+              color: AppTheme.primary,
+              backgroundColor: Colors.white,
               onRefresh: () async {
                 context.read<DashboardBloc>().add(
                   const DashboardFetchSharedGroupsRequested(),
@@ -242,35 +435,97 @@ class _SharedGroupsScreenState extends State<SharedGroupsScreen> {
               },
               child: SingleChildScrollView(
                 physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppTheme.marginMobile,
-                  vertical: 16,
-                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // 1. Create New Group Card
-                    const CreateGroupCard(),
-                    const SizedBox(height: 24),
-
-                    // 2. Pending Invitations Section
-                    if (provider.pendingInvites.isNotEmpty) ...[
-                      PendingInvitationsList(
-                        pendingInvites: provider.pendingInvites,
-                        currentUserId: currentUser?.id,
-                        responsive: responsive,
-                        processingInviteId: _processingInviteId,
-                        onAccept: _handleAcceptInvite,
-                        onReject: _handleRejectInvite,
+                    // Top Info Banner in Dark Navy
+                    Container(
+                      color: const Color(0xFF0F172A),
+                      padding: const EdgeInsets.fromLTRB(16, 4, 16, 18),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 12,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withAlpha(15),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: Colors.white.withAlpha(25),
+                            width: 1,
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(
+                              Icons.info_outline_rounded,
+                              color: Color(0xFF38BDF8),
+                              size: 20,
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                'Grup memudahkan Anda berbagi catatan pengeluaran secara otomatis melalui Dompet Bersama.',
+                                style: GoogleFonts.beVietnamPro(
+                                  fontSize: 12,
+                                  color: const Color(0xFFCBD5E1),
+                                  height: 1.4,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                      const SizedBox(height: 24),
-                    ],
+                    ),
 
-                    // 3. Active Shared Groups Section
-                    ActiveSharedGroupsList(
-                      sharedGroups: provider.sharedGroups,
-                      responsive: responsive,
-                      onGroupActionsPressed: _showGroupActions,
+                    // Curved Light Surface
+                    Container(
+                      width: double.infinity,
+                      constraints: BoxConstraints(
+                        minHeight: MediaQuery.of(context).size.height - 200,
+                      ),
+                      decoration: const BoxDecoration(
+                        color: Color(0xFFF8FAFC),
+                        borderRadius: BorderRadius.vertical(
+                          top: Radius.circular(28),
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black12,
+                            offset: Offset(0, -3),
+                            blurRadius: 10,
+                          ),
+                        ],
+                      ),
+                      padding: const EdgeInsets.fromLTRB(16, 20, 16, 40),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // 1. Create New Group Card
+                          const CreateGroupCard(),
+                          const SizedBox(height: 24),
+
+                          // 2. Pending Invitations Section
+                          if (provider.pendingInvites.isNotEmpty) ...[
+                            PendingInvitationsList(
+                              pendingInvites: provider.pendingInvites,
+                              currentUserId: currentUser?.id,
+                              responsive: responsive,
+                              processingInviteId: _processingInviteId,
+                              onAccept: _handleAcceptInvite,
+                              onReject: _handleRejectInvite,
+                            ),
+                            const SizedBox(height: 24),
+                          ],
+
+                          // 3. Active Shared Groups Section
+                          ActiveSharedGroupsList(
+                            sharedGroups: provider.sharedGroups,
+                            responsive: responsive,
+                            onGroupActionsPressed: _showGroupActions,
+                          ),
+                        ],
+                      ),
                     ),
                   ],
                 ),
@@ -281,9 +536,34 @@ class _SharedGroupsScreenState extends State<SharedGroupsScreen> {
         if (_isActionLoading)
           Positioned.fill(
             child: Container(
-              color: Colors.black.withAlpha(51),
-              child: const Center(
-                child: CircularProgressIndicator(color: AppTheme.primary),
+              color: Colors.black45,
+              child: Center(
+                child: Container(
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: AppTheme.softShadow,
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const CircularProgressIndicator(
+                        color: AppTheme.primary,
+                        strokeWidth: 3,
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Memproses...',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 14,
+                          color: AppTheme.darkSlate,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ),
           ),

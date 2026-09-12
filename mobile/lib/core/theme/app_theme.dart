@@ -24,6 +24,10 @@ class AppTheme {
   static const Color errorContainer = Color(0xFFFFDAD6);
   static const Color onErrorContainer = Color(0xFF93000A);
 
+  static const Color success = Color(0xFF16A34A);
+  static const Color onSuccess = Color(0xFFFFFFFF);
+  static const Color successContainer = Color(0xFFDCFCE7);
+
   static const Color primaryFixed = Color(0xFFDBE1FF);
   static const Color primaryFixedDim = Color(0xFFB4C5FF);
   static const Color onPrimaryFixed = Color(0xFF00174B);

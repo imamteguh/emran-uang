@@ -19,8 +19,8 @@ class ActiveSharedGroupsList extends StatelessWidget {
   Widget _buildOverlappingAvatars(List<dynamic> members) {
     final displayMembers = members.take(3).toList();
     final remainingCount = members.length - displayMembers.length;
-    const double avatarSize = 32.0;
-    const double spacing = 20.0;
+    const double avatarSize = 28.0;
+    const double spacing = 18.0;
 
     return SizedBox(
       height: avatarSize,
@@ -34,7 +34,16 @@ class ActiveSharedGroupsList extends StatelessWidget {
           for (int i = 0; i < displayMembers.length; i++)
             Positioned(
               left: i * spacing,
-              child: _buildAvatarCircle(displayMembers[i]['user'], avatarSize),
+              child: Container(
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.white, width: 2),
+                ),
+                child: _buildAvatarCircle(
+                  displayMembers[i]['user'],
+                  avatarSize - 4,
+                ),
+              ),
             ),
           if (remainingCount > 0)
             Positioned(
@@ -42,11 +51,8 @@ class ActiveSharedGroupsList extends StatelessWidget {
               child: Container(
                 width: avatarSize,
                 height: avatarSize,
-                decoration: const BoxDecoration(
-                  color: AppTheme.surfaceContainerHigh,
-                  shape: BoxShape.circle,
-                ),
-                foregroundDecoration: BoxDecoration(
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE2E8F0),
                   shape: BoxShape.circle,
                   border: Border.all(color: Colors.white, width: 2),
                 ),
@@ -54,9 +60,9 @@ class ActiveSharedGroupsList extends StatelessWidget {
                 child: Text(
                   '+$remainingCount',
                   style: GoogleFonts.plusJakartaSans(
-                    color: AppTheme.onSurface,
-                    fontSize: 11,
-                    fontWeight: FontWeight.bold,
+                    color: const Color(0xFF475569),
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
               ),
@@ -79,31 +85,50 @@ class ActiveSharedGroupsList extends StatelessWidget {
     if (sharedGroups.isEmpty) {
       return Container(
         width: double.infinity,
-        padding: const EdgeInsets.symmetric(vertical: 48, horizontal: 16),
+        padding: const EdgeInsets.symmetric(vertical: 36, horizontal: 20),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: AppTheme.roundedBorder,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: const Color(0xFFE2E8F0)),
           boxShadow: AppTheme.softShadow,
         ),
         child: Column(
           children: [
-            const Text('👥', style: TextStyle(fontSize: 48)),
-            const SizedBox(height: 12),
+            Container(
+              width: 60,
+              height: 60,
+              decoration: BoxDecoration(
+                color: const Color(0xFFEFF6FF),
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: const Color(0xFFDBEAFE),
+                  width: 1.5,
+                ),
+              ),
+              alignment: Alignment.center,
+              child: const Icon(
+                Icons.groups_rounded,
+                color: AppTheme.primary,
+                size: 30,
+              ),
+            ),
+            const SizedBox(height: 14),
             Text(
-              'No active shared groups',
+              'Belum Ada Grup Bersama',
               style: GoogleFonts.plusJakartaSans(
-                fontWeight: FontWeight.bold,
+                fontWeight: FontWeight.w800,
                 fontSize: 16,
                 color: AppTheme.darkSlate,
               ),
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: 6),
             Text(
-              'Create a group above and invite someone to track shared expenses together.',
+              'Buat grup di atas dan undang rekan untuk mulai mencatat dan membagi pengeluaran bersama secara transparan.',
               textAlign: TextAlign.center,
               style: GoogleFonts.beVietnamPro(
-                color: AppTheme.darkSlateVariant,
+                color: const Color(0xFF64748B),
                 fontSize: 13,
+                height: 1.45,
               ),
             ),
           ],
@@ -111,21 +136,47 @@ class ActiveSharedGroupsList extends StatelessWidget {
       );
     }
 
-    final topColors = [
-      AppTheme.primaryFixedDim,
-      AppTheme.tertiaryFixedDim,
-      AppTheme.secondaryFixedDim,
-    ];
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Active Shared Groups',
-          style: AppTheme.headlineSm.copyWith(
-            fontSize: responsive.scaleFont(18),
-            color: AppTheme.darkSlate,
-          ),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Row(
+              children: [
+                const Icon(
+                  Icons.diversity_3_rounded,
+                  size: 20,
+                  color: AppTheme.primary,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'Grup Bersama Aktif',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: responsive.scaleFont(17),
+                    fontWeight: FontWeight.w800,
+                    color: AppTheme.darkSlate,
+                    letterSpacing: -0.3,
+                  ),
+                ),
+              ],
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF1F5F9),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                '${sharedGroups.length} Grup',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  color: const Color(0xFF475569),
+                ),
+              ),
+            ),
+          ],
         ),
         const SizedBox(height: 12),
         ListView.builder(
@@ -136,90 +187,198 @@ class ActiveSharedGroupsList extends StatelessWidget {
             final groupItem = sharedGroups[index];
             final group = groupItem['group'];
             final myRole = groupItem['myRole'];
-            final groupName = group['name'] ?? 'Shared Group';
+            final groupName = group['name'] ?? 'Grup Bersama';
             final membersList = group['members'] as List? ?? [];
-            final stripeColor = topColors[index % topColors.length];
-
             final activeBillsCount = group['activeBillsCount'] ?? 0;
-            final String subtitleText =
-                '${membersList.length} members • $activeBillsCount active bill${activeBillsCount == 1 ? "" : "s"}';
+            final isOwner = myRole == 'OWNER';
 
             return Container(
-              margin: const EdgeInsets.only(bottom: 16),
+              margin: const EdgeInsets.only(bottom: 14),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: const Color(0xFFE2E8F0)),
+                boxShadow: AppTheme.softShadow,
+              ),
               child: Material(
                 color: Colors.transparent,
                 child: InkWell(
-                  borderRadius: BorderRadius.circular(16),
-                  splashColor: stripeColor.withAlpha(50),
-                  highlightColor: stripeColor.withAlpha(20),
-                  onTap: () {},
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 20,
-                      vertical: 18,
-                    ),
-                    decoration: BoxDecoration(
-                      color: stripeColor.withAlpha(51),
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border(
-                        left: BorderSide(color: stripeColor, width: 4),
-                      ),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      crossAxisAlignment: CrossAxisAlignment.center,
+                  borderRadius: BorderRadius.circular(20),
+                  onTap: () => onGroupActionsPressed(group, myRole),
+                  child: Padding(
+                    padding: const EdgeInsets.all(18),
+                    child: Column(
                       children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                groupName,
+                        // Top Section: Group Logo + Title + Role + Action Icon
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            Container(
+                              width: 44,
+                              height: 44,
+                              decoration: BoxDecoration(
+                                gradient: const LinearGradient(
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                  colors: [
+                                    Color(0xFF0F172A),
+                                    Color(0xFF004BC6),
+                                  ],
+                                ),
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                              alignment: Alignment.center,
+                              child: Text(
+                                groupName.isNotEmpty
+                                    ? groupName[0].toUpperCase()
+                                    : 'G',
                                 style: GoogleFonts.plusJakartaSans(
-                                  fontWeight: FontWeight.bold,
                                   fontSize: 18,
-                                  color: AppTheme.onSurface,
+                                  fontWeight: FontWeight.w800,
+                                  color: Colors.white,
                                 ),
                               ),
-                              const SizedBox(height: 4),
-                              Row(
+                            ),
+                            const SizedBox(width: 14),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  const Icon(
-                                    Icons.group,
-                                    size: 14,
-                                    color: AppTheme.onSurfaceVariant,
-                                  ),
-                                  const SizedBox(width: 4),
                                   Text(
-                                    subtitleText,
-                                    style: GoogleFonts.beVietnamPro(
-                                      fontSize: 12,
-                                      color: AppTheme.onSurfaceVariant,
+                                    groupName,
+                                    style: GoogleFonts.plusJakartaSans(
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 16,
+                                      color: AppTheme.darkSlate,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Row(
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 8,
+                                          vertical: 2,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: isOwner
+                                              ? const Color(0xFFE0E7FF)
+                                              : const Color(0xFFF1F5F9),
+                                          borderRadius:
+                                              BorderRadius.circular(8),
+                                        ),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Icon(
+                                              isOwner
+                                                  ? Icons.star_rounded
+                                                  : Icons.person_outline_rounded,
+                                              size: 12,
+                                              color: isOwner
+                                                  ? const Color(0xFF4338CA)
+                                                  : const Color(0xFF475569),
+                                            ),
+                                            const SizedBox(width: 4),
+                                            Text(
+                                              isOwner ? 'Pemilik' : 'Anggota',
+                                              style: GoogleFonts.plusJakartaSans(
+                                                fontSize: 10.5,
+                                                fontWeight: FontWeight.w700,
+                                                color: isOwner
+                                                  ? const Color(0xFF4338CA)
+                                                  : const Color(0xFF475569),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                            IconButton(
+                              icon: const Icon(
+                                Icons.more_vert_rounded,
+                                color: Color(0xFF64748B),
+                                size: 22,
+                              ),
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(
+                                minWidth: 36,
+                                minHeight: 36,
+                              ),
+                              onPressed: () =>
+                                  onGroupActionsPressed(group, myRole),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 14),
+                        const Divider(height: 1, color: Color(0xFFF1F5F9)),
+                        const SizedBox(height: 12),
+
+                        // Bottom Section: Member Avatars & Bills Summary
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Row(
+                              children: [
+                                _buildOverlappingAvatars(membersList),
+                                const SizedBox(width: 10),
+                                Text(
+                                  '${membersList.length} Anggota',
+                                  style: GoogleFonts.beVietnamPro(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w500,
+                                    color: const Color(0xFF64748B),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: activeBillsCount > 0
+                                    ? const Color(0xFFEFF6FF)
+                                    : const Color(0xFFF8FAFC),
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(
+                                  color: activeBillsCount > 0
+                                      ? const Color(0xFFDBEAFE)
+                                      : const Color(0xFFE2E8F0),
+                                ),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.receipt_long_rounded,
+                                    size: 13,
+                                    color: activeBillsCount > 0
+                                        ? AppTheme.primary
+                                        : const Color(0xFF94A3B8),
+                                  ),
+                                  const SizedBox(width: 5),
+                                  Text(
+                                    activeBillsCount > 0
+                                        ? '$activeBillsCount Tagihan Aktif'
+                                        : '0 Tagihan',
+                                    style: GoogleFonts.plusJakartaSans(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w600,
+                                      color: activeBillsCount > 0
+                                          ? AppTheme.primary
+                                          : const Color(0xFF94A3B8),
                                     ),
                                   ),
                                 ],
                               ),
-                            ],
-                          ),
-                        ),
-                        Row(
-                          children: [
-                            _buildOverlappingAvatars(membersList),
-                            const SizedBox(width: 8),
-                            IconButton(
-                              icon: const Icon(
-                                Icons.more_vert,
-                                color: AppTheme.onSurfaceVariant,
-                                size: 20,
-                              ),
-                              padding: EdgeInsets.zero,
-                              constraints: const BoxConstraints(
-                                minWidth: 32,
-                                minHeight: 32,
-                              ),
-                              splashRadius: 20,
-                              onPressed: () =>
-                                  onGroupActionsPressed(group, myRole),
                             ),
                           ],
                         ),
